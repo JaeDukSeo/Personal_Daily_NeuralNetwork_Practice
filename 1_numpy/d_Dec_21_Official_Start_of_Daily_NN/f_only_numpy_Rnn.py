@@ -17,6 +17,15 @@ def tanh(x):
 def d_tanh(x):
     return 1 - tanh(x) ** 2
 
+def ReLu(x):
+    mask = (x>0) * 1.0
+    return x * mask
+
+def d_ReLu(x):
+    mask  = (x<=0) * 0.0
+    mask2 = (x>0) * 1.0
+    return mask + mask2
+    
 x = np.array([
     [0,0,0],
     [0,0,1],
@@ -26,20 +35,20 @@ x = np.array([
 y = np.array([
     [0],
     [1],
-    [3]
+    [2]
 ])
 
 wx = np.random.randn()
 wrec = np.random.randn()
 
-wx = 1.0
-wrec = 1.0
+# wx = 1.0
+# wrec = 1.0
 
 
-number_of_epoch = 90000
+number_of_epoch = 200000
 
-lr_wx = 0.00001
-lr_wrec = 0.00003
+lr_wx = 0.0001
+lr_wrec = 0.0003
 
 state = np.zeros((x.shape[0],x.shape[1] + 1))
 grad_over_time = np.zeros((x.shape))
@@ -49,11 +58,11 @@ vx,vrec = 0,0
 for iter in range(number_of_epoch):
 
     state_1_in  = state[:,0]*wrec + x[:,0]*wx
-    state_1_out = tanh(state_1_in)
+    state_1_out = ReLu(state_1_in)
     state[:,1] = state_1_out
 
     state_2_in  = state[:,1]*wrec + x[:,1]*wx
-    state_2_out = tanh(state_2_in)
+    state_2_out = ReLu(state_2_in)
     state[:,2] = state_2_out
 
     state_3_in  = state[:,2]*wrec + x[:,2]*wx
@@ -65,8 +74,8 @@ for iter in range(number_of_epoch):
         print("Current iter : ", iter, " Current cost: ", cost)
 
     grad_over_time[:,2] = state[:,3] - np.squeeze(y)
-    grad_over_time[:,1] = grad_over_time[:,2] * wrec  * d_tanh(state_2_in)
-    grad_over_time[:,0] = grad_over_time[:,1] * wrec  * d_tanh(state_1_in)
+    grad_over_time[:,1] = grad_over_time[:,2] * wrec  * d_ReLu(state_2_in)
+    grad_over_time[:,0] = grad_over_time[:,1] * wrec  * d_ReLu(state_1_in)
 
     grad_wx = np.sum(grad_over_time[:,2]*x[:,2]+
                     grad_over_time[:,1]*x[:,1]+
@@ -76,8 +85,8 @@ for iter in range(number_of_epoch):
                     grad_over_time[:,1]*state[:,1]+
                     grad_over_time[:,0]*state[:,0])
 
-    vx = vx * 0.0001 + lr_wx * grad_wx
-    vrec = vrec * 0.0001 + lr_wrec * grad_wrec
+    vx = vx * 0.01 + lr_wx * grad_wx
+    vrec = vrec * 0.01 + lr_wrec * grad_wrec
     
 
     wx = wx - vx
@@ -85,11 +94,11 @@ for iter in range(number_of_epoch):
     
 # 3. Final Output
 state_1_in  = state[:,0]*wrec + x[:,0]*wx
-state_1_out = log(state_1_in)
+state_1_out = ReLu(state_1_in)
 state[:,1] = state_1_out
 
 state_2_in  = state[:,1]*wrec + x[:,1]*wx
-state_2_out = log(state_2_in)
+state_2_out = ReLu(state_2_in)
 state[:,2] = state_2_out
 
 state_3_in  = state[:,2]*wrec + x[:,2]*wx
