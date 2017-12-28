@@ -3,7 +3,7 @@ import numpy as np
 np.random.seed(1234)
 
 def log(x):
-    return 1 / (1 + np.exp(-1 *x))
+    return 1 / ( 1+ np.exp( -1 * x ))
 
 def d_log(x):
     return log(x) * (1 - log(x))
@@ -16,18 +16,21 @@ x = np.array([
 ])
 
 y = np.array([
-    [0],
-    [1],
-    [3]
+    [3],
+    [2],
+    [1]
 ])
 
-wrec = 0.05
-wx = 0.08
+wx = np.random.randn()
+wrec = np.random.randn()
+epoch = 15000
+
+
 
 states = np.zeros((x.shape[0],x.shape[1] + 1))
 gradients = np.zeros((x.shape))
-
-epoch = 100000
+lr_wx = 0.001
+lr_wrec = 0.001
 
 for iter in range(epoch):
 
@@ -42,14 +45,14 @@ for iter in range(epoch):
     state_3_in = x[:,2].dot(wx) + states[:,2].dot(wrec)
     states[:,3] = state_3_in
 
-    cost = np.square(states[:,3]  - np.squeeze(y)) / 2
+    cost = np.square(states[:,3]  - np.squeeze(y)).sum() / 2
 
     if iter%1000 ==0:
         print("current iter: ", iter, " currnet cost:", cost)
 
     gradients[:,2] = states[:,3]  - np.squeeze(y)
-    gradients[:,1] = gradients[:,2].dot(wrec) * d_log(state_2_in)
-    gradients[:,0] = gradients[:,1].dot(wrec) * d_log(state_1_in)
+    gradients[:,1] = gradients[:,2] * wrec * d_log(state_2_in)
+    gradients[:,0] = gradients[:,1] * wrec * d_log(state_1_in)
 
     grad_wx = np.sum(
         gradients[:,2] * x[:,2] +
@@ -61,8 +64,8 @@ for iter in range(epoch):
                 gradients[:,1]*states[:,1]+
                 gradients[:,0]*states[:,0])
 
-    wx = wx - 0.01 * grad_wx
-    wrec = wrec - 0.0001 * grad_wrec
+    wx = wx - lr_wx * grad_wx
+    wrec = wrec - lr_wrec * grad_wrec
     
 
 
