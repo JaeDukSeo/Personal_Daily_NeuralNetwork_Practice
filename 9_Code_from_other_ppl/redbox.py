@@ -49,7 +49,7 @@ iterations = 2000
 x,y = generate_dataset(num_examples=num_examples, output_dim = output_dim)
 
 batch_size = 1000
-alpha = 0.0003
+alpha = 0.03
 
 
 class DNI(object):
@@ -113,7 +113,7 @@ for iter in range(iterations):
     
     error += (np.sum(np.abs(layer_3_delta * layer_3_out * (1 - layer_3_out))))
 
-    if(error < 0.000001):
+    if(error < 0.1):
         sys.stdout.write("\rIter:" + str(iter) + " Loss:" + str(error))
         break       
         
@@ -122,7 +122,7 @@ for iter in range(iterations):
         print("")
 
 end = time.time()
-print("\n\n------------\nTraining Time: ",end - start )
+
 
 _, layer_1_out = layer_1.forward_and_synthetic_update(x)
 layer_1_delta, layer_2_out = layer_2.forward_and_synthetic_update(layer_1_out)
@@ -137,4 +137,4 @@ for iter in range(10):
     truteh = x[iter][:12] + x[iter][12:]
     print("The truth data: ",truteh.dot(2**np.arange(x[iter][:12].size)[::-1]),'\n')
     
-    
+print("\n\n------------\nTraining Time: ",end - start )
