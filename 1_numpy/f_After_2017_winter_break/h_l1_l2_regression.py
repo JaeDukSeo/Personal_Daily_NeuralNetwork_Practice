@@ -36,6 +36,7 @@ Y = np.expand_dims(Y,axis=1)
 # 1. Declare Hyper Parameters
 num_epoch = 100
 learing_rate = 0.01
+alpha = 1.0
 
 w1 = np.random.randn(2,25)
 w2 = np.random.randn(25,57)
@@ -169,10 +170,10 @@ for iter in range(num_epoch):
     grad_1_part_3 = X
     grad_1    = grad_1_part_3.T.dot(grad_1_part_1*grad_1_part_2)
 
-    w1_l1_reg = w1_l1_reg - learing_rate * (grad_1 )   + w1_l1_reg
-    w2_l1_reg = w2_l1_reg - learing_rate * (grad_2 )   + w2_l1_reg
-    w3_l1_reg = w3_l1_reg - learing_rate * (grad_3 )   + w3_l1_reg
-    w4_l1_reg = w4_l1_reg - learing_rate * (grad_4 )   + w4_l1_reg
+    w1_l1_reg = w1_l1_reg * ( 1 - learing_rate*alpha/len(X))- learing_rate * grad_1    
+    w2_l1_reg = w2_l1_reg * ( 1 - learing_rate*alpha/len(X))- learing_rate * grad_2    
+    w3_l1_reg = w3_l1_reg * ( 1 - learing_rate*alpha/len(X))- learing_rate * grad_3    
+    w4_l1_reg = w4_l1_reg * ( 1 - learing_rate*alpha/len(X))- learing_rate * grad_4    
     
 layer_1 = X.dot(w1_l1_reg)
 layer_1_act = arctanh(layer_1)
