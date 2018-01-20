@@ -103,7 +103,7 @@ for iter in range(num_epoch):
     cost = np.abs(layer_4_act-Y_with_dim).sum()  / len(X)
     print("Current Iter: ",iter, " current cost: ",cost,end="\r")
 
-    grad_4_part_1 = d_abs(layer_4_act-Y_with_dim)/ len(X)
+    grad_4_part_1 = (layer_4_act-Y_with_dim)/ len(X)
     grad_4_part_2 = d_IDEN(layer_4)
     grad_4_part_3 = layer_3_act
     grad_4 =    grad_4_part_3.T.dot(grad_4_part_1*grad_4_part_2) 
@@ -212,7 +212,7 @@ for iter in range(num_epoch):
                                                                     np.abs(w4_l1_reg).sum()  )
     print("Current Iter: ",iter, " current cost: ",cost,end="\r")
 
-    grad_4_part_1 = d_abs(layer_4_act-Y_with_dim)/ len(X)
+    grad_4_part_1 = (layer_4_act-Y_with_dim)/ len(X)
     grad_4_part_2 = d_IDEN(layer_4)
     grad_4_part_3 = layer_3_act
     grad_4 =    grad_4_part_3.T.dot(grad_4_part_1*grad_4_part_2) 
@@ -326,7 +326,7 @@ for iter in range(num_epoch):
                                                                         np.sum(w1_l1_l2_reg ** 2))
     print("Current Iter: ",iter, " current cost: ",cost,end="\r")
 
-    grad_4_part_1 = d_abs(layer_4_act-Y_with_dim)/ len(X)
+    grad_4_part_1 = (layer_4_act-Y_with_dim)/ len(X)
     grad_4_part_2 = d_IDEN(layer_4)
     grad_4_part_3 = layer_3_act
     grad_4 =    grad_4_part_3.T.dot(grad_4_part_1*grad_4_part_2) 
