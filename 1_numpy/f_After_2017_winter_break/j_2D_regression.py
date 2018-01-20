@@ -31,7 +31,6 @@ def IDEN(x):
 def d_IDEN(x):
     return 1
 
-
 def d_abs(x):
     mask = (x >= 0) *1.0
     mask2 = (x<0) * -1.0
@@ -40,18 +39,18 @@ def d_abs(x):
 np.random.seed(456789)
 
 
+# -2. Make training data
 X,Y = make_regression(n_samples=500, 
                     n_features=1, 
                     n_informative=1, 
                     noise=0,
                     coef=False)
 
+# -1. Outlier and min max range 
 n_outliers = 50
 out_liear_point = 50
 X[out_liear_point:out_liear_point+n_outliers] = 1 + 0.08 * np.random.normal(size=(n_outliers, 1))
 Y[out_liear_point:out_liear_point+n_outliers] = -85 + 0.8 * np.random.normal(size=n_outliers)
-
-# Y = (Y - np.min(Y)) /  (np.max(Y) - np.min(Y)) 
 min_range = np.min(X)
 max_range = np.max(X)
 
@@ -85,7 +84,7 @@ w1_l1_l2_reg,w2_l1_l2_reg,w3_l1_l2_reg,w4_l1_l2_reg = w1,w2,w3,w4
 w1_l2_l1_reg,w2_l2_l1_reg,w3_l2_l1_reg,w4_l2_l1_reg = w1,w2,w3,w4
 
 
-# ------ L1 Norm + L0 Reg ------
+# ------ L1 Norm ------
 print('\n---------------------------')
 for iter in range(num_epoch):
     
@@ -104,7 +103,7 @@ for iter in range(num_epoch):
     cost = np.abs(layer_4_act-Y_with_dim).sum()  / len(X)
     print("Current Iter: ",iter, " current cost: ",cost,end="\r")
 
-    grad_4_part_1 = (layer_4_act-Y_with_dim)/ len(X)
+    grad_4_part_1 = d_abs(layer_4_act-Y_with_dim)/ len(X)
     grad_4_part_2 = d_IDEN(layer_4)
     grad_4_part_3 = layer_3_act
     grad_4 =    grad_4_part_3.T.dot(grad_4_part_1*grad_4_part_2) 
@@ -129,7 +128,6 @@ for iter in range(num_epoch):
     w2_l1 = w2_l1 - learning_rate * grad_2
     w1_l1 = w1_l1 - learning_rate * grad_1
 
-
 layer_1 = theta_with_bias.dot(w1_l1)
 layer_1_act = tanh(layer_1)
 layer_2 = layer_1_act.dot(w2_l1)
@@ -139,10 +137,7 @@ layer_3_act = arctan(layer_3)
 layer_4 = layer_3_act.dot(w4_l1)
 layer_4_l1 = IDEN(layer_4)
 
-
-
-
-# ------ L2 Norm + L0 Reg ------
+# ------ L2 Norm  ------
 print('\n---------------------------')
 for iter in range(num_epoch):
     
@@ -186,7 +181,6 @@ for iter in range(num_epoch):
     w2_l2 = w2_l2 - learning_rate * grad_2 
     w1_l2 = w1_l2 - learning_rate * grad_1
     
-
 layer_1 = theta_with_bias.dot(w1_l2)
 layer_1_act = tanh(layer_1)
 layer_2 = layer_1_act.dot(w2_l2)
@@ -195,8 +189,6 @@ layer_3 = layer_2_act.dot(w3_l2)
 layer_3_act = arctan(layer_3)
 layer_4 = layer_3_act.dot(w4_l2)
 layer_4_l2 = IDEN(layer_4)
-
-
 
 #  ------ L1 Norm + L1 Reg ------
 print('\n---------------------------')
@@ -220,7 +212,7 @@ for iter in range(num_epoch):
                                                                     np.abs(w4_l1_reg).sum()  )
     print("Current Iter: ",iter, " current cost: ",cost,end="\r")
 
-    grad_4_part_1 = (layer_4_act-Y_with_dim)/ len(X)
+    grad_4_part_1 = d_abs(layer_4_act-Y_with_dim)/ len(X)
     grad_4_part_2 = d_IDEN(layer_4)
     grad_4_part_3 = layer_3_act
     grad_4 =    grad_4_part_3.T.dot(grad_4_part_1*grad_4_part_2) 
@@ -246,7 +238,6 @@ for iter in range(num_epoch):
     w2_l1_reg = w2_l1_reg - learning_rate * (grad_2 + alpha *  d_abs(w2_l1_reg))
     w1_l1_reg = w1_l1_reg - learning_rate * (grad_1 + alpha *  d_abs(w1_l1_reg))
 
-
 layer_1 = theta_with_bias.dot(w1_l1_reg)
 layer_1_act = tanh(layer_1)
 layer_2 = layer_1_act.dot(w2_l1_reg)
@@ -255,17 +246,6 @@ layer_3 = layer_2_act.dot(w3_l1_reg)
 layer_3_act = arctan(layer_3)
 layer_4 = layer_3_act.dot(w4_l1_reg)
 layer_4_l1_reg = IDEN(layer_4)
-
-
-
-
-
-
-
-
-
-
-
 
 #  ------ L2 Norm + L2 Reg ------
 print('\n---------------------------')
@@ -315,25 +295,14 @@ for iter in range(num_epoch):
     w2_l2_reg = w2_l2_reg - learning_rate * (grad_2 + 2*alpha * w2_l2_reg)
     w1_l2_reg = w1_l2_reg - learning_rate * (grad_1 + 2*alpha * w1_l2_reg)
     
-
 layer_1 = theta_with_bias.dot(w1_l2_reg)
 layer_1_act = tanh(layer_1)
-
 layer_2 = layer_1_act.dot(w2_l2_reg)
 layer_2_act = IDEN(layer_2)
-
 layer_3 = layer_2_act.dot(w3_l2_reg)
 layer_3_act = arctan(layer_3)
-
 layer_4 = layer_3_act.dot(w4_l2_reg)
 layer_4_l2_reg = IDEN(layer_4)    
-
-
-
-
-
-
-
 
 #  ------ L1 Norm + L2 Reg ------
 print('\n---------------------------')
@@ -357,7 +326,7 @@ for iter in range(num_epoch):
                                                                         np.sum(w1_l1_l2_reg ** 2))
     print("Current Iter: ",iter, " current cost: ",cost,end="\r")
 
-    grad_4_part_1 = (layer_4_act-Y_with_dim)/ len(X)
+    grad_4_part_1 = d_abs(layer_4_act-Y_with_dim)/ len(X)
     grad_4_part_2 = d_IDEN(layer_4)
     grad_4_part_3 = layer_3_act
     grad_4 =    grad_4_part_3.T.dot(grad_4_part_1*grad_4_part_2) 
@@ -383,7 +352,6 @@ for iter in range(num_epoch):
     w2_l1_l2_reg = w2_l1_l2_reg - learning_rate * (grad_2 + 2*alpha * w2_l1_l2_reg)
     w1_l1_l2_reg = w1_l1_l2_reg - learning_rate * (grad_1 + 2*alpha * w1_l1_l2_reg)
 
-
 layer_1 = theta_with_bias.dot(w1_l1_l2_reg)
 layer_1_act = tanh(layer_1)
 layer_2 = layer_1_act.dot(w2_l1_l2_reg)
@@ -393,24 +361,16 @@ layer_3_act = arctan(layer_3)
 layer_4 = layer_3_act.dot(w4_l1_l2_reg)
 layer_4_l1_l2_reg = IDEN(layer_4)
 
-
-
-
-
-
 #  ------ L2 Norm + L1 Reg ------
 print('\n---------------------------')
 for iter in range(num_epoch):
     
     layer_1 = X_with_bias.dot(w1_l2_l1_reg)
     layer_1_act = tanh(layer_1)
-
     layer_2 = layer_1_act.dot(w2_l2_l1_reg)
     layer_2_act = IDEN(layer_2)
-
     layer_3 = layer_2_act.dot(w3_l2_l1_reg)
     layer_3_act = arctan(layer_3)
-
     layer_4 = layer_3_act.dot(w4_l2_l1_reg)
     layer_4_act = IDEN(layer_4)
 
@@ -446,36 +406,18 @@ for iter in range(num_epoch):
     w2_l2_l1_reg = w2_l2_l1_reg - learning_rate * (grad_2  + alpha *  d_abs(w2_l2_l1_reg))
     w1_l2_l1_reg = w1_l2_l1_reg - learning_rate * (grad_1  + alpha *  d_abs(w1_l2_l1_reg))
     
-
 layer_1 = theta_with_bias.dot(w1_l2_l1_reg)
 layer_1_act = tanh(layer_1)
-
 layer_2 = layer_1_act.dot(w2_l2_l1_reg)
 layer_2_act = IDEN(layer_2)
-
 layer_3 = layer_2_act.dot(w3_l2_l1_reg)
 layer_3_act = arctan(layer_3)
-
 layer_4 = layer_3_act.dot(w4_l2_l1_reg)
 layer_4_l2_l1_reg = IDEN(layer_4)    
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 print("\n")
-print(w1_l1.sum(),w2_l1.sum(), w3_l1.sum(),w4_l1.sum() )
+print(w1_l1.abs().sum(),w2_l1.sum(), w3_l1.sum(),w4_l1.sum() )
 print(w1_l2.sum(),w2_l2.sum(), w3_l2.sum(),w4_l2.sum())
 print(w1_l1_reg.sum(),w2_l1_reg.sum(),w3_l1_reg.sum(),w4_l1_reg.sum())
 print(w1_l2_reg.sum(),w2_l2_reg.sum(),w3_l2_reg.sum(),w4_l2_reg.sum())
@@ -483,27 +425,22 @@ print(w1_l1_l2_reg.sum(),w2_l1_l2_reg.sum(),w3_l1_l2_reg.sum(),w4_l1_l2_reg.sum(
 print(w1_l2_l1_reg.sum(),w2_l2_l1_reg.sum(),w3_l2_l1_reg.sum(),w4_l2_l1_reg.sum())
 
 
-
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.scatter(X,Y)
 ax.plot(theta_with_bias[:,0],layer_4_l1,c='r',linewidth=1,label='L1 Norm')
 ax.plot(theta_with_bias[:,0],layer_4_l2,c='g',linewidth=1,label='L2 Norm')
-ax.plot(theta_with_bias[:,0],layer_4_l1_reg,c='b',linewidth=1,label='L1 Norm with L1 Reg')
+ax.plot(theta_with_bias[:,0],layer_4_l1_reg,c='b',linewidth=1,label='L1 Norm with L1 R eg')
 ax.plot(theta_with_bias[:,0],layer_4_l2_reg,c='y',linewidth=1,label='L2 Norm with L2 Reg')
 ax.plot(theta_with_bias[:,0],layer_4_l1_l2_reg,c='k',linewidth=1,label='L1 Norm with L2 Reg')
 ax.plot(theta_with_bias[:,0],layer_4_l2_l1_reg,c='c',linewidth=1,label='L2 Norm with L1 Reg')
-
-
-
 ax.legend()
 plt.show()
 
 
 
 
-sys.exit()
-
+# -- end code --
 
 
 
