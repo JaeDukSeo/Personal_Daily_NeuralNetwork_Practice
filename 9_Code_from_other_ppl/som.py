@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np,sys
 import matplotlib.pyplot as plt
 from matplotlib import patches as patches
 np.random.seed(51673)
@@ -78,6 +78,27 @@ def decay_learning_rate(initial_learning_rate, i, n_iterations):
 def calculate_influence(distance, radius):
     return np.exp(-distance / (2* (radius**2)))
 # --------- what is this?? -----
+
+print("----- explore --------")
+t = data[:, np.random.randint(0, n)].reshape(np.array([m, 1]))
+bmu, bmu_idx = find_bmu(t, net, m)
+print(bmu,'\n',bmu_idx)
+print("-------------")
+
+print(t.shape)
+print(net.shape)
+temp = np.sqrt(net.dot(t) ** 2)
+print(temp.shape)
+ee = np.where(temp == temp.min()) 
+print("-------------")
+print(ee[0])
+print(ee[1])
+print(net[ee[0],ee[1]])
+
+
+
+print("-------------")
+sys.exit()
 
 # ---- Training Aspect -----
 for i in range(n_iterations):
