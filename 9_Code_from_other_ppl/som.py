@@ -65,15 +65,21 @@ def find_bmu(t, net, m):
     # return the (bmu, bmu_idx) tuple
     return (bmu, bmu_idx)
 
+
+# ---- radius and learning rate ------
 def decay_radius(initial_radius, i, time_constant):
     return initial_radius * np.exp(-i / time_constant)
 
 def decay_learning_rate(initial_learning_rate, i, n_iterations):
     return initial_learning_rate * np.exp(-i / n_iterations)
+# ---- radius and learning rate ------
 
+# --------- what is this?? -----
 def calculate_influence(distance, radius):
     return np.exp(-distance / (2* (radius**2)))
+# --------- what is this?? -----
 
+# ---- Training Aspect -----
 for i in range(n_iterations):
     
     # select a training example at random
