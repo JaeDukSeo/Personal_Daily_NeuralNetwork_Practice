@@ -14,8 +14,6 @@ n = raw_data.shape[1]
 
 # weight matrix (i.e. the SOM) needs to be one m-dimensional vector for each neuron in the SOM
 net = np.random.random((network_dimensions[0], network_dimensions[1],m))
-print(raw_data.shape)
-print(net.shape)
 
 # initial neighbourhood radius
 init_radius = max(network_dimensions[0], network_dimensions[1]) / 2
@@ -79,26 +77,6 @@ def calculate_influence(distance, radius):
     return np.exp(-distance / (2* (radius**2)))
 # --------- what is this?? -----
 
-print("----- explore --------")
-t = data[:, np.random.randint(0, n)].reshape(np.array([m, 1]))
-bmu, bmu_idx = find_bmu(t, net, m)
-print(bmu,'\n',bmu_idx)
-print("-------------")
-
-print(t.shape)
-print(net.shape)
-temp = np.sqrt(net.dot(t) ** 2)
-print(temp.shape)
-ee = np.where(temp == temp.min()) 
-print("-------------")
-print(ee[0])
-print(ee[1])
-print(net[ee[0],ee[1]])
-
-
-
-print("-------------")
-sys.exit()
 
 # ---- Training Aspect -----
 for i in range(n_iterations):
@@ -106,8 +84,24 @@ for i in range(n_iterations):
     # select a training example at random
     t = data[:, np.random.randint(0, n)].reshape(np.array([m, 1]))
 
+    temp = np.subtract(net,np.squeeze(t)) ** 2
+    temp_sum = temp.sum(axis=2)
+    bmu_idx_2 = np.squeeze(np.asarray(np.where(temp_sum == temp_sum.min())))
+    bmu_2 = net[bmu_idx_2[0],bmu_idx_2[1],:].reshape(np.array([m, 1]))
+
     # find its Best Matching Unit
-    bmu, bmu_idx = find_bmu(t, net, m)
+    # bmu, bmu_idx = find_bmu(t, net, m)
+
+    bmu  = bmu_2
+    bmu_idx  = bmu_idx_2
+
+    # print("My : ",bmu_idx_2,bmu_2)
+    # print("\noG : ",bmu_idx,bmu)
+    # print('\n')
+    # print(bmu_2-bmu)
+    # print('\n')
+    # print(bmu_idx_2-bmu_idx)
+    # tsss = input()
 
     # decay the SOM parameters
     r = decay_radius(init_radius, i, time_constant)
@@ -159,9 +153,58 @@ plt.show()
 
 
 
+sys.exit()
+print("----- explore --------")
+t = data[:, np.random.randint(0, n)].reshape(np.array([m, 1]))
+bmu, bmu_idx = find_bmu(t, net, m)
+print(bmu,'\n',bmu_idx)
+print("----ssss---------")
+
+print(net.shape)
+print(m)
+tempw = net[0, 0, :].reshape(m, 1)
+print(tempw.shape)
+print(tempw - t)
+q_dist = np.sum((tempw - t) ** 2)
+print(q_dist)
+
+sstemp = np.expand_dims(net[0, 0, :],axis=1) - t
+print(sstemp)
 
 
 
+
+
+print("----sss---------")
+print("----fdsafdnksa---------")
+
+print(net.shape)
+print(t.shape)
+
+temp = np.subtract(net,np.squeeze(t)) ** 2
+temp = temp.sum(axis=2)
+ee = np.where(temp == temp.min()) 
+print(ee[0])
+print(ee[1])
+print(net[ee[0],ee[1]])
+
+print("----sss---------")
+
+
+print(t.shape)
+print(net.shape)
+temp = np.sqrt(net.dot(t) ** 2)
+print(temp.shape)
+ee = np.where(temp == temp.min()) 
+print("-------------")
+print(ee[0])
+print(ee[1])
+print(net[ee[0],ee[1]])
+
+
+
+print("-------------")
+sys.exit()
 
 
 
