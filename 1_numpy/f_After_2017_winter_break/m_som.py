@@ -15,6 +15,7 @@ num_epoch= 500
 init_radius = 10
 init_learning_rate = 0.1
 time_constant = 3
+# I love you jae sama anyo 
 
 for i in range(num_epoch):
         
