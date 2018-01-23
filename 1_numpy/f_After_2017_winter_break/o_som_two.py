@@ -8,7 +8,7 @@ np.random.seed(6789)
 
 raw_data = np.random.randint(0, 255, (3, 100))
 network_dimensions = np.array([4, 4])
-n_iterations = 2
+n_iterations = 1
 init_learning_rate = 0.01
 
 normalise_data = True
@@ -59,11 +59,11 @@ def find_bmu(t, net, m):
 def calculate_influence(distance, radius):
     return np.exp(-distance / (2* (radius**2)))
 
-
+array_dist = np.zeros((4,4))
+array_influence = np.zeros((4,4))
 for i in range(n_iterations):
     t = data[:, np.random.randint(0, n)].reshape(np.array([m, 1]))
     
-
     # bmu, bmu_idx = find_bmu(t, net, m)
     Euclidean_distance = np.sqrt(np.subtract(net , np.squeeze(t)) ** 2)
     Euclidean_distance_sum = Euclidean_distance.sum(axis=2)
@@ -79,20 +79,50 @@ for i in range(n_iterations):
         for y in range(net.shape[1]):
             w = net[x, y, :].reshape(m, 1)
             w_dist = np.sum((np.array([x, y]) - bmu_idx) ** 2)
+            array_dist[x,y] = w_dist
             if w_dist <= r**2:
                 influence = calculate_influence(w_dist, r)
+                array_influence[x,y] = influence
                 new_w = w + (l * influence * (t - w))
                 net[x, y, :] = new_w.reshape(1, 3)
+                
+
+print('--------Sum of Smallest------------')
+print(start_net[2,1,:].sum())
+print('--------Start of the NetWork------------')
+print(start_net.sum(axis=2))
+print('--------Start of the Net * L------------')
+print(l*start_net.sum(axis=2))
+
+
+print('--------Difference ------------')
+print(((start_net- net)**2).sum(axis=2))
+
+print('--------Distance------------')
+print(array_dist)
+print('--------influence------------')
+print(array_influence)
+
+
+print('\n\n')
+print('------- Start ---------')
+print(start_net.)
+
+print('------- expand ---------')
+grad_learning = l * start_net
+temp = np.stack((array_influence,array_influence,array_influence))
+
+
+sys.exit()
+
+final = start_net + (l * start_net * temp)
+print('--------Made final ------------')
+print(final.sum(axis=2))
 
 
 
-print((start_net- net).sum(axis=2))
-
-
-
-
-
-
+print('-------Final Product-------------')
+print(net.sum(axis=2))
 
 
 
