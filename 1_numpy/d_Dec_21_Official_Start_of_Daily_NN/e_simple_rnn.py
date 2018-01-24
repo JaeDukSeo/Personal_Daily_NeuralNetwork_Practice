@@ -60,9 +60,11 @@ for iter in range(epoch):
         gradients[:,0] * x[:,0]         
     )
 
-    grad_wrec = np.sum(gradients[:,2]*states[:,2]+
-                gradients[:,1]*states[:,1]+
-                gradients[:,0]*states[:,0])
+    grad_wrec = np.sum(
+        gradients[:,2]*states[:,2]+
+        gradients[:,1]*states[:,1]+
+        gradients[:,0]*states[:,0]
+        )
 
     wx = wx - lr_wx * grad_wx
     wrec = wrec - lr_wrec * grad_wrec
