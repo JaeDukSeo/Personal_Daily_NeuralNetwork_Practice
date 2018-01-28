@@ -67,13 +67,13 @@ wxg,wxc = np.random.randn(5,5),np.random.randn(5,5)
 wrecg,wrecc = np.random.randn(3,3),np.random.randn(3,3)
 w_full_1,w_full_2 = np.random.randn(16,128),np.random.randn(128,1)
 
-h = np.random.randn(4,4,4)
+h = np.random.randn(3,4,4)
 
 
 for image_index in range(len(image_matrix)):
     
     current_image = image_matrix[image_index]
-    current_image_label = image_matrix[image_index]
+    current_image_label = image_label[image_index]
 
     cg1_h_IN = np.pad(h[0,:,:],1,mode='constant')
     c1 = convolve2d(cg1_h_IN,wrecc,mode='valid') + convolve2d(current_image,wxc,mode='valid') 
@@ -88,15 +88,8 @@ for image_index in range(len(image_matrix)):
     g2 = convolve2d(cg2_h_IN,wrecg,mode='valid') + convolve2d(current_image,wxg,mode='valid') 
     g2A = tanh(g2)
     h[2,:,:] = g2A * h[1,:,:] + ( 1- g2A) * c2A
-       
-    cg3_h_IN = np.pad(h[2,:,:],1,mode='constant')
-    c3 = convolve2d(cg3_h_IN,wrecc,mode='valid') + convolve2d(current_image,wxc,mode='valid') 
-    c3A = ReLU(c3)
-    g3 = convolve2d(cg3_h_IN,wrecg,mode='valid') + convolve2d(current_image,wxg,mode='valid') 
-    g3A = tanh(g3)
-    h[3,:,:] = g3A * h[2,:,:] + ( 1- g3A) * c3A
 
-    full_layer_1_IN = np.expand_dims(h[3,:,:].ravel(),axis=0)
+    full_layer_1_IN = np.expand_dims(h[2,:,:].ravel(),axis=0)
     full_layer_1 = full_layer_1_IN.dot(w_full_1)
     full_layer_1_A = tanh(full_layer_1)
 
@@ -115,7 +108,29 @@ for image_index in range(len(image_matrix)):
     grad_2_part_3 = full_layer_1_IN
     grad_2 =    grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2) 
 
+    grad_ts3_IN = np.reshape((grad_2_part_1 * grad_2_part_2).dot(w_full_1.T),(4,4))
+
+    grad_ts3_wrecc_part_1 = ( 1- g2A) * grad_ts3_IN
+    grad_ts3_wrecc_part_2 = d_ReLU(c2)
+    grad_ts3_wrecc_part_3 = cg2_h_IN
+    grad_ts3_wrecc = np.rot90(
+        convolve2d(grad_ts3_wrecc_part_3,
+            np.rot90(grad_ts3_wrecc_part_1 * grad_ts3_wrecc_part_2,2)
+            ,mode='valid'),2
+        )
+
+    grad_ts3_wxc_part_1 = ( 1- g2A) * grad_ts3_IN
+    grad_ts3_wxc_part_2 = d_ReLU(c2)
+    grad_ts3_wxc_part_3 = current_image
+    grad_ts3_wxc = np.rot90(
+        convolve2d(grad_ts3_wxc_part_3,
+            np.rot90(grad_ts3_wxc_part_1 * grad_ts3_wxc_part_2,2)
+            ,mode='valid'),2
+        )
+
+    
     sys.exit()
+
 
 
 # -- end code --
