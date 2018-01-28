@@ -41,23 +41,17 @@ print('----------------')
 #forward
 activationPrevious = np.copy(temp)
 activations = skimage.measure.block_reduce(temp, block_size=(2,2), func=np.max)
+
+print(activations)
+
 maxs = activations.repeat(2, axis=0).repeat(2, axis=1)
 mask = np.equal(activationPrevious, maxs).astype(int)
+delta = np.multiply(maxs, mask)
 
-
-print(temp)
-print(activations)
-print(maxs)
-print(mask)
-print('----------------')
-print('----------------')
-
-
-delta = activations.repeat(2, axis=0).repeat(2, axis=1)
 print(delta)
 
-delta = np.multiply(delta, mask)
-print(delta)
+
+
 
 #backward
 # delta = delta.repeat(2, axis=2).repeat(2, axis=3)
