@@ -97,7 +97,7 @@ for iter in range(num_epoch):
     cost_y2,cost_h2 = np.square(y2-y[:,1]).sum() * 0.5,np.square(h[:,2]-y[:,1] ).sum() * 0.5
     cost_y3,cost_h3 = np.square(y3-y[:,2]).sum() * 0.5,np.square(h[:,3]-y[:,2] ).sum() * 0.5
 
-    
+    grad_common_ts_3_y,grad_common_ts_3_h = y3-y[:,2],h[:,3]-y[:,2]
             
 
 
