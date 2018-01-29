@@ -48,9 +48,9 @@ w2b = np.random.randn(3,3)
 w2c = np.random.randn(3,3)
 w2d = np.random.randn(3,3)
 
-w3 = np.random.randn(16,180)
-w4 = np.random.randn(180,360)
-w5 = np.random.randn(360,1)
+w3 = np.random.randn(16,28)
+w4 = np.random.randn(28,36)
+w5 = np.random.randn(36,1)
 
 
 # 1. Prepare only one and only zero
@@ -177,6 +177,7 @@ for iter in range(num_epoch):
         grad_1_part_IN_a =np.rot90(  grad_2_part_1_a * grad_2_part_2_a ,2)
         grad_1_part_IN_a_padded = np.pad(w2a,2,mode='constant')
         grad_1_part_a = convolve2d(grad_1_part_IN_a_padded,grad_1_part_IN_a,mode='valid')    
+
         grad_1_part_IN_b = np.rot90( grad_2_part_2_b * grad_2_part_1_b,2)
         grad_1_part_IN_b_padded = np.pad(w2b,2,mode='constant')
         grad_1_part_b = convolve2d(grad_1_part_IN_b_padded,grad_1_part_IN_b,mode='valid')    
@@ -191,6 +192,7 @@ for iter in range(num_epoch):
         grad_1_part_IN_c = np.rot90(grad_2_part_1_c * grad_2_part_2_c,2)
         grad_1_part_IN_c_padded = np.pad(w2c,2,mode='constant')
         grad_1_part_c = convolve2d(grad_1_part_IN_c_padded,grad_1_part_IN_c,mode='valid')    
+
         grad_1_part_IN_d = np.rot90(grad_2_part_1_d * grad_2_part_2_d ,2)
         grad_1_part_IN_d_padded = np.pad(w2d,2,mode='constant')
         grad_1_part_d = convolve2d(grad_1_part_IN_d_padded,grad_1_part_IN_d,mode='valid')    

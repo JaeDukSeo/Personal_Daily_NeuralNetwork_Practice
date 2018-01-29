@@ -48,9 +48,9 @@ w2b = np.random.randn(3,3)
 w2c = np.random.randn(3,3)
 w2d = np.random.randn(3,3)
 
-w3 = np.random.randn(16,180)
-w4 = np.random.randn(180,360)
-w5 = np.random.randn(360,1)
+w3 = np.random.randn(16,28)
+w4 = np.random.randn(28,36)
+w5 = np.random.randn(36,1)
 
 
 # 1. Prepare only one and only zero
