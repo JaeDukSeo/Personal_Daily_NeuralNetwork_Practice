@@ -92,6 +92,12 @@ for iter in range(num_epoch):
 
     y3 = gy3A * x[:,2] + ( 1-gy3A ) * yy3A
     h[:,3] = gh3A * h[:,2] + ( 1-gh3A ) * hh3A
+
+    cost_y1,cost_h1 = np.square(y1-y[:,0]).sum() * 0.5,np.square(h[:,1]-y[:,0] ).sum() * 0.5
+    cost_y2,cost_h2 = np.square(y2-y[:,1]).sum() * 0.5,np.square(h[:,2]-y[:,1] ).sum() * 0.5
+    cost_y3,cost_h3 = np.square(y3-y[:,2]).sum() * 0.5,np.square(h[:,3]-y[:,2] ).sum() * 0.5
+
+    
             
 
 
