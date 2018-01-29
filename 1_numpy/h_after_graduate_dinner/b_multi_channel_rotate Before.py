@@ -13,7 +13,7 @@ def ReLU(x):
     mask  = (x >0) * 1.0 
     return mask * x
 def d_ReLU(x):
-    mask  = (x >0) * 1.0 
+    mask  = (x >0) * 1.0
     return mask 
 
 def tanh(x):
@@ -61,6 +61,7 @@ only_one_index  = np.asarray(np.where(label == 1))
 only_zero_label = label[only_zero_index].T
 only_one_label  = label[only_one_index].T
 image_label = np.vstack((only_zero_label,only_one_label))
+
 
 # 2. prepare matrix image
 only_zero_image = np.squeeze(image[only_zero_index])
@@ -148,59 +149,61 @@ for iter in range(num_epoch):
         
         grad_2_window_a = np.reshape(grad_2_part_IN[:,:4],(2,2))
         grad_2_mask_a =  np.equal(l2aA, l2aM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) 
-        grad_2_part_1_a =  grad_2_mask_a *  grad_2_window_a.repeat(2, axis=0).repeat(2, axis=1)
+        grad_2_part_1_a =  np.rot90(grad_2_mask_a *  grad_2_window_a.repeat(2, axis=0).repeat(2, axis=1),2)
         grad_2_part_2_a = d_arctan(l2a)
         grad_2_part_3_a = l2aIN
-        grad_2_a = np.rot90(convolve2d(grad_2_part_3_a,np.rot90(grad_2_part_2_a * grad_2_part_1_a,2),mode='valid'),2)
+        grad_2_a = np.rot90(convolve2d(grad_2_part_3_a,grad_2_part_2_a * grad_2_part_1_a,mode='valid'),2)
 
         grad_2_window_b = np.reshape(grad_2_part_IN[:,4:8],(2,2))
         grad_2_mask_b =  np.equal(l2bA, l2bM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) 
-        grad_2_part_1_b = grad_2_mask_b *  grad_2_window_b.repeat(2, axis=0).repeat(2, axis=1)
+        grad_2_part_1_b = np.rot90(grad_2_mask_b *  grad_2_window_b.repeat(2, axis=0).repeat(2, axis=1),2)
         grad_2_part_2_b = d_ReLU(l2b)
         grad_2_part_3_b = l2bIN
-        grad_2_b = np.rot90(convolve2d(grad_2_part_3_b,np.rot90(grad_2_part_2_b * grad_2_part_1_b,2),mode='valid'),2)
+        grad_2_b = np.rot90(convolve2d(grad_2_part_3_b,grad_2_part_2_b * grad_2_part_1_b,mode='valid'),2)
 
         grad_2_window_c = np.reshape(grad_2_part_IN[:,8:12],(2,2))
         grad_2_mask_c =  np.equal(l2cA, l2cM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) 
-        grad_2_part_1_c = grad_2_mask_c *  grad_2_window_c.repeat(2, axis=0).repeat(2, axis=1)
+        grad_2_part_1_c = np.rot90(grad_2_mask_c *  grad_2_window_c.repeat(2, axis=0).repeat(2, axis=1),2)
         grad_2_part_2_c = d_arctan(l2c)
         grad_2_part_3_c = l2cIN
-        grad_2_c = np.rot90(convolve2d(grad_2_part_3_c,np.rot90( grad_2_part_2_c * grad_2_part_1_c,2),mode='valid'),2)
+        grad_2_c = np.rot90(convolve2d(grad_2_part_3_c,grad_2_part_2_c * grad_2_part_1_c,mode='valid'),2)
 
         grad_2_window_d = np.reshape(grad_2_part_IN[:,12:],(2,2))
-        grad_2_mask_d =  np.equal(l2dA, l2dM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) 
+        grad_2_mask_d =  np.rot90(np.equal(l2dA, l2dM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) ,2)
         grad_2_part_1_d =  grad_2_mask_d *  grad_2_window_d.repeat(2, axis=0).repeat(2, axis=1)
         grad_2_part_2_d = d_tanh(l2d)
         grad_2_part_3_d = l2dIN
-        grad_2_d = np.rot90(convolve2d(grad_2_part_3_d,np.rot90( grad_2_part_2_d * grad_2_part_1_d,2),mode='valid'),2)
+        grad_2_d = np.rot90(convolve2d(grad_2_part_3_d,grad_2_part_2_d * grad_2_part_1_d,mode='valid'),2)
                     
         grad_1_part_IN_a =np.rot90(  grad_2_part_1_a * grad_2_part_2_a ,2)
         grad_1_part_IN_a_padded = np.pad(w2a,2,mode='constant')
         grad_1_part_a = convolve2d(grad_1_part_IN_a_padded,grad_1_part_IN_a,mode='valid')    
+
         grad_1_part_IN_b = np.rot90( grad_2_part_2_b * grad_2_part_1_b,2)
         grad_1_part_IN_b_padded = np.pad(w2b,2,mode='constant')
         grad_1_part_b = convolve2d(grad_1_part_IN_b_padded,grad_1_part_IN_b,mode='valid')    
 
         grad_1_window_a = grad_1_part_a + grad_1_part_b
         grad_1_mask_a =  np.equal(l1aA, l1aM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) 
-        grad_1_part_1_a =  grad_1_mask_a *  grad_1_window_a.repeat(2, axis=0).repeat(2, axis=1) 
+        grad_1_part_1_a =  np.rot90(grad_1_mask_a *  grad_1_window_a.repeat(2, axis=0).repeat(2, axis=1) ,2)
         grad_1_part_2_a = d_ReLU(l1a)
         grad_1_part_3_a = l1aIN
-        grad_1_a = np.rot90(convolve2d(grad_1_part_3_a,np.rot90( grad_1_part_1_a *grad_1_part_2_a,2),mode='valid'),2)
+        grad_1_a = np.rot90(convolve2d(grad_1_part_3_a, grad_1_part_1_a *grad_1_part_2_a,mode='valid'),2)
         
         grad_1_part_IN_c = np.rot90(grad_2_part_1_c * grad_2_part_2_c,2)
         grad_1_part_IN_c_padded = np.pad(w2c,2,mode='constant')
         grad_1_part_c = convolve2d(grad_1_part_IN_c_padded,grad_1_part_IN_c,mode='valid')    
+
         grad_1_part_IN_d = np.rot90(grad_2_part_1_d * grad_2_part_2_d ,2)
         grad_1_part_IN_d_padded = np.pad(w2d,2,mode='constant')
         grad_1_part_d = convolve2d(grad_1_part_IN_d_padded,grad_1_part_IN_d,mode='valid')    
 
         grad_1_window_b = grad_1_part_c + grad_1_part_d
         grad_1_mask_b =  np.equal(l1bA, l1bM.repeat(2, axis=0).repeat(2, axis=1)).astype(int) 
-        grad_1_part_1_b =  grad_1_mask_b *  grad_1_window_b.repeat(2, axis=0).repeat(2, axis=1) 
+        grad_1_part_1_b =  np.rot90(grad_1_mask_b *  grad_1_window_b.repeat(2, axis=0).repeat(2, axis=1) ,2)
         grad_1_part_2_b = d_arctan(l1b)
         grad_1_part_3_b = l1bIN
-        grad_1_b = np.rot90(convolve2d(grad_1_part_3_b, np.rot90(grad_1_part_1_b *grad_1_part_2_b,2),mode='valid'),2)
+        grad_1_b = np.rot90(convolve2d(grad_1_part_3_b, grad_1_part_1_b *grad_1_part_2_b,mode='valid'),2)
         
         v5 = alpha * v5 + learning_rate * grad_5 
         v4 = alpha * v4 + learning_rate * grad_4 
@@ -225,6 +228,18 @@ for iter in range(num_epoch):
 
         w1b = w1b - v1b 
         w1a = w1a - v1a  
+
+        # w5 = w5 - learning_rate * grad_5    
+        # w4 = w4 - learning_rate * grad_4    
+        # w3 = w3 - learning_rate * grad_3
+            
+        # w2d = w2d - learning_rate * grad_2_d    
+        # w2c = w2c - learning_rate * grad_2_c  
+        # w2b = w2b - learning_rate * grad_2_b    
+        # w2a = w2a - learning_rate * grad_2_a    
+
+        # w1b = w1b - learning_rate * grad_1_b    
+        # w1a = w1a - learning_rate * grad_1_a 
 
 
     print("Current iter : ",iter, " Current cost: ", total_error,end='\n')
