@@ -61,7 +61,7 @@ def discriminator(x):
     D_h1 = ReLu(D_l1)
     D_logit = D_h1.dot(D_w2)
     D_prob = log(D_logit)
-    return D_prob, D_logit
+    return D_prob
 
 def sample_Z(m, n):
     return np.random.uniform(-1., 1., size=[m, n])
@@ -76,22 +76,14 @@ for iter in range(num_epoch):
         
         G_sample = generator(curren_generated)
 
-        D_real, D_logit_real = discriminator(current_image)
-        current_image_label = np.ones(D_logit_real.shape)
-        
-        D_fake, D_logit_fake = discriminator(G_sample)
-        current_fake_label = np.zeros(D_logit_fake.shape)
-        current_fake_label_g = np.ones(D_logit_fake.shape)
+        D_real = discriminator(current_image)
+        D_fake = discriminator(G_sample)
 
-        D_loss_real = np.mean(D_logit_real - D_logit_real * current_image_label + np.log(1+np.exp(-1 * D_logit_real)))
-        D_loss_fake = np.mean(D_logit_fake - D_logit_fake * current_fake_label + np.log(1+np.exp(-1 * D_logit_fake)))
-        D_loss = D_loss_real + D_loss_fake
+        D_loss = -1 * np.mean(np.log(D_real) + np.log( 1 - D_fake))
+        G_loss = -tf.reduce_mean(tf.log(D_fake))
 
 
-        
-        G_loss = np.mean(D_logit_fake - D_logit_fake * current_fake_label_g + np.log(1+np.exp(-1 * D_logit_fake)))
 
-        print(current_image.shape)
         sys.exit()
 
 
