@@ -103,8 +103,8 @@ for it in range(1000000):
     X_mb, _ = mnist.train.next_batch(mb_size)
 
     #  (128, 784)
-    print(X_mb.shape)
-    sys.exit()
+    # print(X_mb.shape)
+    # sys.exit()
 
     _, D_loss_curr = sess.run([D_solver, D_loss], feed_dict={X: X_mb, Z: sample_Z(mb_size, Z_dim)})
     _, G_loss_curr = sess.run([G_solver, G_loss], feed_dict={Z: sample_Z(mb_size, Z_dim)})
