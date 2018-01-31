@@ -31,7 +31,6 @@ def tanh(x):
 def d_tanh(x):
     return 1 - np.tanh(x) ** 2
 
-
 def plot(samples):
     fig = plt.figure(figsize=(4, 4))
     gs = gridspec.GridSpec(4, 4)
