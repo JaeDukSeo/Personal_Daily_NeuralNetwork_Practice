@@ -78,7 +78,7 @@ G_loss = -tf.reduce_mean(tf.log(D_fake))
 D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list=theta_D)
 G_solver = tf.train.AdamOptimizer().minimize(G_loss, var_list=theta_G)
 
-mb_size = 128
+mb_size = 1
 Z_dim = 100
 
 mnist = input_data.read_data_sets('../../MNIST_data', one_hot=True)
