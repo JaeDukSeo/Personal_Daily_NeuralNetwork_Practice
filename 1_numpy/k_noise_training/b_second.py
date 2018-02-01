@@ -32,10 +32,10 @@ testing_images, testing_lables =images[:20,:],label[:20,:]
 training_images,training_lables =images[20:,:],label[20:,:]
 
 learning_rate = 0.3
-learning_rate2 = 0.001
+learning_rate2 = 0.00001
 learning_rate3 = 0.0001
-time = 2
-time2 = 24
+time = 4
+time2 = 240
 num_epoch = 100
 value  = 0.2
 w1 = np.random.randn(784,840)*value
@@ -52,7 +52,84 @@ b1n,b2n,b3n = b1,b2,b3
 w1l,w2l,w3l = w1,w2,w3
 b1l,b2l,b3l = b1,b2,b3
 
+w1l2,w2l2,w3l2 = w1,w2,w3
+b1l2,b2l2,b3l2 = b1,b2,b3
 
+
+
+for iter in range(num_epoch):
+    
+    l1 = training_images.dot(w1l2) + b1l2
+    l1A = arctan(l1)
+
+    l2 = l1A.dot(w2l2)+ b2l2
+    l2A = arctan(l2)
+
+    l3 = l2A.dot(w3l2)+ b3l2
+    l3A = log(l3)
+
+    cost = np.square(l3A - training_lables).sum() / len(training_images)
+    print("Current Iter: ",iter, " Current cost :", cost,end='\r')
+
+    w3lg = np.random.gumbel(size=w3l2.shape)
+    b3lg = np.random.gumbel(size=b3l2.shape)
+
+    w2lg = np.random.gumbel(size=w2l2.shape)
+    b2lg = np.random.gumbel(size=b2l2.shape)
+
+    w1lg = np.random.gumbel(size=w1l2.shape)
+    b1lg = np.random.gumbel(size=b1l2.shape)
+    
+    if iter < time:
+        w3l2 = w3l2 + 0.001 * learning_rate* cost * w3lg
+        b3l2 = b3l2 + 0.001 *learning_rate* cost * b3lg
+
+        w2l2 = w2l2 + 0.01 *learning_rate* cost * w2lg
+        b2l2 = b2l2 + 0.01 * learning_rate*cost * b2lg
+
+        w1l2 = w1l2 + 0.1 * learning_rate*cost * w1lg
+        b1l2 = b1l2 + 0.1 * learning_rate*cost * b1lg
+    
+    if iter > time:
+        learning_rate = learning_rate2
+        w3l2 = w3l2 + 0.001 * learning_rate* cost * w3lg
+        b3l2 = b3l2 + 0.001 *learning_rate* cost * b3lg
+
+        w2l2 = w2l2 + 0.01 *learning_rate* cost * w2lg
+        b2l2 = b2l2 + 0.01 * learning_rate*cost * b2lg
+
+        w1l2 = w1l2 + 0.1 * learning_rate*cost * w1lg
+        b1l2 = b1l2 + 0.1 * learning_rate*cost * b1lg
+    
+    if iter > time2:
+        learning_rate = learning_rate3
+
+
+
+print('\n\n')
+l1 = testing_images.dot(w1l2) + b1l2
+l1A = arctan(l1)
+
+l2 = l1A.dot(w2l2)+ b2l2
+l2A = arctan(l2)
+
+l3 = l2A.dot(w3l2)+ b3l2
+l3A = log(l3)
+
+print(testing_lables.T)
+print(np.round(np.squeeze(l3A).T))
+print(np.squeeze(l3A).T)
+
+print('\n\n')
+
+
+learning_rate = 0.3
+learning_rate2 = 0.001
+learning_rate3 = 0.0001
+time = 2
+time2 = 24
+num_epoch = 100
+value  = 0.2
 
 
 for iter in range(num_epoch):
@@ -67,7 +144,7 @@ for iter in range(num_epoch):
     l3A = log(l3)
 
     cost = np.square(l3A - training_lables).sum() / len(training_images)
-    print("Current Iter: ",iter, " Current cost :", cost,end='\n')
+    print("Current Iter: ",iter, " Current cost :", cost,end='\r')
 
     w3lg = np.random.gumbel(size=w3l.shape)
     b3lg = np.random.gumbel(size=b3l.shape)
@@ -94,23 +171,30 @@ for iter in range(num_epoch):
         learning_rate = learning_rate3
 
 
+print('\n\n')
+l1 = testing_images.dot(w1l) + b1l
+l1A = arctan(l1)
 
+l2 = l1A.dot(w2l)+ b2l
+l2A = arctan(l2)
 
+l3 = l2A.dot(w3l)+ b3l
+l3A = log(l3)
+print(testing_lables.T)
+print(np.round(np.squeeze(l3A).T))
+print(np.squeeze(l3A).T)
 
-
-
-
-
+print('\n\n')
 
 for iter in range(num_epoch):
     
-    l1 = training_images.dot(w1n) + b1n
+    l1 = training_images.dot(w1n) 
     l1A = arctan(l1)
 
-    l2 = l1A.dot(w2n)+ b2n
+    l2 = l1A.dot(w2n)
     l2A = arctan(l2)
 
-    l3 = l2A.dot(w3n)+ b3n
+    l3 = l2A.dot(w3n)
     l3A = log(l3)
 
     cost = np.square(l3A - training_lables).sum() / len(training_images)
@@ -120,19 +204,21 @@ for iter in range(num_epoch):
     grad_3_part_2 = d_log(l3)
     grad_3_part_3 = l2A
     grad_3_w = grad_3_part_3.T.dot(grad_3_part_1 * grad_3_part_2)
-    grad_3_b = (grad_3_part_1 * grad_3_part_2)
+    grad_3_b = grad_3_part_1 * grad_3_part_2
 
     grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3n.T)
     grad_2_part_2 = d_arctan(l2)
     grad_2_part_3 = l1A
     grad_2_w = grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2)
-    grad_2_b = (grad_2_part_1 * grad_2_part_2)
+    grad_2_b = grad_2_part_1 * grad_2_part_2
+
+
 
     grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2n.T)
     grad_1_part_2 = d_arctan(l1)
     grad_1_part_3 = training_images
     grad_1_w = grad_1_part_3.T.dot(grad_1_part_1 * grad_1_part_2)
-    grad_1_b = (grad_1_part_1 * grad_1_part_2)
+    grad_1_b = grad_1_part_1 * grad_1_part_2
 
     w3n = w3n - learning_rate * grad_3_w
     b3n = b3n - learning_rate * grad_3_b
@@ -142,7 +228,25 @@ for iter in range(num_epoch):
 
     w1n = w1n - learning_rate * grad_1_w
     b1n = b1n - learning_rate * grad_1_b
-    
+
+l1 = testing_images.dot(w1n) 
+l1A = arctan(l1)
+
+l2 = l1A.dot(w2n)
+l2A = arctan(l2)
+
+l3 = l2A.dot(w3n)
+l3A = log(l3)
+print('\n\n')
+
+print(testing_lables.T)
+print(np.round(np.squeeze(l3A).T))
+print(np.squeeze(l3A).T)
+
+print('\n\n')
+
+
+
 
 
 
