@@ -42,9 +42,9 @@ w1 = np.random.randn(784,840)*value
 w2 = np.random.randn(840,1024)*value
 w3 = np.random.randn(1024,1)*value
 
-b1 = np.random.randn(840) *value
-b2 = np.random.randn(1024)*value
-b3 = np.random.randn(1)*value
+b1 = np.random.randn(2095,840) *value
+b2 = np.random.randn(2095,1024)*value
+b3 = np.random.randn(2095,1)*value
 
 w1n,w2n,w3n = w1,w2,w3
 b1n,b2n,b3n = b1,b2,b3
