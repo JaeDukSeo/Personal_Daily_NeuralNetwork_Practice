@@ -82,10 +82,10 @@ G_loss = -tf.reduce_mean(tf.log(D_fake))
 D_solver = tf.train.GradientDescentOptimizer(0.001).minimize(D_loss, var_list=theta_D)
 G_solver = tf.train.GradientDescentOptimizer(0.001).minimize(G_loss, var_list=theta_G)
 
-mb_size = 128
+mb_size = 1
 Z_dim = 100
 
-mnist = input_data.read_data_sets('../../MNIST_data', one_hot=True)
+# mnist = input_data.read_data_sets('../../MNIST_data', one_hot=True)
 
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
@@ -98,13 +98,12 @@ for it in range(1000000):
     # X_mb, _ = mnist.train.next_batch(mb_size)
 
     batch_location = np.random.randint(len(images) - mb_size)
-    current_image = images[batch_location:batch_location+mb_size,:]
-    print(current_image.shape)
+    current_image = np.expand_dims(images[batch_location,:],axis=0)
 
     _, D_loss_curr = sess.run([D_solver, D_loss], feed_dict={X: current_image, Z: sample_Z(mb_size, Z_dim)})
     _, G_loss_curr = sess.run([G_solver, G_loss], feed_dict={Z: sample_Z(mb_size, Z_dim)})
 
-    if it % 100 == 0:
+    if it % 10 == 0:
         print('Iter: {}'.format(it))
         print('D loss: {:.4}'. format(D_loss_curr))
         print('G_loss: {:.4}'.format(G_loss_curr))
