@@ -4,6 +4,10 @@ from sklearn.utils import shuffle
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=False)
 
+np.random.seed(65558)
+tf.set_random_seed(65558)
+
+
 def tf_log(x):
     return tf.div(tf.constant(1.0),tf.add(tf.constant(1.0), tf.exp(tf.negative(x))))
 def d_tf_log(x):
@@ -16,7 +20,7 @@ def d_tf_arctan(x):
 
 
 # 0. Prepare the Training Data
-train = mnist.train
+train = mnist.test
 images, labels = train.images, train.labels
 only_zero_index,only_one_index = np.where(labels==0)[0],np.where(labels==1)[0]
 only_zero_image,only_zero_label = images[[only_zero_index]],np.expand_dims(labels[[only_zero_index]],axis=1)
@@ -26,11 +30,11 @@ images = np.vstack((only_zero_image,only_one_image))
 labels = np.vstack((only_zero_label,only_one_label))
 images,label = shuffle(images,labels)
 
-test_image_num = 100
+test_image_num = 10
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:,:],label[test_image_num:,:]
 
-num_epoch = 100
+num_epoch = 5
 total_cost = 0
 graph = tf.Graph()
 
@@ -41,7 +45,6 @@ graph = tf.Graph()
 with graph.as_default():
 
     lr = tf.Variable(tf.constant(0.01))
-
     w1 = tf.Variable(tf.random_normal([784,356]))
     w2 = tf.Variable(tf.random_normal([356,128]))
     w3 = tf.Variable(tf.random_normal([128,1]))
@@ -74,8 +77,9 @@ with graph.as_default():
     l3A = tf_log(l3)
 
     cost = tf.multiply(tf.square(tf.subtract(l3A,y)),tf.constant(0.5))
+    cost_auto = tf.train.GradientDescentOptimizer(0.01).minimize(cost)
 
-    grad_3_part_1 = tf.square(tf.subtract(l3A,y))
+    grad_3_part_1 = tf.subtract(l3A,y)
     grad_3_part_2 = d_tf_log(l3)
     grad_3_part_3 = l2A
     grad_3 = tf.matmul(tf.transpose(grad_3_part_3), tf.multiply(grad_3_part_1,grad_3_part_2) )
@@ -90,14 +94,10 @@ with graph.as_default():
     grad_1_part_3 = x
     grad_1 = tf.matmul(tf.transpose(grad_1_part_3), tf.multiply(grad_1_part_1,grad_1_part_2) )
 
-    w3 = tf.subtract( w3, tf.multiply(lr,grad_3) )
-    w2 = tf.subtract( w2, tf.multiply(lr,grad_2) )
-    w1 = tf.subtract( w1, tf.multiply(lr,grad_1) )
-
     update = [
-        tf.subtract( w3, tf.multiply(lr,grad_3) ),
-        tf.subtract( w2, tf.multiply(lr,grad_2) ),
-        tf.subtract( w1, tf.multiply(lr,grad_1) )
+        tf.assign(w3,tf.subtract( w3, tf.multiply(lr,grad_3) ) ),
+        tf.assign(w2,tf.subtract( w2, tf.multiply(lr,grad_2) ) ),
+        tf.assign(w1,tf.subtract( w1, tf.multiply(lr,grad_1) ) )
     ]
     
 
@@ -108,7 +108,7 @@ with graph.as_default():
 
 
 # 2. Make the TF session
-with tf.Session(graph=graph) as sess:
+with tf.Session(graph=graph,config=tf.ConfigProto(device_count={'GPU': 1})) as sess:
     sess.run(tf.global_variables_initializer())
 
     for iter in range(num_epoch):
@@ -120,5 +120,10 @@ with tf.Session(graph=graph) as sess:
             output = sess.run([cost,update],feed_dict={x:current_image,y:current_index})
             total_cost = total_cost + output[0]
         print("Current Iter: ", iter, " current cost: ", total_cost)
+        total_cost = 0
 
+    for current_image_index in range(len(testing_images)):
+        current_image = np.expand_dims(testing_images[current_image_index],axis=0)
+        output = sess.run([l3A],feed_dict={x:current_image})
+        print(np.round(output[0]), ' : ',current_index)
 # -- end code --
