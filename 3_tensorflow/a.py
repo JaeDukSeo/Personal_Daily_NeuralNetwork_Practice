@@ -34,7 +34,7 @@ test_image_num = 10
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:,:],label[test_image_num:,:]
 
-num_epoch = 5
+num_epoch = 10
 total_cost = 0
 graph = tf.Graph()
 
@@ -71,7 +71,7 @@ with graph.as_default():
     l1A = tf_log(l1)
 
     l2 = tf.matmul(l1A,w2)
-    l2A = tf_arctan(l2)
+    l2A = tf_log(l2)
 
     l3 = tf.matmul(l2A,w3)
     l3A = tf_log(l3)
@@ -85,7 +85,7 @@ with graph.as_default():
     grad_3 = tf.matmul(tf.transpose(grad_3_part_3), tf.multiply(grad_3_part_1,grad_3_part_2) )
 
     grad_2_part_1 = tf.matmul( tf.multiply(grad_3_part_1,grad_3_part_2),  tf.transpose(w3) )
-    grad_2_part_2 = d_tf_arctan(l2)
+    grad_2_part_2 = d_tf_log(l2)
     grad_2_part_3 = l1A
     grad_2 = tf.matmul(tf.transpose(grad_2_part_3), tf.multiply(grad_2_part_1,grad_2_part_2) )
 
@@ -112,18 +112,20 @@ with tf.Session(graph=graph,config=tf.ConfigProto(device_count={'GPU': 1})) as s
     sess.run(tf.global_variables_initializer())
 
     for iter in range(num_epoch):
-        for current_image_index in range(len(training_images)):
+        for current_image_index in range(0,len(training_images),10):
             
-            current_image = np.expand_dims(training_images[current_image_index],axis=0)
-            current_index = np.expand_dims(training_lables[current_image_index],axis=0)
+            current_image = training_images[current_image_index:current_image_index+10]
+            current_index = training_lables[current_image_index:current_image_index+10]
             
             output = sess.run([cost,update],feed_dict={x:current_image,y:current_index})
-            total_cost = total_cost + output[0]
+            total_cost = total_cost + output[0].sum()
         print("Current Iter: ", iter, " current cost: ", total_cost)
         total_cost = 0
 
     for current_image_index in range(len(testing_images)):
         current_image = np.expand_dims(testing_images[current_image_index],axis=0)
+        current_label = testing_lables[current_image_index]
+
         output = sess.run([l3A],feed_dict={x:current_image})
-        print(np.round(output[0]), ' : ',current_index)
+        print(output[0], ' : ',np.round(output[0])," : ",current_label)
 # -- end code --
