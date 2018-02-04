@@ -323,6 +323,7 @@ AdaDelta_e,AdaDelta_v = 0.000001,0.001
 AdaDelta_1,AdaDelta_2,AdaDelta_3 = 0,0,0
 AdaDelta_1_v,AdaDelta_2_v,AdaDelta_3_v = 0,0,0
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -341,6 +342,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         grad_3_part_1 = l3A - current_image_label
         grad_3_part_2 = d_log(l3)
@@ -375,6 +377,7 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("e. Adadelta current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -382,6 +385,7 @@ for iter in range(num_epoch):
 RMSprop_1,RMSprop_2,RMSprop_3 = 0,0,0
 RMSprop_v,RMSprop_e= 0.9,0.00000001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -400,6 +404,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         grad_3_part_1 = l3A - current_image_label
         grad_3_part_2 = d_log(l3)
@@ -426,6 +431,7 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("f. RMSprop current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -437,6 +443,7 @@ Adam_v_1,Adam_v_2,Adam_v_3 = 0,0,0
 Adam_Beta_1,Adam_Beta_2 = 0.9,0.999
 Adam_e = 0.00000001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -455,6 +462,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         grad_3_part_1 = l3A - current_image_label
         grad_3_part_2 = d_log(l3)
@@ -494,6 +502,7 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("g. Adam current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -505,6 +514,7 @@ Nadam_v_1,Nadam_v_2,Nadam_v_3 = 0,0,0
 Nadam_Beta_1,Nadam_Beta_2 = 0.9,0.999
 Nadam_e = 0.00000001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -523,6 +533,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         grad_3_part_1 = l3A - current_image_label
         grad_3_part_2 = d_log(l3)
@@ -561,6 +572,7 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("i. Nadam current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -571,6 +583,7 @@ for iter in range(num_epoch):
 print('-------------------------')
 total_cost = 0
 n_value = 0.001
+cost_temp_array = []
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
         
@@ -588,6 +601,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         grad_3_part_1 = l3A - current_image_label
         grad_3_part_2 = d_log(l3)
@@ -615,16 +629,18 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("j. SGD with Gaussian Noise current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 # --- Adjust Learning Rate for Noises -----------
-learn_rate = 0.000001
+learn_rate = 0.00001
 # --- Adjust Learning Rate for Noises -----------
 
 # j. noise training
 print('-------------------------')
 total_cost = 0
 n, p = 1, .5 
+cost_temp_array = []
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
         
@@ -642,6 +658,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         gradient_weight_3 = np.random.gumbel(size=w3.shape)
         gradient_weight_2 = np.random.gumbel(size=w2.shape)
@@ -653,12 +670,14 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("j. noise current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
 # k. noise noise training
 print('-------------------------')
 total_cost = 0
+cost_temp_array = []
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
         
@@ -676,6 +695,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         gradient_weight_3 = np.random.gumbel(size=w3.shape)
         gradient_weight_2 = np.random.gumbel(size=w2.shape)
@@ -692,12 +712,14 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("k. noise Noise current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
 # l. noise adam training
 print('-------------------------')
 total_cost = 0
+cost_temp_array = []
 noise_adam_m1,noise_adam_m2,noise_adam_m3 = 0,0,0
 noise_adam_v1,noise_adam_v2,noise_adam_v3 = 0,0,0
 noise_Adam_Beta_1,noise_Adam_Beta_2 = 0.9,0.999
@@ -719,6 +741,7 @@ for iter in range(num_epoch):
 
         cost = np.square(l3A - current_image_label).sum() * 0.5
         total_cost = total_cost + cost
+        cost_temp_array.append(cost)
 
         gradient_weight_3 = np.random.gumbel(size=w3.shape)
         gradient_weight_2 = np.random.gumbel(size=w2.shape)
@@ -747,5 +770,16 @@ for iter in range(num_epoch):
     if iter %10 == 0 :
         print("l. noise adam current Iter: ", iter, " Total Cost: ", total_cost)
         total_cost = 0
+cost_array.append(cost_temp_array)
+
+bar_color = ['b', 'g', 'saddlebrown', 'steelblue', 
+            'orangered', 'y', 'paleturquoise', 'royalblue',
+            'salmon','silver','skyblue','slateblue','peru','plum']
+labels_z = ['a','b','c','d','e','f','g','h','i','j','k','l']
+
+for i in range(len(cost_array)):
+    plt.plot(np.arange(num_epoch), cost_array[i],color=bar_color[i],linewidth=3,label=labels_z[i])
+plt.title("Cost per Training")
+plt.show()
 
 # -- end code --
