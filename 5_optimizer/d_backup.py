@@ -76,7 +76,7 @@ w1_noise_adam,w2_noise_adam,w3_noise_adam  = w1,w2,w3
 
 
 # 2. SAME AMOUNT OF TRAINING
-num_epoch = 10
+num_epoch = 100
 total_cost = 0
 learn_rate = 0.0003
 cost_array =[]
