@@ -51,7 +51,6 @@ test_image_num,training_image_num = 20,50
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:test_image_num+training_image_num,:],label[test_image_num:test_image_num+training_image_num,:]
 
-
 # 1. Declare Weights
 w1 = np.random.randn(784,256) * 0.2
 w2 =np.random.randn(256,128) * 0.2
@@ -65,7 +64,6 @@ w1_adadelta,w2_adadelta,w3_adadelta =  w1,w2,w3
 w1_RSMprop,w2_RSMprop,w3_RSMprop =  w1,w2,w3
 w1_adam,w2_adam,w3_adam =  w1,w2,w3
 w1_nadam,w2_nadam,w3_nadam =  w1,w2,w3
-
 
 # 2. SAME AMOUNT OF TRAINING
 num_epoch = 100
@@ -358,14 +356,147 @@ for iter in range(num_epoch):
 
 
 # f. RMSprop
-
+RMSprop_1,RMSprop_2,RMSprop_3 = 0,0,0
+RMSprop_v,RMSprop_e= 0.9,0.00000001
 total_cost = 0
 print('-------------------------')
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
 
+        l1 = current_image.dot(w1_RSMprop)
+        l1A = elu(l1)
 
+        l2 = l1A.dot(w2_RSMprop)
+        l2A = tanh(l2)       
 
+        l3 = l2A.dot(w3_RSMprop)
+        l3A = log(l3)   
 
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        grad_3_part_1 = l3A - current_image_label
+        grad_3_part_2 = d_log(l3)
+        grad_3_part_3 = l2A
+        grad_3 =     grad_3_part_3.T.dot(grad_3_part_1 * grad_3_part_2)    
+
+        grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3_RSMprop.T)
+        grad_2_part_2 = d_tanh(l2)
+        grad_2_part_3 = l1A
+        grad_2 =    grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2)
+
+        grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2_RSMprop.T)
+        grad_1_part_2 = d_elu(l1)
+        grad_1_part_3 = current_image
+        grad_1 =   grad_1_part_3.T.dot(grad_1_part_1 *grad_1_part_2)
+
+        RMSprop_3 = RMSprop_v*RMSprop_3 + (1- RMSprop_v)*grad_3**2
+        RMSprop_2 = RMSprop_v*RMSprop_2 + (1- RMSprop_v)*grad_2**2
+        RMSprop_1 = RMSprop_v*RMSprop_1 + (1- RMSprop_v)*grad_1**2
+
+        w3_RSMprop = w3_RSMprop - (learn_rate/np.sqrt(RMSprop_3 + RMSprop_e)) * grad_3
+        w2_RSMprop = w2_RSMprop - (learn_rate/np.sqrt(RMSprop_2 + RMSprop_e)) * grad_2
+        w1_RSMprop = w1_RSMprop - (learn_rate/np.sqrt(RMSprop_1 + RMSprop_e)) * grad_1
+    if iter %10 == 0 :
+        print("f. RMSprop current Iter: ", iter, " Total Cost: ", total_cost)
+        total_cost = 0
 # ----------------------
+
+
+
+
+# g. Adam
+Adam_m_1,Adam_m_2,Adam_m_3 = 0,0,0
+Adam_v_1,Adam_v_2,Adam_v_3 = 0,0,0
+Adam_Beta_1,Adam_Beta_2 = 0.9,0.999
+Adam_e = 0.00000001
+total_cost = 0
+print('-------------------------')
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
+
+        l1 = current_image.dot(w1_adam)
+        l1A = elu(l1)
+
+        l2 = l1A.dot(w2_adam)
+        l2A = tanh(l2)       
+
+        l3 = l2A.dot(w3_adam)
+        l3A = log(l3)   
+
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        grad_3_part_1 = l3A - current_image_label
+        grad_3_part_2 = d_log(l3)
+        grad_3_part_3 = l2A
+        grad_3 =     grad_3_part_3.T.dot(grad_3_part_1 * grad_3_part_2)    
+
+        grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3_adam.T)
+        grad_2_part_2 = d_tanh(l2)
+        grad_2_part_3 = l1A
+        grad_2 =    grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2)
+
+        grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2_adam.T)
+        grad_1_part_2 = d_elu(l1)
+        grad_1_part_3 = current_image
+        grad_1 =   grad_1_part_3.T.dot(grad_1_part_1 *grad_1_part_2)
+
+        Adam_m_3 = Adam_Beta_1 * Adam_m_3 + ( 1-Adam_Beta_1 ) *grad_3
+        Adam_m_2 = Adam_Beta_1 * Adam_m_2 + ( 1-Adam_Beta_1 ) *grad_2
+        Adam_m_1 = Adam_Beta_1 * Adam_m_1 + ( 1-Adam_Beta_1 ) *grad_1
+
+        Adam_v_3 = Adam_Beta_2 * Adam_v_3 + ( 1-Adam_Beta_2 ) *grad_3 **2 
+        Adam_v_2 = Adam_Beta_2 * Adam_v_2 + ( 1-Adam_Beta_2 ) *grad_2 **2 
+        Adam_v_1 = Adam_Beta_2 * Adam_v_1 + ( 1-Adam_Beta_2 ) *grad_1 **2 
+        
+        Adam_m_3_hat = Adam_m_3/(1-Adam_Beta_1)
+        Adam_m_2_hat = Adam_m_2/(1-Adam_Beta_1)
+        Adam_m_1_hat = Adam_m_1/(1-Adam_Beta_1)
+        
+        Adam_v_3_hat = Adam_v_3/(1-Adam_Beta_2)
+        Adam_v_2_hat = Adam_v_2/(1-Adam_Beta_2)
+        Adam_v_1_hat = Adam_v_1/(1-Adam_Beta_2)
+        
+        w3_adam = w3_adam - (learn_rate/(np.sqrt(Adam_v_3_hat) + Adam_e)) * Adam_m_3_hat
+        w2_adam = w2_adam - (learn_rate/(np.sqrt(Adam_v_2_hat) + Adam_e)) * Adam_m_2_hat
+        w1_adam = w1_adam - (learn_rate/(np.sqrt(Adam_v_1_hat) + Adam_e)) * Adam_m_1_hat
+        
+    if iter %10 == 0 :
+        print("g. Adam current Iter: ", iter, " Total Cost: ", total_cost)
+        total_cost = 0
+# ----------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
