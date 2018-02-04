@@ -1,6 +1,8 @@
 import numpy as np,sys
 from sklearn.utils import shuffle
 from tensorflow.examples.tutorials.mnist import input_data
+import matplotlib.pyplot as plt
+import matplotlib
 np.random.seed(678)
 
 def log(x):
@@ -63,14 +65,24 @@ w1_adagrad,w2_adagrad,w3_adagrad =  w1,w2,w3
 w1_adadelta,w2_adadelta,w3_adadelta =  w1,w2,w3
 w1_RSMprop,w2_RSMprop,w3_RSMprop =  w1,w2,w3
 w1_adam,w2_adam,w3_adam =  w1,w2,w3
+w1_adaMax,w2_adaMax,w3_adaMax =  w1,w2,w3
 w1_nadam,w2_nadam,w3_nadam =  w1,w2,w3
 
+w1_sgd_noise,w2_sgd_noise ,w3_sgd_noise = w1,w2,w3
+w1_noise,w2_noise,w3_noise  = w1,w2,w3
+w1_noise_noise,w2_noise_noise,w3_noise_noise  = w1,w2,w3
+w1_noise_adam,w2_noise_adam,w3_noise_adam  = w1,w2,w3
+
+
+
 # 2. SAME AMOUNT OF TRAINING
-num_epoch = 100
+num_epoch = 10
 total_cost = 0
 learn_rate = 0.0003
+cost_array =[]
 
-# a. SGD
+# # a. SGD
+cost_temp_array = []
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
         
@@ -109,13 +121,16 @@ for iter in range(num_epoch):
         w1_sgd = w1_sgd - learn_rate * grad_1
     if iter %10 == 0 :
         print("a. SGD current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
-# ----------------------
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
+# # ----------------------
 
-# b. Momentum
+# # b. Momentum
 v1,v2,v3 = 0,0,0
 alpha = 0.001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -140,12 +155,12 @@ for iter in range(num_epoch):
         grad_3_part_3 = l2A
         grad_3 =     grad_3_part_3.T.dot(grad_3_part_1 * grad_3_part_2)    
 
-        grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3_sgd.T)
+        grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3_m.T)
         grad_2_part_2 = d_tanh(l2)
         grad_2_part_3 = l1A
         grad_2 =    grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2)
 
-        grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2_sgd.T)
+        grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2_m.T)
         grad_1_part_2 = d_elu(l1)
         grad_1_part_3 = current_image
         grad_1 =   grad_1_part_3.T.dot(grad_1_part_1 *grad_1_part_2)
@@ -159,14 +174,17 @@ for iter in range(num_epoch):
         w1_m = w1_m - v1
     if iter %10 == 0 :
         print("b. Momentum current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
-# ----------------------
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
+# # ----------------------
 
 
-# c. Nesterov accelerated gradient
+# # c. Nesterov accelerated gradient
 v1,v2,v3 = 0,0,0
 alpha = 0.001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -240,14 +258,17 @@ for iter in range(num_epoch):
         w1_ng = w1_ng - v1
     if iter %10 == 0 :
         print("c. Nesterov accelerated gradient current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
-# ----------------------
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
+# # ----------------------
 
 
-# d. Adagrad
+# # d. Adagrad
 Adagrad_lr_1,Adagrad_lr_2,Adagrad_lr_3 = 0,0,0
 Adagrad_e = 0.00000001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -291,7 +312,9 @@ for iter in range(num_epoch):
         w1_adagrad = w1_adagrad - (learn_rate/np.sqrt(Adagrad_lr_1 + Adagrad_e)) *grad_1
     if iter %10 == 0 :
         print("d. Adagrad current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -300,6 +323,7 @@ AdaDelta_e,AdaDelta_v = 0.000001,0.001
 AdaDelta_1,AdaDelta_2,AdaDelta_3 = 0,0,0
 AdaDelta_1_v,AdaDelta_2_v,AdaDelta_3_v = 0,0,0
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -351,7 +375,10 @@ for iter in range(num_epoch):
         w1_adadelta = w1_adadelta - mid_grad_1
     if iter %10 == 0 :
         print("e. Adadelta current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
+
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -359,6 +386,7 @@ for iter in range(num_epoch):
 RMSprop_1,RMSprop_2,RMSprop_3 = 0,0,0
 RMSprop_v,RMSprop_e= 0.9,0.00000001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -402,7 +430,9 @@ for iter in range(num_epoch):
         w1_RSMprop = w1_RSMprop - (learn_rate/np.sqrt(RMSprop_1 + RMSprop_e)) * grad_1
     if iter %10 == 0 :
         print("f. RMSprop current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
@@ -414,6 +444,7 @@ Adam_v_1,Adam_v_2,Adam_v_3 = 0,0,0
 Adam_Beta_1,Adam_Beta_2 = 0.9,0.999
 Adam_e = 0.00000001
 total_cost = 0
+cost_temp_array = []
 print('-------------------------')
 for iter in range(num_epoch):
     for image_index in range(len(training_images)):
@@ -470,34 +501,292 @@ for iter in range(num_epoch):
         
     if iter %10 == 0 :
         print("g. Adam current Iter: ", iter, " Total Cost: ", total_cost)
-        total_cost = 0
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
+# ----------------------
+
+
+
+
+# h. Nadam
+Nadam_m_1,Nadam_m_2,Nadam_m_3 = 0,0,0
+Nadam_v_1,Nadam_v_2,Nadam_v_3 = 0,0,0
+Nadam_Beta_1,Nadam_Beta_2 = 0.9,0.999
+Nadam_e = 0.00000001
+total_cost = 0
+cost_temp_array = []
+print('-------------------------')
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
+
+        l1 = current_image.dot(w1_nadam)
+        l1A = elu(l1)
+
+        l2 = l1A.dot(w2_nadam)
+        l2A = tanh(l2)       
+
+        l3 = l2A.dot(w3_nadam)
+        l3A = log(l3)   
+
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        grad_3_part_1 = l3A - current_image_label
+        grad_3_part_2 = d_log(l3)
+        grad_3_part_3 = l2A
+        grad_3 =     grad_3_part_3.T.dot(grad_3_part_1 * grad_3_part_2)    
+
+        grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3_nadam.T)
+        grad_2_part_2 = d_tanh(l2)
+        grad_2_part_3 = l1A
+        grad_2 =    grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2)
+
+        grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2_nadam.T)
+        grad_1_part_2 = d_elu(l1)
+        grad_1_part_3 = current_image
+        grad_1 =   grad_1_part_3.T.dot(grad_1_part_1 *grad_1_part_2)
+
+        Nadam_m_3 = Nadam_Beta_1 * Nadam_m_3 + (1 - Nadam_Beta_1) * grad_3
+        Nadam_m_2 = Nadam_Beta_1 * Nadam_m_2 + (1 - Nadam_Beta_1) * grad_2
+        Nadam_m_1 = Nadam_Beta_1 * Nadam_m_1 + (1 - Nadam_Beta_1) * grad_1
+        
+        Nadam_v_3 = Nadam_Beta_2 * Nadam_v_3 + (1- Nadam_Beta_2) * grad_3 ** 2
+        Nadam_v_2 = Nadam_Beta_2 * Nadam_v_2 + (1- Nadam_Beta_2) * grad_2 ** 2
+        Nadam_v_1 = Nadam_Beta_2 * Nadam_v_1 + (1- Nadam_Beta_2) * grad_1 ** 2
+
+        Nadam_m_3_hat = Nadam_m_3/ (1 - Nadam_Beta_1)
+        Nadam_m_2_hat = Nadam_m_2/ (1 - Nadam_Beta_1)
+        Nadam_m_1_hat = Nadam_m_1/ (1 - Nadam_Beta_1)
+
+        Nadam_v_3_hat = Nadam_v_3/ (1 - Nadam_Beta_2)
+        Nadam_v_2_hat = Nadam_v_2/ (1 - Nadam_Beta_2)
+        Nadam_v_1_hat = Nadam_v_1/ (1 - Nadam_Beta_2)
+         
+        w3_nadam = w3_nadam - (learn_rate/( np.sqrt(Nadam_v_3_hat) + Nadam_e )) * ( Nadam_Beta_1  * Nadam_m_3_hat + ( ( (1-Nadam_Beta_1) * grad_3 ) / (1 - Nadam_Beta_1)  ) )
+        w2_nadam = w2_nadam - (learn_rate/( np.sqrt(Nadam_v_2_hat) + Nadam_e )) * ( Nadam_Beta_1  * Nadam_m_2_hat + ( ( (1-Nadam_Beta_1) * grad_2 ) / (1 - Nadam_Beta_1)  ) )
+        w1_nadam = w1_nadam - (learn_rate/( np.sqrt(Nadam_v_1_hat) + Nadam_e )) * ( Nadam_Beta_1  * Nadam_m_1_hat + ( ( (1-Nadam_Beta_1) * grad_1 ) / (1 - Nadam_Beta_1)  ) )
+    if iter %10 == 0 :
+        print("h. Nadam current Iter: ", iter, " Total Cost: ", total_cost)
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
 # ----------------------
 
 
 
 
 
+# i. SGD with Gaussian Noise
+print('-------------------------')
+total_cost = 0
+n_value = 0.001
+cost_temp_array = []
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
+
+        l1 = current_image.dot(w1_sgd_noise)
+        l1A = elu(l1)
+
+        l2 = l1A.dot(w2_sgd_noise)
+        l2A = tanh(l2)       
+
+        l3 = l2A.dot(w3_sgd_noise)
+        l3A = log(l3)   
+
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        grad_3_part_1 = l3A - current_image_label
+        grad_3_part_2 = d_log(l3)
+        grad_3_part_3 = l2A
+        grad_3 =     grad_3_part_3.T.dot(grad_3_part_1 * grad_3_part_2)    
+
+        grad_2_part_1 = (grad_3_part_1 * grad_3_part_2).dot(w3_sgd_noise.T)
+        grad_2_part_2 = d_tanh(l2)
+        grad_2_part_3 = l1A
+        grad_2 =    grad_2_part_3.T.dot(grad_2_part_1 * grad_2_part_2)
+
+        grad_1_part_1 = (grad_2_part_1 * grad_2_part_2).dot(w2_sgd_noise.T)
+        grad_1_part_2 = d_elu(l1)
+        grad_1_part_3 = current_image
+        grad_1 =   grad_1_part_3.T.dot(grad_1_part_1 *grad_1_part_2)
+
+        # ------ Calculate The Additive Noise -------
+        ADDITIVE_NOISE_STD = n_value / (np.power((1 + iter), 0.55))
+        ADDITIVE_GAUSSIAN_NOISE = np.random.normal(loc=0,scale=ADDITIVE_NOISE_STD)
+        # ------ Calculate The Additive Noise -------
+
+        w3_sgd_noise = w3_sgd_noise - learn_rate* (grad_3 + ADDITIVE_GAUSSIAN_NOISE)
+        w2_sgd_noise = w2_sgd_noise - learn_rate* (grad_2 + ADDITIVE_GAUSSIAN_NOISE)
+        w1_sgd_noise = w1_sgd_noise - learn_rate* (grad_1 + ADDITIVE_GAUSSIAN_NOISE)
+    if iter %10 == 0 :
+        print("i. SGD with Gaussian Noise current Iter: ", iter, " Total Cost: ", total_cost)
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+cost_array.append(cost_temp_array)
+# ----------------------
+
+# --- Adjust Learning Rate for Noises -----------
+learn_rate = 0.00003
+# --- Adjust Learning Rate for Noises -----------
+
+# j. noise training
+print('-------------------------')
+total_cost = 0
+n, p = 1, .5 
+cost_temp_array = []
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
+
+        l1 = current_image.dot(w1_noise)
+        l1A = elu(l1)
+
+        l2 = l1A.dot(w2_noise)
+        l2A = tanh(l2)       
+
+        l3 = l2A.dot(w3_noise)
+        l3A = log(l3)   
+
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        gradient_weight_3 = np.random.gumbel(size=w3.shape)
+        gradient_weight_2 = np.random.gumbel(size=w2.shape)
+        gradient_weight_1 = np.random.gumbel(size=w1.shape)
+
+        w3_noise = w3_noise - learn_rate* gradient_weight_3
+        w2_noise = w2_noise - learn_rate* gradient_weight_2
+        w1_noise = w1_noise - learn_rate* gradient_weight_1
+    if iter %10 == 0 :
+        print("j. noise current Iter: ", iter, " Total Cost: ", total_cost)
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+        
+cost_array.append(cost_temp_array)
+# ----------------------
 
 
+# k. noise noise training
+print('-------------------------')
+total_cost = 0
+cost_temp_array = []
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
+
+        l1 = current_image.dot(w1_noise_noise)
+        l1A = elu(l1)
+
+        l2 = l1A.dot(w2_noise_noise)
+        l2A = tanh(l2)       
+
+        l3 = l2A.dot(w3_noise_noise)
+        l3A = log(l3)   
+
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        gradient_weight_3 = np.random.gumbel(size=w3.shape)
+        gradient_weight_2 = np.random.gumbel(size=w2.shape)
+        gradient_weight_1 = np.random.gumbel(size=w1.shape)
+
+        # ------ Calculate The Additive Noise -------
+        ADDITIVE_NOISE_STD = n_value / (np.power((1 + iter), 0.55))
+        ADDITIVE_GAUSSIAN_NOISE = np.random.normal(loc=0,scale=ADDITIVE_NOISE_STD)
+        # ------ Calculate The Additive Noise -------
+
+        w3_noise_noise = w3_noise_noise - learn_rate* (gradient_weight_3 + ADDITIVE_GAUSSIAN_NOISE)
+        w2_noise_noise = w2_noise_noise - learn_rate* (gradient_weight_2 + ADDITIVE_GAUSSIAN_NOISE)
+        w1_noise_noise = w1_noise_noise - learn_rate* (gradient_weight_1 + ADDITIVE_GAUSSIAN_NOISE)
+    if iter %10 == 0 :
+        print("k. noise Noise current Iter: ", iter, " Total Cost: ", total_cost)
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+
+cost_array.append(cost_temp_array)
+# ----------------------
 
 
+# l. noise adam training
+print('-------------------------')
+total_cost = 0
+cost_temp_array = []
+noise_adam_m1,noise_adam_m2,noise_adam_m3 = 0,0,0
+noise_adam_v1,noise_adam_v2,noise_adam_v3 = 0,0,0
+noise_Adam_Beta_1,noise_Adam_Beta_2 = 0.9,0.999
+noise_Adam_e = 0.00000001
+for iter in range(num_epoch):
+    for image_index in range(len(training_images)):
+        
+        current_image = np.expand_dims(training_images[image_index],axis=0)
+        current_image_label = np.expand_dims(training_lables[image_index],axis=1)
+
+        l1 = current_image.dot(w1_noise_adam)
+        l1A = elu(l1)
+
+        l2 = l1A.dot(w2_noise_adam)
+        l2A = tanh(l2)       
+
+        l3 = l2A.dot(w3_noise_adam)
+        l3A = log(l3)   
+
+        cost = np.square(l3A - current_image_label).sum() * 0.5
+        total_cost = total_cost + cost
+
+        gradient_weight_3 = np.random.gumbel(size=w3.shape)
+        gradient_weight_2 = np.random.gumbel(size=w2.shape)
+        gradient_weight_1 = np.random.gumbel(size=w1.shape)
+
+        noise_adam_m3 = noise_Adam_Beta_1 * noise_adam_m3 + (1 - noise_Adam_Beta_1) * gradient_weight_3
+        noise_adam_m2 = noise_Adam_Beta_1 * noise_adam_m2 + (1 - noise_Adam_Beta_1) * gradient_weight_2
+        noise_adam_m1 = noise_Adam_Beta_1 * noise_adam_m1 + (1 - noise_Adam_Beta_1) * gradient_weight_1
+        
+        noise_adam_v3 = noise_Adam_Beta_2 * noise_adam_v3 + (1 - noise_Adam_Beta_2) * gradient_weight_3 ** 2
+        noise_adam_v2 = noise_Adam_Beta_2 * noise_adam_v2 + (1 - noise_Adam_Beta_2) * gradient_weight_2 ** 2
+        noise_adam_v1 = noise_Adam_Beta_2 * noise_adam_v1 + (1 - noise_Adam_Beta_2) * gradient_weight_1 ** 2
+
+        noise_adam_m3_hat = noise_adam_m3/(1 -noise_Adam_Beta_1 )
+        noise_adam_m2_hat = noise_adam_m2/(1 -noise_Adam_Beta_1 )
+        noise_adam_m1_hat = noise_adam_m1/(1 -noise_Adam_Beta_1 )
+
+        noise_adam_v3_hat = noise_adam_v3/(1 -noise_Adam_Beta_2 )
+        noise_adam_v2_hat = noise_adam_v2/(1 -noise_Adam_Beta_2 )
+        noise_adam_v1_hat = noise_adam_v1/(1 -noise_Adam_Beta_2 )
+
+        w3_noise_adam = w3_noise_adam - (learn_rate / ( np.sqrt(noise_adam_v3_hat)  +noise_Adam_e )) * noise_adam_m3_hat
+        w2_noise_adam = w2_noise_adam - (learn_rate / ( np.sqrt(noise_adam_v2_hat)  +noise_Adam_e )) * noise_adam_m2_hat
+        w1_noise_adam = w1_noise_adam - (learn_rate / ( np.sqrt(noise_adam_v1_hat)  +noise_Adam_e )) * noise_adam_m1_hat
+
+    if iter %10 == 0 :
+        print("l. noise adam current Iter: ", iter, " Total Cost: ", total_cost)
+    cost_temp_array.append(total_cost)
+    total_cost = 0
+    
+    
+cost_array.append(cost_temp_array)
+
+bar_color = ['b', 'g', 'saddlebrown', 'steelblue', 
+            'orangered', 'y', 'paleturquoise', 'royalblue',
+            'salmon','silver','skyblue','slateblue','peru','plum']
+labels_z = ['a','b','c','d','e','f','g','h','i','j','k','l']
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+for i in range(len(cost_array)):
+    plt.plot(np.arange(num_epoch), cost_array[i],color=bar_color[i],linewidth=3,label=str(labels_z[i]) )
+plt.title("Total Cost per Training")
+plt.legend()
+plt.show()
 
 # -- end code --
