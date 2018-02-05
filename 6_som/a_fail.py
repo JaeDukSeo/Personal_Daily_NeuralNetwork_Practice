@@ -17,7 +17,7 @@ net = np.random.random((n,network_dimensions[0], network_dimensions[1]))
 # initial neighbourhood radius
 init_radius = max(network_dimensions[0], network_dimensions[1]) / 2
 # radius decay parameter
-time_constant = n_iterations / np.log(init_radius)
+time_constant = n_iterations / np.log(5)
 normalise_data = True
 normalise_by_column = False
 # we want to keep a copy of the raw data for later

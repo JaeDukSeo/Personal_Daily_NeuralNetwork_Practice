@@ -1,6 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches as patches
+np.random.seed(5678)
+
 raw_data = np.random.randint(0, 255, (3, 100))
 
 
@@ -75,7 +77,6 @@ def decay_learning_rate(initial_learning_rate, i, n_iterations):
 
 def calculate_influence(distance, radius):
     return np.exp(-distance / (2* (radius**2)))
-
 
 for i in range(n_iterations):
     #print('Iteration %d' % i)
