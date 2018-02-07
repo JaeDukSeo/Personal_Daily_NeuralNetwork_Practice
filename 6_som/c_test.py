@@ -7,8 +7,8 @@ np.random.seed(5678)
 # 1. Declare data Set and hyper parameters
 raw_data = np.random.randint(0, 255, (100, 3))
 net = np.random.random((3,5,5))
-n_iterations = 10000 
-init_learning_rate = 0.0003
+n_iterations = 20000 
+init_learning_rate = 0.003  
 
 init_radius = max(net.shape[0], net.shape[1]) / 2
 time_constant = n_iterations / np.log(init_radius)
@@ -21,7 +21,7 @@ for iter in range(n_iterations):
     current_data = raw_data[rand_index,:]
 
     best_match_subtract = (net.T-current_data).T
-    best_match = np.sqrt(  best_match_subtract ** 2 )
+    best_match = best_match_subtract ** 2 
     best_match_sum = best_match.sum(axis=0)
     bmu_idx = np.squeeze(np.asarray(np.where(best_match_sum == best_match_sum.min())))
 

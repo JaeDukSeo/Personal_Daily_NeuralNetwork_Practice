@@ -28,18 +28,8 @@ init_radius = max(network_dimensions[0], network_dimensions[1]) / 2
 time_constant = n_iterations / np.log(init_radius)
 
 data = raw_data
-# check if data needs to be normalised
-if normalise_data:
-    if normalise_by_column:
-        # normalise along each column
-        col_maxes = raw_data.max(axis=0)
-        data = raw_data / col_maxes[np.newaxis, :]
-    else:
-        # normalise entire dataset
-    data = raw_data / data.max()
+data = raw_data / data.max()
 
-
-        # setup random weights between 0 and 1
 # weight matrix needs to be one m-dimensional vector for each neuron in the SOM
 net = np.random.random((network_dimensions[0], network_dimensions[1], m))
 
@@ -70,10 +60,6 @@ def find_bmu(t, net, m):
 
 
 
-def decay_radius(initial_radius, i, time_constant):
-    return initial_radius * np.exp(-i / time_constant)
-def decay_learning_rate(initial_learning_rate, i, n_iterations):
-    return initial_learning_rate * np.exp(-i / n_iterations)
 
 def calculate_influence(distance, radius):
     return np.exp(-distance / (2* (radius**2)))
@@ -88,12 +74,10 @@ for i in range(n_iterations):
     bmu, bmu_idx = find_bmu(t, net, m)
     
     # decay the SOM parameters
-    r = decay_radius(init_radius, i, time_constant)
-    l = decay_learning_rate(init_learning_rate, i, n_iterations)
-    
-    # now we know the BMU, update its weight vector to move closer to input
-    # and move its neighbours in 2-D space closer
-    # by a factor proportional to their 2-D distance from the BMU
+    r = init_radius * np.exp(-i / time_constant)
+    l = init_learning_rate * np.exp(-i / n_iterations)
+
+
     for x in range(net.shape[0]):
         for y in range(net.shape[1]):
             w = net[x, y, :].reshape(m, 1)
@@ -102,10 +86,7 @@ for i in range(n_iterations):
             # if the distance is within the current neighbourhood radius
             if w_dist <= r**2:
                 # calculate the degree of influence (based on the 2-D distance)
-                influence = calculate_influence(w_dist, r)
-                # now update the neuron's weight using the formula:
-                # new w = old w + (learning rate * influence * delta)
-                # where delta = input vector (t) - old w
+                influence = np.exp(-w_dist / (2* (r**2)))
                 new_w = w + (l * influence * (t - w))
                 # commit the new weight
                 net[x, y, :] = new_w.reshape(1, 3)
