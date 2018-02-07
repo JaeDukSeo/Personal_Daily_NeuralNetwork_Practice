@@ -19,7 +19,7 @@ filtered = signal.convolve(temp,np.expand_dims(k,axis=0) , mode='same')
 print(filtered.shape)
 
 print(filtered)
-ss = ndimage.convolve(temp, np.repeat(np.expand_dims(k,axis=0),3,axis=0), mode='constant')
+# ss = ndimage.convolve(temp, np.repeat(np.expand_dims(k,axis=0),3,axis=0), mode='constant')
 
 
-print(ss)
+# print(ss)
