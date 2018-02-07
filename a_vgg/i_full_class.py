@@ -7,9 +7,9 @@ np.random.seed(5678)
 
 np.set_printoptions(precision=3,suppress=True)
 
-def tanh(x):
+def arctan(x):
     return np.tanh(x)
-def d_tanh(x):
+def d_arctan(x):
     return 1 - np.tanh(x) ** 2
 def ReLu(x):
     mask = (x>0) * 1.0
@@ -23,8 +23,8 @@ def d_log(x):
     return log(x) * ( 1 - log(x))
 def arctan(x):
     return np.arctan(x)
-def d_arctan(x):
-    return 1 / (1 + x ** 2)
+# def d_arctan(x):
+#     return 1 / (1 + x ** 2)
 
 def softmax(x):
     shiftx = x - np.max(x)
@@ -36,15 +36,16 @@ def softmax(x):
 mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True).test
 images,label = shuffle(mnist.images,mnist.labels)
 
-test_image_num,training_image_num = 100,1000
+test_image_num,training_image_num = 10,200
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:test_image_num + training_image_num,:],label[test_image_num:test_image_num + training_image_num,:]
 
 num_epoch = 100
-learning_rate = 0.001
-learning_rate_conv = 0.0001
+learning_rate = 0.05
+learning_rate_conv = 0.008
 total_cost = 0
-batch_size = 100
+batch_size = 2
+alpha = 0.001
 
 w1 = np.random.randn(5,5)
 
@@ -55,11 +56,14 @@ w3a = np.random.randn(3,3)
 w3b = np.random.randn(3,3)
 w3c = np.random.randn(3,3)
 
-w4 = np.random.randn(1083,824)
-w5 = np.random.randn(824,512)
-w6 = np.random.randn(512,256) * 0.01
-w7 = np.random.randn(256,10) * 0.001
+w4 = np.random.randn(1083,1024)
+w5 = np.random.randn(1024,512)
+w6 = np.random.randn(512,256) 
+w7 = np.random.randn(256,10) * 0.1
 
+v1,v2a,v2b  = 0,0,0
+v3a,v3b,v3c = 0,0,0
+v4,v5,v6,v7 = 0,0,0,0
 
 for iter in range(num_epoch):
     
@@ -99,6 +103,8 @@ for iter in range(num_epoch):
         l7Soft = softmax(l7A)
 
         cost = ( -(current_label * np.log(l7Soft) + ( 1-current_label ) * np.log(1 - l7Soft)    )).sum() / batch_size
+        print('Update Cost  : ',cost,end='\r')
+        total_cost += cost
 
         grad_7_part_1 = l7Soft - current_label
         grad_7_part_2 = d_arctan(l7)
@@ -156,21 +162,79 @@ for iter in range(num_epoch):
         grad_1 =  np.squeeze(np.rot90(signal.convolve(grad_1_part_3, np.rot90(np.pad((grad_1_part_1a+grad_1_part_1b)*grad_1_part_2,pad_width=((0,0),(4,4),(4,4)),mode='constant'      )    ,2)    ,mode='valid')         ,2) )  
 
 
-        print(grad_1.shape)
-        print(w1.shape)
+        v7 = v7 *alpha + learning_rate * grad_7
+        v6 = v6 *alpha + learning_rate * grad_6
+        v5 = v5 *alpha + learning_rate * grad_5
+        v4 = v4 *alpha + learning_rate * grad_4
         
+        v3a = v3a *alpha + learning_rate_conv * grad_3_a
+        v3b = v3b *alpha + learning_rate_conv * grad_3_b
+        v3c = v3c *alpha + learning_rate_conv * grad_3_c
 
+        v2a = v2a *alpha + learning_rate_conv * grad_2_a
+        v2b = v2b *alpha + learning_rate_conv * grad_2_b
+
+        v1 = v1 *alpha + learning_rate_conv * grad_1
+
+        w7 = w7 - v7
+        w6 = w6 - v6
+        w5 = w5 - v5
+        w4 = w4 - v4
+
+        w3a = w3a - v3a
+        w3b = w3b - v3b
+        w3c = w3c - v3c
         
-        sys.exit()
+        w2a = w2a - v2a
+        w2b = w2b - v2b
+        w1 =   w1 - v1
 
+    if iter % 3 == 0 :
+        print("current Iter: ", iter, " Current Cost :", total_cost)
 
+        for current_batch_index in range(10):
 
+            testing_images,testing_lables = shuffle(testing_images,testing_lables)
 
+            current_batch = np.expand_dims(testing_images[current_batch_index,:],axis=0)
+            current_batch_label = testing_lables[current_batch_index,:]
+            current_batch_reshape = np.reshape(current_batch,(28,28))
 
+            l1 = signal.convolve(current_batch_reshape, w1  , mode='valid')
+            l1A = ReLu(l1)
 
+            l2a  = signal.convolve(l1A, w2a  , mode='valid')
+            l2Aa = ReLu(l2a)
+            l2b  = signal.convolve(l1A, w2b  , mode='valid')
+            l2Ab = ReLu(l2b)
 
+            l3a  = signal.convolve(l2Aa, w3a  , mode='valid')
+            l3Aa = ReLu(l3a)
+            l3b  = signal.convolve(l2Ab, w3b  , mode='valid')
+            l3Ab = ReLu(l3b)
+            l3c  = signal.convolve(np.divide(np.add(l2Aa,l2Ab),2), w3c  , mode='valid')
+            l3Ac = ReLu(l3c)
 
+            l4Input = np.hstack((np.reshape(l3Aa,(1,-1)),np.reshape(l3Ab,(1,-1)),np.reshape(l3Ac,(1,-1))))
+            l4 = l4Input.dot(w4)
+            l4A = arctan(l4)
 
+            l5 = l4A.dot(w5)
+            l5A = arctan(l5)
+
+            l6 = l5A.dot(w6)
+            l6A = arctan(l6)
+
+            l7 = l6A.dot(w7)
+            l7A = arctan(l7)
+            l7Soft = softmax(l7A)
+
+            print('Current Predict : ',
+            np.where(l7Soft[0] == l7Soft[0].max())[0], 
+            "Ground Truth   : ",np.where(current_batch_label == current_batch_label.max())[0] 
+            )
+        print('------------------------')
+    total_cost = 0
 
 
 
