@@ -27,8 +27,7 @@ def d_arctan(x):
     return 1 / (1 + x ** 2)
 
 def softmax(x):
-    shiftx = x - np.max(x)
-    exp = np.exp(shiftx)
+    exp = np.exp(x)
     return exp/exp.sum()
 
 # 0. Declare Training Data and Labels
