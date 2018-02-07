@@ -87,7 +87,7 @@ for iter in range(num_epoch):
         l3A = arctan(l3)
 
         l4 = l3A.dot(w4)
-        l4Soft = softmax2(l4)
+        l4Soft = softmax(l4)
         # l4Soft = softmax2(l4)
 
         cost = ( -1 * (current_batch_label * np.log(l4Soft)  + ( 1- current_batch_label) * np.log(1 - l4Soft)  )).sum() 
@@ -138,7 +138,7 @@ for iter in range(num_epoch):
             l3A = arctan(l3)
 
             l4 = l3A.dot(w4)
-            l4Soft = softmax2(l4)
+            l4Soft = softmax(l4)
             # l4Soft = softmax2(l4)
 
             print('Mid Training Test Current Predict : ',
