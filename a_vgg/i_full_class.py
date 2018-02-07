@@ -7,9 +7,9 @@ np.random.seed(5678)
 
 np.set_printoptions(precision=3,suppress=True)
 
-def arctan(x):
+def tanh(x):
     return np.tanh(x)
-def d_arctan(x):
+def d_tanh(x):
     return 1 - np.tanh(x) ** 2
 def ReLu(x):
     mask = (x>0) * 1.0
@@ -23,8 +23,8 @@ def d_log(x):
     return log(x) * ( 1 - log(x))
 def arctan(x):
     return np.arctan(x)
-# def d_arctan(x):
-#     return 1 / (1 + x ** 2)
+def d_arctan(x):
+    return 1 / (1 + x ** 2)
 
 def softmax(x):
     shiftx = x - np.max(x)
@@ -36,15 +36,15 @@ def softmax(x):
 mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True).test
 images,label = shuffle(mnist.images,mnist.labels)
 
-test_image_num,training_image_num = 50,600
+test_image_num,training_image_num = 20,500
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:test_image_num + training_image_num,:],label[test_image_num:test_image_num + training_image_num,:]
 
-num_epoch = 100
-learning_rate = 0.05
-learning_rate_conv = 0.008
+num_epoch = 200
+learning_rate = 0.0009
+learning_rate_conv = 0.00009
 total_cost = 0
-batch_size = 10
+batch_size = 1
 alpha = 0.001
 
 w1 = np.random.randn(5,5)
@@ -58,12 +58,20 @@ w3c = np.random.randn(3,3)
 
 w4 = np.random.randn(1083,1024)
 w5 = np.random.randn(1024,512)
-w6 = np.random.randn(512,256) 
-w7 = np.random.randn(256,10) * 0.1
+w6 = np.random.randn(512,256)
+w7 = (np.random.randn(256,10) * 0.2) - 0.1
 
 v1,v2a,v2b  = 0,0,0
 v3a,v3b,v3c = 0,0,0
 v4,v5,v6,v7 = 0,0,0,0
+
+m1,m2a,m2b  = 0,0,0
+m3a,m3b,m3c = 0,0,0
+m4,m5,m6,m7 = 0,0,0,0
+
+beta_1 = 0.9
+beta_2 = 0.9999
+adam_e = 0.00000001
 
 for iter in range(num_epoch):
     
@@ -161,33 +169,18 @@ for iter in range(num_epoch):
         grad_1_part_3 = current_image_reshape
         grad_1 =  np.squeeze(np.rot90(signal.convolve(grad_1_part_3, np.rot90(np.pad((grad_1_part_1a+grad_1_part_1b)*grad_1_part_2,pad_width=((0,0),(4,4),(4,4)),mode='constant'      )    ,2)    ,mode='valid')         ,2) )  
 
+        w7 = w7 - learning_rate * grad_7
+        w6 = w6 - learning_rate * grad_6
+        w5 = w5 - learning_rate * grad_5
+        w4 = w4 - learning_rate * grad_4
 
-        v7 = v7 *alpha + learning_rate * grad_7
-        v6 = v6 *alpha + learning_rate * grad_6
-        v5 = v5 *alpha + learning_rate * grad_5
-        v4 = v4 *alpha + learning_rate * grad_4
+        w3a = w3a - learning_rate_conv * grad_3_a
+        w3b = w3b - learning_rate_conv * grad_3_b
+        w3c = w3c - learning_rate_conv * grad_3_c
         
-        v3a = v3a *alpha + learning_rate_conv * grad_3_a
-        v3b = v3b *alpha + learning_rate_conv * grad_3_b
-        v3c = v3c *alpha + learning_rate_conv * grad_3_c
-
-        v2a = v2a *alpha + learning_rate_conv * grad_2_a
-        v2b = v2b *alpha + learning_rate_conv * grad_2_b
-
-        v1 = v1 *alpha + learning_rate_conv * grad_1
-
-        w7 = w7 - v7
-        w6 = w6 - v6
-        w5 = w5 - v5
-        w4 = w4 - v4
-
-        w3a = w3a - v3a
-        w3b = w3b - v3b
-        w3c = w3c - v3c
-        
-        w2a = w2a - v2a
-        w2b = w2b - v2b
-        w1 =   w1 - v1
+        w2a = w2a - learning_rate_conv * grad_2_a
+        w2b = w2b - learning_rate_conv * grad_2_b
+        w1 =   w1 - learning_rate_conv * grad_1
 
     if iter % 2 == 0 :
         print("current Iter: ", iter, " Current Cost :", total_cost)
