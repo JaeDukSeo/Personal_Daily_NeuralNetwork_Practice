@@ -36,7 +36,7 @@ def softmax(x):
 mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True).test
 images,label = shuffle(mnist.images,mnist.labels)
 
-test_image_num,training_image_num = 10,200
+test_image_num,training_image_num = 50,600
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:test_image_num + training_image_num,:],label[test_image_num:test_image_num + training_image_num,:]
 
@@ -44,7 +44,7 @@ num_epoch = 100
 learning_rate = 0.05
 learning_rate_conv = 0.008
 total_cost = 0
-batch_size = 2
+batch_size = 10
 alpha = 0.001
 
 w1 = np.random.randn(5,5)
@@ -189,7 +189,7 @@ for iter in range(num_epoch):
         w2b = w2b - v2b
         w1 =   w1 - v1
 
-    if iter % 3 == 0 :
+    if iter % 2 == 0 :
         print("current Iter: ", iter, " Current Cost :", total_cost)
 
         for current_batch_index in range(10):
