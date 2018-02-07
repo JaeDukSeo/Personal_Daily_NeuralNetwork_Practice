@@ -12,7 +12,12 @@ def tanh(x):
     return np.tanh(x)
 def d_tanh(x):
     return 1 - np.tanh(x) ** 2
-
+def ReLu(x):
+    mask = (x>0) * 1.0
+    return mask *x
+def d_ReLu(x):
+    mask = (x>0) * 1.0
+    return mask 
 def log(x):
     return 1 / (1 + np.exp(-1 * x))
 def d_log(x):
@@ -31,72 +36,73 @@ def softmax(x):
 mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True)
 
 train = mnist.test
-images, labels = train.images, train.labels
-images,label = shuffle(images,labels)
+images, label = train.images, train.labels
+# images,label = shuffle(images,labels)
 
-test_image_num,training_image_num = 50,500
+test_image_num,training_image_num = 50,800
 testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
 training_images,training_lables =images[test_image_num:test_image_num + training_image_num,:],label[test_image_num:test_image_num + training_image_num,:]
 
-w1 = np.random.randn(3,3)
-w2 = np.random.randn(3,3)
+w1 = np.random.randn(5,5)
+w2 = np.random.randn(4,4)
 w3 = np.random.randn(3,3)
 
-w4 = np.random.randn(22*22,256)* 0.02
-w5 = np.random.randn(256,128)* 0.3
+w4 = np.random.randn(361,512)* 0.2
+w5 = np.random.randn(512,128)* 0.3
 w6 = np.random.randn(128,10)* 0.2
-
 
 v1,v2,v3,v4,v5,v6 = 0,0,0,0,0,0
 m1,m2,m3,m4,m5,m6 = 0,0,0,0,0,0
 beta1,beta2,adam_e= 0.9,0.999,0.00000001
-learning_rate = 0.7
-alpha = 0.3
+learning_rate = 0.001
+alpha = 0.003
 total_error = 0 
 total_correct = 0
 
 num_epoch = 200
-batch_size= 10
+batch_size= 100
 
 for iter in range(num_epoch):
 
     for current_batch_index in range(0,len(training_images),batch_size):
 
-        current_batch = training_images[current_batch_index:current_batch_index+10,:]
-        current_batch_label = training_lables[current_batch_index:current_batch_index+10,:]
+        current_batch = training_images[current_batch_index:current_batch_index+batch_size,:]
+        current_batch_label = training_lables[current_batch_index:current_batch_index+batch_size,:]
 
         current_batch_reshape = np.reshape(current_batch,(batch_size,28,28))
 
         l1 = signal.convolve(current_batch_reshape, np.expand_dims(w1,axis=0)  , mode='valid')
-        l1A = arctan(l1)
+        l1A = ReLu(l1)
         
         l2 = signal.convolve(l1A,np.expand_dims(w2,axis=0) , mode='valid')
-        l2A = tanh(l2)
+        l2A = ReLu(l2)
 
         l3 = signal.convolve(l2A,np.expand_dims(w3,axis=0) , mode='valid')
-        l3A = tanh(l3)
+        l3A = ReLu(l3)
 
         l4_Input = np.reshape(l3A,(batch_size,-1))
         l4 = l4_Input.dot(w4)
         l4A = arctan(l4)
 
         l5 = l4A.dot(w5)
-        l5A = tanh(l5)
+        l5A = arctan(l5)
 
         l6 = l5A.dot(w6)
         l6A = arctan(l6)
         l6Soft = softmax(l6A)
 
         cost = ( -1 * (current_batch_label * np.log(l6Soft)  + ( 1- current_batch_label) * np.log(1 - l6Soft)  )).sum() / batch_size
+#         cost = ( -1 * (current_batch_label * np.log(l6Soft)   )).sum() / batch_size
+#         print("current cost : ",cost,end='\r')
         total_error+= cost
 
         grad_6_part_1 = current_batch_label - l6Soft
         grad_6_part_2 = d_arctan(l6)
         grad_6_part_3 = l5A
-        grad_6 = grad_6_part_3.T.dot(grad_6_part_1 * grad_6_part_2)
+        grad_6 = grad_6_part_3.T.dot(grad_6_part_1*grad_6_part_2)
         
-        grad_5_part_1 = (grad_6_part_1 * grad_6_part_2).dot(w6.T)
-        grad_5_part_2 = d_tanh(l5)
+        grad_5_part_1 = (grad_6_part_1*grad_6_part_2 ).dot(w6.T)
+        grad_5_part_2 = d_arctan(l5)
         grad_5_part_3 = l4A
         grad_5 = grad_5_part_3.T.dot(grad_5_part_1 * grad_5_part_2)
         
@@ -105,18 +111,18 @@ for iter in range(num_epoch):
         grad_4_part_3 = l4_Input
         grad_4 = grad_4_part_3.T.dot(grad_4_part_1 * grad_4_part_2)
 
-        grad_3_part_1 = np.reshape((grad_4_part_1 * grad_4_part_2).dot(w4.T),(batch_size,22,22))
-        grad_3_part_2 = d_tanh(l3)
+        grad_3_part_1 = np.reshape((grad_4_part_1 * grad_4_part_2).dot(w4.T),(batch_size,19,19))
+        grad_3_part_2 = d_ReLu(l3)
         grad_3_part_3 = l2A
         grad_3 = np.rot90( signal.convolve(grad_3_part_3,   np.rot90(grad_3_part_1 * grad_3_part_2,2)    , mode='valid')    ,2)
 
         grad_2_part_1 = signal.convolve(np.expand_dims(w3,axis=0),   np.rot90(np.pad(grad_3_part_1 * grad_3_part_2,pad_width = ((0, 0), (2, 2), (2, 2)),mode='constant')  ,2),mode='valid' ) 
-        grad_2_part_2 = d_tanh(l2)
+        grad_2_part_2 = d_ReLu(l2)
         grad_2_part_3 = l1A
         grad_2 = np.rot90( signal.convolve(grad_2_part_3,   np.rot90(grad_2_part_1 * grad_2_part_2,2)    , mode='valid')    ,2)
 
-        grad_1_part_1 = signal.convolve(np.expand_dims(w2,axis=0),   np.rot90(np.pad(grad_2_part_1 * grad_2_part_2,pad_width = ((0, 0), (2, 2), (2, 2)),mode='constant')  ,2),mode='valid' ) 
-        grad_1_part_2 = d_tanh(l1)
+        grad_1_part_1 = signal.convolve(np.expand_dims(w2,axis=0),   np.rot90(np.pad(grad_2_part_1 * grad_2_part_2,pad_width = ((0, 0), (3, 3), (3, 3)),mode='constant')  ,2),mode='valid' ) 
+        grad_1_part_2 = d_ReLu(l1)
         grad_1_part_3 = current_batch_reshape
         grad_1 = np.rot90( signal.convolve(grad_1_part_3,   np.rot90(grad_1_part_1 * grad_1_part_2,2)    , mode='valid')    ,2)
 
@@ -134,8 +140,6 @@ for iter in range(num_epoch):
         w2 = w2- v2
         w1 = w1- v1
         
-
-
         # v1 = v1 * beta1 + ( 1- beta1) * np.squeeze(grad_1)
         # v2 = v2 * beta1 + ( 1- beta1) * np.squeeze(grad_2)
         # v3 = v3 * beta1 + ( 1- beta1) * np.squeeze(grad_3)
@@ -164,12 +168,12 @@ for iter in range(num_epoch):
         # m5_hat = m5 / ( 1- beta2) 
         # m6_hat = m6 / ( 1- beta2) 
 
-        # w6 = w6 - (learning_rate / ( np.sqrt(v6_hat) + adam_e )) * m6_hat
-        # w5 = w5 - (learning_rate / ( np.sqrt(v5_hat) + adam_e )) * m5_hat
-        # w4 = w4 - (learning_rate / ( np.sqrt(v4_hat) + adam_e )) * m4_hat
-        # w3 = w3 - (learning_rate / ( np.sqrt(v3_hat) + adam_e )) * m3_hat
-        # w2 = w2 - (learning_rate / ( np.sqrt(v2_hat) + adam_e )) * m2_hat
-        # w1 = w1 - (learning_rate / ( np.sqrt(v1_hat) + adam_e )) * m1_hat
+        # w6 = w6 - (learning_rate / ( np.sqrt(np.absolute(v6_hat)) + adam_e )) * m6_hat
+        # w5 = w5 - (learning_rate / ( np.sqrt(np.absolute(v5_hat)) + adam_e )) * m5_hat
+        # w4 = w4 - (learning_rate / ( np.sqrt(np.absolute(v4_hat)) + adam_e )) * m4_hat
+        # w3 = w3 - (learning_rate / ( np.sqrt(np.absolute(v3_hat)) + adam_e )) * m3_hat
+        # w2 = w2 - (learning_rate / ( np.sqrt(np.absolute(v2_hat)) + adam_e )) * m2_hat
+        # w1 = w1 - (learning_rate / ( np.sqrt(np.absolute(v1_hat)) + adam_e )) * m1_hat
 
     if iter % 10 == 0 :
         print("current Iter: ", iter, " Current Cost :", total_error)
