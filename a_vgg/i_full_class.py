@@ -57,9 +57,9 @@ w3b = np.random.randn(3,3)
 w3c = np.random.randn(3,3)
 
 w4 = np.random.randn(1083,1024)
-w5 = np.random.randn(1024,512)
-w6 = np.random.randn(512,256)
-w7 = (np.random.randn(256,10) * 0.2) - 0.1
+w5 = np.random.randn(1024,824)
+w6 = np.random.randn(824,512) * 0.7
+w7 = (np.random.randn(512,10) * 0.2) - 0.1
 
 v1,v2a,v2b  = 0,0,0
 v3a,v3b,v3c = 0,0,0

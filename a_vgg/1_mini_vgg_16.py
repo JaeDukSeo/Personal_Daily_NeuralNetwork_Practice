@@ -3,6 +3,7 @@ import tensorflow as tf
 from sklearn.utils import shuffle
 from scipy.signal import convolve2d
 import skimage.measure
+import matplotlib.pyplot as plt
 # skimage.measure.block_reduce(l1, (2,2), np.max)
 from tensorflow.examples.tutorials.mnist import input_data
 np.random.seed(5678)
@@ -43,8 +44,9 @@ testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,
 training_images,training_lables =images[test_image_num:test_image_num + training_image_num,:],label[test_image_num:test_image_num + training_image_num,:]
 num_epoch = 150
 learing_rate = 0.01
-learing_rate_conv = 0.00001
+learing_rate_conv = 0.0001
 total_cost = 0
+cost_array =[]
 
 w1 = np.random.randn(3,3)
 w2 = np.random.randn(3,3)
@@ -55,9 +57,9 @@ w3b = np.random.randn(3,3)
 w4a = np.random.randn(3,3)
 w4b = np.random.randn(3,3)
 
-w5 = np.random.randn(98,512)
-w6 = np.random.randn(512,256)
-w7 = np.random.randn(256,10) * 0.01
+w5 = np.random.randn(98,1024)
+w6 = np.random.randn(1024,512)
+w7 = np.random.randn(512,10) * 0.2
 
 
 for iter in range(num_epoch):
@@ -214,6 +216,7 @@ for iter in range(num_epoch):
             # l7Soft,'\n',current_batch_label
             )
         print('------------------------')
+    cost_array.append(total_cost)
     total_cost = 0
 
 
@@ -272,6 +275,9 @@ for current_batch_index in range(len(testing_images)):
         correct += 1
 
 print('Correct : ',correct, ' Out of : ',len(testing_images) )
+plt.title("Cost over time")
+plt.plot(np.arange(num_epoch), cost_array)
+plt.show()
 
 
 
