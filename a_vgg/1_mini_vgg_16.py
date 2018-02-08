@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 # skimage.measure.block_reduce(l1, (2,2), np.max)
 from tensorflow.examples.tutorials.mnist import input_data
 np.random.seed(5678)
-
 np.set_printoptions(precision=2,suppress=True)
 
 def tanh(x):
