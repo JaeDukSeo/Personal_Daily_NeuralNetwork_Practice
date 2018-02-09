@@ -22,14 +22,9 @@ for element in dog_gif:
     img = Image.open(element) 
     for iter in range(img.n_frames):
         img.seek(iter)
-        new_frame = np.array(img.convert('RGB')).astype(np.uint8)
+        new_frame = np.array(img.convert('RGB'))
         dog_array[store_index,:,:,:] = new_frame
         store_index = store_index + 1
-
-for iter in range(len(dog_array)):
-    plt.title(str(iter) + " : dog")
-    plt.imshow(np.uint8(dog_array[iter,:,:,:]))
-    plt.pause(0.07)
 
 baby_array = np.zeros((24,100,100,3))
 store_index = 0
@@ -41,8 +36,14 @@ for element in baby_gif:
         baby_array[store_index,:,:,:] = new_frame
         store_index = store_index + 1
 
-for iter in range(len(baby_array)):
-    plt.title(str(iter) + " : baby")
-    plt.imshow(np.uint8(baby_array[iter,:,:,:]))
-    plt.pause(0.07)
+
+plt.imshow(np.uint8(baby_array[0,:,:,:]) )
+plt.show()
+
+
+
+
+
+
+
 # -- end code --
