@@ -1,12 +1,14 @@
 from PIL import Image
-import numpy as np,os,sys,cv2
+import numpy as np,os,sys
 from matplotlib import pyplot as plt
 from scipy.signal import convolve2d,convolve
+from sklearn.utils import shuffle
 
-np.random.seed(5678)
+np.random.seed(563378)
 np.set_printoptions(precision=3,suppress=True)
 
 
+# -1. Activation Functions
 def tanh(x):
     return np.tanh(x)
 def d_tanh(x):
@@ -31,10 +33,7 @@ def d_arctan(x):
 
 
 
-
-
-
-# 1. Preprocess the data
+# 0. Read the data
 Pathgif = "./data/dog_preprocessed/"
 dog_gif = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(Pathgif):
@@ -69,59 +68,57 @@ for element in baby_gif:
         baby_array[store_index,:,:,:] = new_frame
         store_index = store_index + 1
 
-dog_label = np.ones((24,1))
+# 1.5 Create label and slipt the training data as well as label data
+dog_label =  np.ones((24,1))
 baby_label = np.zeros((24,1))
-train_num = 18
-
+train_num =  18
 train_data = np.vstack((dog_array[:train_num,:,:,:],baby_array[:train_num,:,:,:]))
 train_label= np.vstack((dog_label[:train_num,:],baby_label[:train_num,:]))
 test_data  = np.vstack((dog_array[train_num:,:,:,:],baby_array[train_num:,:,:,:]))
 test_label = np.vstack((dog_label[train_num:,:],baby_label[train_num:,:]))
 
-
-
 # 2. Declare the weights
-num_epoch = 100
-wfx =   np.random.randn(3,3,1) * 0.001
-wfrec = np.random.randn(3,3,1) * 0.001
+num_epoch = 30
+global wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec
+wfx =   np.random.randn(3,3,1) * 0.1
+wfrec = np.random.randn(3,3,1) * 0.1
 
-wix =   np.random.randn(3,3,1) * 0.001
-wirec = np.random.randn(3,3,1) * 0.001
- 
-wcx   = np.random.randn(3,3,1) * 0.001
-wcrec = np.random.randn(3,3,1) * 0.001
+wix =   np.random.randn(3,3,1) * 0.1
+wirec = np.random.randn(3,3,1) * 0.1
 
-wox =   np.random.randn(3,3,1) * 0.001
-worec = np.random.randn(3,3,1) * 0.001
+wcx   = np.random.randn(3,3,1) * 0.1
+wcrec = np.random.randn(3,3,1) * 0.1
+
+wox =   np.random.randn(3,3,1) * 0.1
+worec = np.random.randn(3,3,1) * 0.1
 
 w_final_1 = np.random.randn(30000,1000) * 0.001
 w_final_2 = np.random.randn(1000,1) * 0.001
-
-hidden_state = np.random.randn(4,100,100,3)
-cell_state = np.random.randn(4,100,100,3)
-
-learning_rate,learning_rate2 = 0.01,0.001
-
-
-
-
+# hidden_state = np.random.randn(4,100,100,3) * 0.001
+# cell_state = np.random.randn(4,100,100,3)   * 0.01
+hidden_state = np.zeros((4,100,100,3))
+cell_state   = np.zeros((4,100,100,3))
+learning_rate,learning_rate2 = 0.000003,0.000003
+lr3 = 0.003
+total_cost = 0
+cost_array = []
 
 
 # 1.5 Make Class of LSTM Decoupled
 class Decoupled_LSTM_Layer:
     
     def __init__(self,layer_index):
-        self.wox_syth    = np.random.randn(3,3,1) * 0.001
-        self.worec_syth  = np.random.randn(3,3,1) * 0.001
+        self.wox_syth    = np.random.randn(3,3,1) * 0.1
+        self.worec_syth  = np.random.randn(3,3,1) * 0.1
         
-        self.wcx_syth  = np.random.randn(3,3,1) * 0.001
-        self.wcrec_syth  = np.random.randn(3,3,1) * 0.001
+        self.wcx_syth  = np.random.randn(3,3,1) * 0.1
+        self.wcrec_syth  = np.random.randn(3,3,1) * 0.1
         
-        self.wix_syth  = np.random.randn(3,3,1) * 0.001
-        self.wirec_syth  = np.random.randn(3,3,1) * 0.001
+        self.wix_syth  = np.random.randn(3,3,1) * 0.1
+        self.wirec_syth  = np.random.randn(3,3,1) * 0.1
 
-        self.wfx_syth  = np.random.randn(3,3,1) * 0.001
-        self.wfrec_syth  = np.random.randn(3,3,1) * 0.001
+        self.wfx_syth  = np.random.randn(3,3,1) * 0.1
+        self.wfrec_syth  = np.random.randn(3,3,1) * 0.1
         
         self.layer_index = layer_index
         self.layer_output_save = None
@@ -138,9 +135,9 @@ class Decoupled_LSTM_Layer:
         self.layer_forget_syth_part_x_save   = None
         self.layer_forget_syth_part_rec_save = None
         
-
-    def feed_forward_synthetic_update(self,x,hidden,wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec):
+    def feed_forward_synthetic_update(self,x,hidden):
         
+        global wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec
         layer_forget =  convolve(x,wfx,'same') + convolve(hidden,worec,'same')
         layer_forgetA = log(layer_forget)
 
@@ -153,7 +150,7 @@ class Decoupled_LSTM_Layer:
         cell_state[self.layer_index,:,:,:] = cell_state[self.layer_index-1,:,:,:] * layer_forgetA + layer_inputA * layer_cellA
 
         layer_out =     convolve(x,wox,'same') + convolve(hidden,worec,'same')
-        layer_outA =    tanh(layer_out)
+        layer_outA =    log(layer_out)
         
         layer_output = layer_outA * tanh(cell_state[self.layer_index,:,:,:])
         self.layer_output_save = layer_output
@@ -162,7 +159,7 @@ class Decoupled_LSTM_Layer:
         self.layer_out_syth_part_x_save      = layer_out_syth_part_x
         layer_out_syth_part_rec = convolve(layer_output,np.rot90(self.worec_syth,2),'same') 
         self.layer_out_syth_part_rec_save    = layer_out_syth_part_rec
-        layer_out_syth_part_2 = tanh(cell_state[self.layer_index,:,:,:]) * d_tanh(layer_out) 
+        layer_out_syth_part_2 = tanh(cell_state[self.layer_index,:,:,:]) * d_log(layer_out) 
         layer_out_syth_x =   np.rot90(convolve(np.pad(x,((1,1),(1,1),(0,0)),'constant'),     np.rot90(layer_out_syth_part_x * layer_out_syth_part_2,2),'valid'),2)
         layer_out_syth_rec = np.rot90(convolve(np.pad(hidden,((1,1),(1,1),(0,0)),'constant'),np.rot90(layer_out_syth_part_rec * layer_out_syth_part_2,2),'valid'),2)
 
@@ -240,27 +237,56 @@ class Decoupled_LSTM_Layer:
         self.wox_syth =    self.wox_syth -   learning_rate * np.rot90( convolve(wox_SGD,np.rot90(  np.pad(self.layer_output_save,((1,1),(1,1),(0,0)),'constant') ,2),'valid' )  ,2)
         self.worec_syth =  self.worec_syth - learning_rate2 *np.rot90( convolve(worec_SGD,np.rot90(np.pad(self.layer_output_save,((1,1),(1,1),(0,0)),'constant') ,2),'valid' )  ,2)
 
-
+# 3. Declare all of the weigths
 layer_1 = Decoupled_LSTM_Layer(1)
 layer_2 = Decoupled_LSTM_Layer(2)
 layer_3 = Decoupled_LSTM_Layer(3)
 
+# 3.5 Before Training
+print('====== BEFORE TRAINING ========')
+for image_index in range(0,len(test_data),3):
+    
+    current_label =         test_label[image_index,:]
+    current_first_input_1 = test_data[image_index,:,:,:]
+    hidden_state[1,:,:,:],_ =               layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:])
 
-# # 3. Create the loop
+    current_first_input_2 = test_data[image_index+1,:,:,:]
+    hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:])
+
+    current_first_input_3 = test_data[image_index+2,:,:,:]
+    hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:])
+
+    final_layer_input = np.reshape(hidden_state[3,:,:,:],(1,-1))
+
+    final_l1  = final_layer_input.dot(w_final_1)
+    final_l1A = tanh(final_l1)
+
+    final_l2  = final_l1A.dot(w_final_2)
+    final_l2A = log(final_l2)
+
+    print("Before Current Prediction : ", final_l2A," Current Prediction Rouned : ", np.round(final_l2A), " current Ground Truth: ", current_label)
+print('=============================')
+
+
+# 4. Training via the epoch
 for iter in range(num_epoch):
     
     for image_index in range(0,len(train_data),3):
     
         current_label =      train_label[image_index,:]
+
         current_first_input_1 = train_data[image_index,:,:,:]
-        hidden_state[1,:,:,:],_ =               layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
+        hidden_state[1,:,:,:],_ =    layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:])
+        # hidden_state[1,:,:,:],_ =    layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
 
         current_first_input_2 = train_data[image_index+1,:,:,:]
-        hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
+        hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:])
+        # hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
         layer_1.synthetic_weight_update(gradiend_from_2)
 
         current_first_input_3 = train_data[image_index+2,:,:,:]
-        hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
+        hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:])
+        # hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
         layer_2.synthetic_weight_update(gradiend_from_3)
 
         final_layer_input = np.reshape(hidden_state[3,:,:,:],(1,-1))
@@ -272,8 +298,9 @@ for iter in range(num_epoch):
         final_l2A = log(final_l2)
 
         cost = np.square(final_l2A - current_label).sum() * 0.5
-        # cost = ( -1 * (current_label * np.log(final_l2A)  + ( 1- current_label) * np.log(1 - final_l2A)  )).sum() 
-        print("Current iter :", iter, " Current batch: ", image_index, " Current Cost : ", cost, end='\r')
+        print("Current Batch : ",image_index, " Current Ground Truth : ", current_label ,"Real Cost update Cost : ", cost, end='\r')
+        
+        total_cost =+ cost
 
         grad_final2_part_1 = final_l2A - current_label
         grad_final2_part_2 = d_log(final_l2)
@@ -285,9 +312,55 @@ for iter in range(num_epoch):
         grad_final1_part_3 = final_layer_input
         grad_final1 = grad_final1_part_3.T.dot(grad_final1_part_1  * grad_final1_part_2)
 
+        w_final_2 = w_final_2 - lr3 * grad_final2
+        w_final_1 = w_final_1 - lr3 * grad_final1
+        
+
         grad_layer_3_part_1 = np.reshape((grad_final1_part_1 * grad_final1_part_2).dot(w_final_1.T),(100,100,3))
         layer_3.synthetic_weight_update((grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1))
 
-    print('\n--------------\n')
+    if iter % 2 == 0:
+        print(" Current Iter: ", iter," Current iter :", iter, " Current batch: ", image_index, " Current Total Cost : ", total_cost, end='\n')
+    
+    cost_array.append(total_cost)
+    total_cost = 0
+
+print('\n====== AFTER TRAINING ========')
+for image_index in range(0,len(test_data),3):
+    
+    current_label =         test_label[image_index,:]
+    current_first_input_1 = test_data[image_index,:,:,:]
+    hidden_state[1,:,:,:],_ =               layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:])
+
+    current_first_input_2 = test_data[image_index+1,:,:,:]
+    hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:])
+
+    current_first_input_3 = test_data[image_index+2,:,:,:]
+    hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:])
+
+    final_layer_input = np.reshape(hidden_state[3,:,:,:],(1,-1))
+
+    final_l1  = final_layer_input.dot(w_final_1)
+    final_l1A = tanh(final_l1)
+
+    final_l2  = final_l1A.dot(w_final_2)
+    final_l2A = log(final_l2)
+
+    print("Current Prediction : ", final_l2A," Current Prediction Rouned : ", np.round(final_l2A), " current Ground Truth: ", current_label)
+print('=============================')
+
+plt.title("Cost over time")
+plt.plot(np.arange(len(cost_array)), cost_array)
+plt.show()
+
+
+
+
+
+
+
+
+
+
 
 # -- end code --
