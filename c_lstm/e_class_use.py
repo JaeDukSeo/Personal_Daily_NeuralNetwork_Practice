@@ -81,17 +81,17 @@ test_label = np.vstack((dog_label[train_num:,:],baby_label[train_num:,:]))
 
 
 # 2. Declare the weights
-num_epoch = 1
-wfx =   np.random.randn(3,3,1) * 0.01
+num_epoch = 100
+wfx =   np.random.randn(3,3,1) * 0.001
 wfrec = np.random.randn(3,3,1) * 0.001
 
-wix =   np.random.randn(3,3,1) * 0.01
+wix =   np.random.randn(3,3,1) * 0.001
 wirec = np.random.randn(3,3,1) * 0.001
  
-wcx   = np.random.randn(3,3,1) * 0.01
+wcx   = np.random.randn(3,3,1) * 0.001
 wcrec = np.random.randn(3,3,1) * 0.001
 
-wox =   np.random.randn(3,3,1) * 0.01
+wox =   np.random.randn(3,3,1) * 0.001
 worec = np.random.randn(3,3,1) * 0.001
 
 w_final_1 = np.random.randn(30000,1000) * 0.001
@@ -100,7 +100,7 @@ w_final_2 = np.random.randn(1000,1) * 0.001
 hidden_state = np.random.randn(4,100,100,3)
 cell_state = np.random.randn(4,100,100,3)
 
-learning_rate,learning_rate2 = 0.001,0.0001
+learning_rate,learning_rate2 = 0.01,0.001
 
 
 
@@ -244,8 +244,6 @@ class Decoupled_LSTM_Layer:
 layer_1 = Decoupled_LSTM_Layer(1)
 layer_2 = Decoupled_LSTM_Layer(2)
 layer_3 = Decoupled_LSTM_Layer(3)
-layer_4 = Decoupled_LSTM_Layer(4)
-layer_5 = Decoupled_LSTM_Layer(5)
 
 
 # # 3. Create the loop
@@ -274,12 +272,21 @@ for iter in range(num_epoch):
         final_l2A = log(final_l2)
 
         cost = ( -1 * (current_label * np.log(final_l2A)  + ( 1- current_label) * np.log(1 - final_l2A)  )).sum() 
+        print("Current iter :", iter, " Current batch: ", image_index, " Current Cost : ", cost, end='\r')
 
-        print(cost)
+        grad_final2_part_1 = final_l2A - current_label
+        grad_final2_part_2 = d_log(final_l2)
+        grad_final2_part_3 = final_l1A
+        grad_final2 = grad_final2_part_3.T.dot(grad_final2_part_1  * grad_final2_part_2)
 
+        grad_final1_part_1 = (grad_final2_part_1 * grad_final2_part_2).dot(w_final_2.T)
+        grad_final1_part_2 = d_tanh(final_l1)
+        grad_final1_part_3 = final_layer_input
+        grad_final1 = grad_final1_part_3.T.dot(grad_final1_part_1  * grad_final1_part_2)
 
-        sys.exit()
+        grad_layer_3_part_1 = np.reshape((grad_final1_part_1 * grad_final1_part_2).dot(w_final_1.T),(100,100,3))
+        layer_3.synthetic_weight_update((grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1,grad_layer_3_part_1))
 
-
+    print('\n--------------\n')
 
 # -- end code --
