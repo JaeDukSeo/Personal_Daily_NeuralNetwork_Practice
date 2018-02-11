@@ -284,7 +284,6 @@ for iter in range(num_epoch):
 
         current_first_input_3 = train_data[image_index+2,:,:,:]
         hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:])
-        # hidden_state[3,:,:,:],gradiend_from_3 = layer_3.feed_forward_synthetic_update(current_first_input_3,hidden_state[2,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
         layer_2.synthetic_weight_update(gradiend_from_3)
 
         final_layer_input = np.reshape(hidden_state[3,:,:,:],(1,-1))
