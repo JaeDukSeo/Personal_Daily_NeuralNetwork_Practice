@@ -277,11 +277,9 @@ for iter in range(num_epoch):
 
         current_first_input_1 = train_data[image_index,:,:,:]
         hidden_state[1,:,:,:],_ =    layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:])
-        # hidden_state[1,:,:,:],_ =    layer_1.feed_forward_synthetic_update(current_first_input_1,hidden_state[0,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
 
         current_first_input_2 = train_data[image_index+1,:,:,:]
         hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:])
-        # hidden_state[2,:,:,:],gradiend_from_2 = layer_2.feed_forward_synthetic_update(current_first_input_2,hidden_state[1,:,:,:],wfx,wfrec,wix,wirec,wcx,wcrec,wox,worec)
         layer_1.synthetic_weight_update(gradiend_from_2)
 
         current_first_input_3 = train_data[image_index+2,:,:,:]

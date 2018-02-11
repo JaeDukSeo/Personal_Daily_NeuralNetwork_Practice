@@ -4,7 +4,6 @@ from sklearn.utils import shuffle
 from scipy import signal
 from tensorflow.examples.tutorials.mnist import input_data
 np.random.seed(5678)
-
 np.set_printoptions(precision=3,suppress=True)
 
 def tanh(x):
