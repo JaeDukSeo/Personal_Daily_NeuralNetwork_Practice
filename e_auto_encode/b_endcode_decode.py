@@ -2,6 +2,8 @@ import numpy as np,dicom,sys,os
 from scipy.signal import convolve2d
 from skimage.measure import block_reduce
 import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
+from matplotlib.pyplot import plot, draw, show,ion
 np.random.randn(6789)
 
 def tanh(x):
@@ -54,33 +56,38 @@ for dirName, subdirList, fileList in os.walk(PathDicom):
 
 # 1. Read the data into Numpy
 one = np.zeros((119,512,512))
-two = np.zeros((119,512,512))
-three = np.zeros((119,512,512))
+# two = np.zeros((119,512,512))
+# three = np.zeros((119,512,512))
 
 # 1.5 Transfer All of the Data into array
 print('===== READING DATA ========')
 for file_index in range(len(lstFilesDCM1)):
     one[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM1[file_index]).pixel_array)
-for file_index in range(len(lstFilesDCM2)):
-    two[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM2[file_index]).pixel_array)
-for file_index in range(len(lstFilesDCM3)):
-    three[file_index,:,:] = np.array(dicom.read_file(lstFilesDCM3[file_index]).pixel_array)
+# for file_index in range(len(lstFilesDCM2)):
+#     two[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM2[file_index]).pixel_array)
+# for file_index in range(len(lstFilesDCM3)):
+#     three[file_index,:,:] = np.array(dicom.read_file(lstFilesDCM3[file_index]).pixel_array)
 print('===== Done READING DATA ========')
 
 
-training_data = np.vstack((one,two,three))
-num_epoch = 1
-learn_rate_d = 0.0001
-learn_rate_e = 0.00007
+training_data = one
+# training_data = np.vstack((one,two,three))
+
+num_epoch = 100
+learn_rate_d = 0.00001
+learn_rate_e = 0.000007
+cost_array = []
+total_cost = 0 
+
 
 # 2. Build Class for Encoder and Decoder
 class Encoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(7,7)
-        self.w2 = np.random.randn(5,5)
-        self.w3 = np.random.randn(3,3)
-        self.w4 = np.random.randn(4096,1000)
+        self.w1 = np.random.randn(7,7)* 0.04
+        self.w2 = np.random.randn(5,5)* 0.04
+        self.w3 = np.random.randn(3,3)* 0.04
+        self.w4 = np.random.randn(4096,1000)* 0.04
 
         self.input,self.output = None,None
 
@@ -145,10 +152,10 @@ class Encoder():
 class Decoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(1000,4096)
-        self.w2 = np.random.randn(3,3)
-        self.w3 = np.random.randn(5,5)
-        self.w4 = np.random.randn(7,7)
+        self.w1 = np.random.randn(1000,4096) * 0.04
+        self.w2 = np.random.randn(3,3)* 0.04
+        self.w3 = np.random.randn(5,5)* 0.04
+        self.w4 = np.random.randn(7,7)* 0.04
 
         self.input,self.output = None, None
 
@@ -215,10 +222,10 @@ class Decoder():
 # 3. Define Each Layer object
 encoder = Encoder()
 decoder = Decoder()
+f, axarr = plt.subplots(2, 2)
 
 # 4. Training both the encoder and decoder
 for iter in range(num_epoch):
-
     for image_index in range(len(training_data)):
         
         current_data = training_data[image_index,:,:]
@@ -227,12 +234,60 @@ for iter in range(num_epoch):
         encoded_vector = encoder.feed_forward(current_data_noise)
         decoded_image  = decoder.feed_forward(encoded_vector)
 
-        naive_cost = np.square(decoded_image - current_data).sum() * 0.5
-        print()
+        naive_cost = np.square(decoded_image - current_data).sum() * 0.25
+        print("Current Iter :",iter,"  Current Image Index:  ",image_index ," Real Time Update Cost: ", naive_cost,end='\r')
+        total_cost+= naive_cost
         
-        gradient = decoder.back_propagation(decoded_image - current_data)
+        gradient = decoder.back_propagation((decoded_image - current_data)*0.5)
         encoder.back_propagation(gradient)
 
-    sys.exit()
+    if iter % 1 == 0 :
+        print('\n======================================')
+        print("current Iter: ", iter, " Current Total Cost :", total_cost/len(training_data))
+
+        for test_index in range(10):
+            
+            temp = shuffle(training_data)
+
+            current_data = temp[test_index,:,:]
+            current_data_noise =  current_data + 0.3 * current_data.max() *np.random.randn(current_data.shape[0],current_data.shape[1])
+
+            encoded_vector = encoder.feed_forward(current_data_noise)
+            decoded_image  = decoder.feed_forward(encoded_vector)
+ 
+            axarr[0, 0].imshow(current_data,cmap='gray')
+            axarr[0, 0].set_title('Original')
+            axarr[0, 1].imshow(current_data_noise,cmap='gray')
+            axarr[0, 1].set_title('Add noise')
+            axarr[1, 0].imshow(decoded_image,cmap='gray')
+            axarr[1, 0].set_title('Decoded')
+            plt.savefig(str(iter)+'_.png', bbox_inches='tight')
+        print('======================================')
+
+    cost_array.append(total_cost/len(training_data))
+    total_cost = 0
+# ---------------------------------
+for test_index in range(30):
+    
+    temp = shuffle(training_data)
+
+    current_data = temp[test_index,:,:]
+    current_data_noise =  current_data + 0.3 * current_data.max() *np.random.randn(current_data.shape[0],current_data.shape[1])
+
+    encoded_vector = encoder.feed_forward(current_data_noise)
+    decoded_image  = decoder.feed_forward(encoded_vector)
+
+    axarr[0, 0].imshow(current_data,cmap='gray')
+    axarr[0, 0].set_title('Original : ' + str(test_index))
+    axarr[0, 1].imshow(current_data_noise,cmap='gray')
+    axarr[0, 1].set_title('Add noise: ' + str(test_index))
+    axarr[1, 0].imshow(decoded_image,cmap='gray')
+    axarr[1, 0].set_title('Decoded: ' + str(test_index))
+    plt.savefig(str(iter)+'_test_.png', bbox_inches='tight')
+
+plt.title("Cost over time")
+plt.plot(np.arange(len(cost_array)), cost_array)
+plt.show()
+
 
 # -- end code --
