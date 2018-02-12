@@ -57,6 +57,15 @@ one = np.zeros((119,512,512))
 two = np.zeros((119,512,512))
 three = np.zeros((119,512,512))
 
+# 1.5 Transfer All of the Data into array
+for file_index in range(len(lstFilesDCM1)):
+    one[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM1[file_index]).pixel_array)
+for file_index in range(len(lstFilesDCM2)):
+    two[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM2[file_index]).pixel_array)
+for file_index in range(len(lstFilesDCM3)):
+    three[file_index,:,:] = np.array(dicom.read_file(lstFilesDCM3[file_index]).pixel_array)
+
+
 training_data = np.vstack((one,two,three))
 num_epoch = 1
 learn_rate = 0.001
@@ -68,7 +77,7 @@ class Encoder():
         self.w1 = np.random.randn(7,7)
         self.w2 = np.random.randn(6,6)
         self.w3 = np.random.randn(5,5)
-        self.w4 = np.random.randn(3600,1000)
+        self.w4 = np.random.randn(4096,1000)
 
         self.input,self.output = None,None
 
@@ -82,15 +91,15 @@ class Encoder():
     def feed_forward(self,input):
         
         self.input = input
-        self.l1  = convolve2d(input,self.w1,'valid')
+        self.l1  = convolve2d(input,self.w1,'same')
         self.l1M = block_reduce(self.l1,(2,2), np.mean)
         self.l1A = tanh(self.l1M)
 
-        self.l2  = convolve2d(self.l1A,self.w2,'valid')
+        self.l2  = convolve2d(self.l1A,self.w2,'same')
         self.l2M = block_reduce(self.l2,(2,2), np.mean)
         self.l2A = arctan(self.l2M)
 
-        self.l3  = convolve2d(self.l2A,self.w3,'valid')
+        self.l3  = convolve2d(self.l2A,self.w3,'same')
         self.l3M = block_reduce(self.l3,(2,2), np.mean)
         self.l3A = tanh(self.l3M)
 
@@ -103,10 +112,43 @@ class Encoder():
 class Decoder():
     
     def __init__(self):
-        print("Hey decode")
+        
+        self.w1 = np.random.randn(1000,4096)
+        self.w2 = np.random.randn(5,5)
+        self.w3 = np.random.randn(6,6)
+        self.w4 = np.random.randn(7,7)
+        
+
+        self.input = input
+
+        self.l1,self.l1A = None,None
+
+        self.l2Input = None
+        self.l2,self.l2A,self.l2M = None, None, None
+        self.l3,self.l3A,self.l3M = None, None, None
+        
 
     def feed_forward(self,input):
-        print(5)
+        
+        self.input = input
+        
+        self.l1 = self.input.dot(self.w1)
+        self.l1A = arctan(self.l1)
+
+        self.l2Input = np.reshape(self.l1A,(64,64))
+        self.l2M   =   self.l2Input.repeat(2,axis=0).repeat(2,axis=1)
+        self.l2    =   convolve2d(self.l2M,self.w2,'same')
+        self.l2A   =   arctan(self.l2)
+
+        self.l3M   = self.l2A.repeat(2,axis=0).repeat(2,axis=1)
+        self.l3    = convolve2d(self.l3M,self.w3,'same')
+        self.l3A   = arctan(self.l3)
+        
+        self.l4M   = self.l3A.repeat(2,axis=0).repeat(2,axis=1)
+        self.l4    = convolve2d(self.l4M,self.w4,'same')
+        self.l4A   = log(self.l4)
+
+        return self.l4A
 
 # 3. Define Each Layer object
 encoder = Encoder()
@@ -116,13 +158,19 @@ decoder = Decoder()
 for iter in range(num_epoch):
 
     for image_index in range(len(training_data)):
-        current_data = training_data[image_index,:,:]
-
-        encoded_vector = encoder.feed_forward(current_data)
-        print(encoded_vector.shape)
         
+        current_data = training_data[image_index,:,:]
+        current_data_noise =  current_data + 0.3 * current_data.max() *np.random.randn(current_data.shape[0],current_data.shape[1])
+
+        encoded_vector = encoder.feed_forward(current_data_noise)
         decoded_image  = decoder.feed_forward(encoded_vector)
-        print(encoded_vector.shape)
+
+        plt.imshow(current_data,cmap='gray')
+        plt.show()
+        plt.imshow(current_data_noise,cmap='gray')
+        plt.show()
+        plt.imshow(decoded_image,cmap='gray')
+        plt.show()
 
         sys.exit()
 
