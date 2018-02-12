@@ -37,7 +37,7 @@ mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True).test
 images,label = shuffle(mnist.images,mnist.labels)
 test_image_num,training_image_num = 50,330
 learning_rate = 0.02
-num_epoch = 100
+num_epoch = 1
 cost_array = []
 batch_size = 3
 total_cost = 0 
