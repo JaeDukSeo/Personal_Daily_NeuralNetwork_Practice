@@ -1,8 +1,7 @@
 import numpy as np,dicom,sys,os
-import dicom,sys
-import os
-import numpy
-from matplotlib import pyplot as plt, cm
+from scipy.signal import convolve2d
+import skimage.measure
+import matplotlib.pyplot as plt
 
 np.random.randn(6789)
 
@@ -35,33 +34,6 @@ two = np.zeros((119,512,512))
 three = np.zeros((119,512,512))
 
 
-for file_index in range(len(lstFilesDCM1)):
-    RefDs = dicom.read_file(lstFilesDCM1[file_index])
-    one[file_index,:,:] = np.array(RefDs.pixel_array)
-plt.figure(1)
-
-for temp in range(len(one)):
-    plt.subplot(121)
-    plt.imshow(one[temp,:,:] ,cmap='gray')
-    plt.subplot(122)
-    plt.imshow(one[temp,:,:] + 0.3 * one[temp,:,:].max() *np.random.randn(512,512),cmap='gray')
-    plt.pause(0.9)
 
 
-sys.exit()
-
-print(len(lstFilesDCM))
-
-RefDs = dicom.read_file(lstFilesDCM[0])
-
-print(dir(RefDs))
-
-temp = np.array(RefDs.pixel_array)
-
-print(temp.shape)
-
-pyplot.imshow(temp,cmap='gray')
-pyplot.show()
-
-
-#  -- end code --
+# -- end code --
