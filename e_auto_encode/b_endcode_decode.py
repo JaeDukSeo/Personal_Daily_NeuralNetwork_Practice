@@ -58,27 +58,28 @@ two = np.zeros((119,512,512))
 three = np.zeros((119,512,512))
 
 # 1.5 Transfer All of the Data into array
-print('===== READING DATA========')
+print('===== READING DATA ========')
 for file_index in range(len(lstFilesDCM1)):
     one[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM1[file_index]).pixel_array)
 for file_index in range(len(lstFilesDCM2)):
     two[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM2[file_index]).pixel_array)
 for file_index in range(len(lstFilesDCM3)):
     three[file_index,:,:] = np.array(dicom.read_file(lstFilesDCM3[file_index]).pixel_array)
-print('===== READING DATA========')
+print('===== Done READING DATA ========')
 
 
 training_data = np.vstack((one,two,three))
 num_epoch = 1
-learn_rate = 0.001
+learn_rate_d = 0.0001
+learn_rate_e = 0.00007
 
 # 2. Build Class for Encoder and Decoder
 class Encoder():
     
     def __init__(self):
         self.w1 = np.random.randn(7,7)
-        self.w2 = np.random.randn(6,6)
-        self.w3 = np.random.randn(5,5)
+        self.w2 = np.random.randn(5,5)
+        self.w3 = np.random.randn(3,3)
         self.w4 = np.random.randn(4096,1000)
 
         self.input,self.output = None,None
@@ -112,14 +113,41 @@ class Encoder():
         return self.output
 
     def back_propagation(self,gradient):
-        print()
 
+        grad_4_part_1 = gradient
+        grad_4_part_2 = d_arctan(self.l4)
+        grad_4_part_3 = self.l4Input
+        grad_4 = grad_4_part_3.T.dot(grad_4_part_1 * grad_4_part_2)
+
+        grad_3_part_1 = np.reshape((grad_4_part_1 * grad_4_part_2).dot(self.w4.T),(64,64))
+        grad_3_part_2 = d_tanh(self.l3M)
+        grad_3_part_M = (grad_3_part_1 * grad_3_part_2).repeat(2,axis=0).repeat(2,axis=1)
+        grad_3_part_3 = np.pad(self.l2A,1,'constant')
+        grad_3 = np.rot90(convolve2d(grad_3_part_3,    np.rot90( grad_3_part_M ,2),'valid')  ,2)
+
+        grad_2_part_1 = convolve2d( self.w3  , np.rot90(np.pad(grad_3_part_M,1,'constant')    ,2)  ,'valid')
+        grad_2_part_2 = d_arctan(self.l2M)
+        grad_2_part_M = (grad_2_part_1 * grad_2_part_2).repeat(2,axis=0).repeat(2,axis=1)
+        grad_2_part_3 = np.pad(self.l1A,2,'constant')
+        grad_2 = np.rot90(convolve2d(grad_2_part_3,    np.rot90( grad_2_part_M ,2),'valid')  ,2)
+                
+        grad_1_part_1 = convolve2d( self.w2  , np.rot90(np.pad(grad_2_part_M,2,'constant')    ,2)  ,'valid')
+        grad_1_part_2 = d_tanh(self.l1M)
+        grad_1_part_M = (grad_1_part_1 * grad_1_part_2).repeat(2,axis=0).repeat(2,axis=1)
+        grad_1_part_3 = np.pad(self.input,3,'constant')
+        grad_1 = np.rot90(convolve2d(grad_1_part_3,    np.rot90( grad_1_part_M ,2),'valid')  ,2)
+
+        self.w4 = self.w4 - learn_rate_e *    grad_4
+        self.w3 = self.w3 - learn_rate_e *    grad_3     
+        self.w2 = self.w2 - learn_rate_e *    grad_2     
+        self.w1 = self.w1 - learn_rate_e *    grad_1     
+             
 class Decoder():
     
     def __init__(self):
         self.w1 = np.random.randn(1000,4096)
-        self.w2 = np.random.randn(5,5)
-        self.w3 = np.random.randn(6,6)
+        self.w2 = np.random.randn(3,3)
+        self.w3 = np.random.randn(5,5)
         self.w4 = np.random.randn(7,7)
 
         self.input,self.output = None, None
@@ -160,25 +188,35 @@ class Decoder():
         grad_4_part_3 = np.pad(self.l4M,3,'constant')
         grad_4 = np.rot90(convolve2d(grad_4_part_3,np.rot90(grad_4_part_1 * grad_4_part_2,2),'valid'),2)
 
-        grad_3_part_1 = convolve2d(self.w4,np.rot90(grad_4_part_1 * grad_4_part_2 ,2), 'valid'  )  
-        
+        grad_3_part_1 = convolve2d( self.w4,  np.rot90(np.pad(grad_4_part_1 * grad_4_part_2,3,'constant') ,2), 'valid'  )[::2,::2]  
         grad_3_part_2 = d_arctan(self.l3)
+        grad_3_part_3 = np.pad(self.l3M,2,'constant')
+        grad_3 = np.rot90(convolve2d(grad_3_part_3,np.rot90(grad_3_part_1 * grad_3_part_2,2),'valid'),2)
 
-        print(grad_3_part_1.shape)
-        print(grad_3_part_2.shape)
+        grad_2_part_1 = convolve2d( self.w3,  np.rot90(np.pad(grad_3_part_1 * grad_3_part_2,2,'constant') ,2), 'valid'  )[::2,::2]  
+        grad_2_part_2 = d_arctan(self.l2)
+        grad_2_part_3 = np.pad(self.l2M,1,'constant')
+        grad_2 = np.rot90(convolve2d(grad_2_part_3,np.rot90(grad_2_part_1 * grad_2_part_2,2),'valid'),2)
 
+        grad_1_part_1 = np.reshape(convolve2d( self.w2,  np.rot90(np.pad(grad_2_part_1 * grad_2_part_2,1,'constant') ,2), 'valid'  )[::2,::2],(1,-1))
+        grad_1_part_2 = d_arctan(self.l1)
+        grad_1_part_3 = self.input
+        grad_1 = grad_1_part_3.T.dot(grad_1_part_1 * grad_1_part_2)
 
-        return 22
+        grad_passon = (grad_1_part_1 * grad_1_part_2).dot(self.w1.T)
+
+        self.w4 = self.w4 - learn_rate_d * grad_4
+        self.w3 = self.w3 - learn_rate_d * grad_3
+        self.w2 = self.w2 - learn_rate_d * grad_2
+        self.w1 = self.w1 - learn_rate_d * grad_1
+        
+        return grad_passon
 
 # 3. Define Each Layer object
 encoder = Encoder()
 decoder = Decoder()
 
-
-
-
-
-# 4. Traing
+# 4. Training both the encoder and decoder
 for iter in range(num_epoch):
 
     for image_index in range(len(training_data)):
@@ -190,10 +228,11 @@ for iter in range(num_epoch):
         decoded_image  = decoder.feed_forward(encoded_vector)
 
         naive_cost = np.square(decoded_image - current_data).sum() * 0.5
-
+        print()
+        
         gradient = decoder.back_propagation(decoded_image - current_data)
         encoder.back_propagation(gradient)
 
-        sys.exit()
+    sys.exit()
 
 # -- end code --
