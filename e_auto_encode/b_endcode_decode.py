@@ -58,12 +58,14 @@ two = np.zeros((119,512,512))
 three = np.zeros((119,512,512))
 
 # 1.5 Transfer All of the Data into array
+print('===== READING DATA========')
 for file_index in range(len(lstFilesDCM1)):
     one[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM1[file_index]).pixel_array)
 for file_index in range(len(lstFilesDCM2)):
     two[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM2[file_index]).pixel_array)
 for file_index in range(len(lstFilesDCM3)):
     three[file_index,:,:] = np.array(dicom.read_file(lstFilesDCM3[file_index]).pixel_array)
+print('===== READING DATA========')
 
 
 training_data = np.vstack((one,two,three))
@@ -105,28 +107,26 @@ class Encoder():
 
         self.l4Input = np.reshape(self.l3A,(1,-1))
         self.l4 = self.l4Input.dot(self.w4)
-        self.l4A = arctan(self.l4)
+        self.l4A = self.output = arctan(self.l4)
 
-        return self.l4A
+        return self.output
 
 class Decoder():
     
     def __init__(self):
-        
         self.w1 = np.random.randn(1000,4096)
         self.w2 = np.random.randn(5,5)
         self.w3 = np.random.randn(6,6)
         self.w4 = np.random.randn(7,7)
-        
 
-        self.input = input
+        self.input,self.output = None, None
 
         self.l1,self.l1A = None,None
 
         self.l2Input = None
         self.l2,self.l2A,self.l2M = None, None, None
         self.l3,self.l3A,self.l3M = None, None, None
-        
+        self.l4,self.l4A,self.l4M = None, None, None
 
     def feed_forward(self,input):
         
@@ -146,9 +146,21 @@ class Decoder():
         
         self.l4M   = self.l3A.repeat(2,axis=0).repeat(2,axis=1)
         self.l4    = convolve2d(self.l4M,self.w4,'same')
-        self.l4A   = log(self.l4)
+        self.l4A = self.output = log(self.l4)
 
-        return self.l4A
+        return self.output
+
+    def back_propagation(self,gradient):
+
+        grad_4_part_1 = gradient
+        grad_4_part_2 = d_log(self.l4)
+        grad_4_part_3 = np.pad(self.l4M,1,'constant')
+        
+        grad_4 = convolve2d(grad_4_part_3,grad_4_part_1,'same')
+        
+        print(grad_4.shape)
+
+        return 22
 
 # 3. Define Each Layer object
 encoder = Encoder()
@@ -165,13 +177,10 @@ for iter in range(num_epoch):
         encoded_vector = encoder.feed_forward(current_data_noise)
         decoded_image  = decoder.feed_forward(encoded_vector)
 
-        plt.imshow(current_data,cmap='gray')
-        plt.show()
-        plt.imshow(current_data_noise,cmap='gray')
-        plt.show()
-        plt.imshow(decoded_image,cmap='gray')
-        plt.show()
+        naive_cost = np.square(decoded_image - current_data).sum() * 0.5
 
+        gradient = decoder.back_propagation(decoded_image - current_data)
+        print('sss')
         sys.exit()
 
 # -- end code --
