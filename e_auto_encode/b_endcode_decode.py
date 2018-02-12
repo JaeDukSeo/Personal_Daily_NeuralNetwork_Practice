@@ -33,7 +33,15 @@ one = np.zeros((119,512,512))
 two = np.zeros((119,512,512))
 three = np.zeros((119,512,512))
 
+# 2. Build Class for Encoder and Decoder
+class Encoder():
+    
+    def __init__():
+        print("hey Encode")
 
-
+class Decoder():
+    
+    def __init__():
+        print("Hey decode")
 
 # -- end code --
