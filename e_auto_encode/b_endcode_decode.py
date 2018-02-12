@@ -111,6 +111,9 @@ class Encoder():
 
         return self.output
 
+    def back_propagation(self,gradient):
+        print()
+
 class Decoder():
     
     def __init__(self):
@@ -154,17 +157,26 @@ class Decoder():
 
         grad_4_part_1 = gradient
         grad_4_part_2 = d_log(self.l4)
-        grad_4_part_3 = np.pad(self.l4M,1,'constant')
+        grad_4_part_3 = np.pad(self.l4M,3,'constant')
+        grad_4 = np.rot90(convolve2d(grad_4_part_3,np.rot90(grad_4_part_1 * grad_4_part_2,2),'valid'),2)
+
+        grad_3_part_1 = convolve2d(self.w4,np.rot90(grad_4_part_1 * grad_4_part_2 ,2), 'valid'  )  
         
-        grad_4 = convolve2d(grad_4_part_3,grad_4_part_1,'same')
-        
-        print(grad_4.shape)
+        grad_3_part_2 = d_arctan(self.l3)
+
+        print(grad_3_part_1.shape)
+        print(grad_3_part_2.shape)
+
 
         return 22
 
 # 3. Define Each Layer object
 encoder = Encoder()
 decoder = Decoder()
+
+
+
+
 
 # 4. Traing
 for iter in range(num_epoch):
@@ -180,7 +192,8 @@ for iter in range(num_epoch):
         naive_cost = np.square(decoded_image - current_data).sum() * 0.5
 
         gradient = decoder.back_propagation(decoded_image - current_data)
-        print('sss')
+        encoder.back_propagation(gradient)
+
         sys.exit()
 
 # -- end code --
