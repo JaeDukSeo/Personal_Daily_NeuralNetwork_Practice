@@ -74,12 +74,12 @@ training_data = one
 # training_data = np.vstack((one,two,three))
 
 num_epoch = 100
-learn_rate_d = 0.000007
-learn_rate_e = 0.000001
+learn_rate_d = 0.0002
+learn_rate_e = 0.00007
 cost_array = []
 total_cost = 0 
 
-beta_1,beta_2 = 0.9,0.999
+beta_1,beta_2 = 0.5,0.88
 adam_e = 0.00000001
 
 # 2. Build Class for Encoder and Decoder
@@ -89,7 +89,7 @@ class Encoder():
         self.w1 = np.random.randn(7,7)* 0.04
         self.w2 = np.random.randn(5,5)* 0.04
         self.w3 = np.random.randn(3,3)* 0.04
-        self.w4 = np.random.randn(4096,1000)* 0.04
+        self.w4 = np.random.randn(4096,50)* 0.04
 
         self.input,self.output = None,None
 
@@ -178,7 +178,7 @@ class Encoder():
 class Decoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(1000,4096) * 0.04
+        self.w1 = np.random.randn(50,4096) * 0.04
         self.w2 = np.random.randn(3,3)* 0.04
         self.w3 = np.random.randn(5,5)* 0.04
         self.w4 = np.random.randn(7,7)* 0.04
@@ -294,7 +294,7 @@ for iter in range(num_epoch):
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost/len(training_data))
 
-        for test_index in range(10):
+        for test_index in range(5):
             
             temp = shuffle(training_data)
 
@@ -310,7 +310,7 @@ for iter in range(num_epoch):
             axarr[0, 1].set_title('Add noise')
             axarr[1, 0].imshow(decoded_image,cmap='gray')
             axarr[1, 0].set_title('Decoded')
-            plt.savefig(str(iter)+'_.png', bbox_inches='tight')
+            plt.savefig(str(iter)+'_'+str(test_index)+'_.png', bbox_inches='tight')
         print('======================================')
 
     cost_array.append(total_cost/len(training_data))
