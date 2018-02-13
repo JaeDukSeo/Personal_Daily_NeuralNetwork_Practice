@@ -73,9 +73,9 @@ print('===== Done READING DATA ========')
 training_data = one
 # training_data = np.vstack((one,two,three))
 
-num_epoch = 150
-learn_rate_d = 0.001
-learn_rate_e = 0.0005
+num_epoch = 100
+learn_rate_e = 0.000006
+learn_rate_d = 0.0000006
 cost_array = []
 total_cost = 0 
 
@@ -86,10 +86,10 @@ adam_e = 0.00000001
 class Encoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(7,7)* 0.04
-        self.w2 = np.random.randn(5,5)* 0.04
-        self.w3 = np.random.randn(3,3)* 0.04
-        self.w4 = np.random.randn(4096,1000)* 0.04
+        self.w1 = np.random.randn(7,7)* 0.01
+        self.w2 = np.random.randn(5,5)* 0.01
+        self.w3 = np.random.randn(3,3)* 0.01
+        self.w4 = np.random.randn(4096,1000)* 0.1
 
         self.input,self.output = None,None
 
@@ -103,6 +103,7 @@ class Encoder():
         self.v1,self.v2,self.v3,self.v4 = 0,0,0,0
         self.m1,self.m2,self.m3,self.m4 =  0,0,0,0
         
+
     def feed_forward(self,input):
         
         self.input = input
@@ -121,6 +122,7 @@ class Encoder():
         self.l4Input = np.reshape(self.l3A,(1,-1))
         self.l4 = self.l4Input.dot(self.w4)
         self.l4A = self.output = arctan(self.l4)
+
         return self.output
 
     def back_propagation(self,gradient):
@@ -176,10 +178,10 @@ class Encoder():
 class Decoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(1000,4096) * 0.04
-        self.w2 = np.random.randn(3,3)* 0.04
-        self.w3 = np.random.randn(5,5)* 0.04
-        self.w4 = np.random.randn(7,7)* 0.04
+        self.w1 = np.random.randn(1000,4096) * 0.1
+        self.w2 = np.random.randn(3,3)* 0.01
+        self.w3 = np.random.randn(5,5)* 0.01
+        self.w4 = np.random.randn(7,7)* 0.01
 
         self.input,self.output = None, None
 
@@ -269,7 +271,7 @@ class Decoder():
 # 3. Define Each Layer object
 encoder = Encoder()
 decoder = Decoder()
-# f, axarr = plt.subplots(2, 2)
+f, axarr = plt.subplots(2, 2)
 
 # 4. Training both the encoder and decoder
 for iter in range(num_epoch):
@@ -280,11 +282,7 @@ for iter in range(num_epoch):
 
         encoded_vector = encoder.feed_forward(current_data_noise)
         decoded_image  = decoder.feed_forward(encoded_vector)
-        plt.imshow(current_data,cmap='gray')
-        plt.show()        
 
-        plt.imshow(current_data_noise,cmap='gray')
-        plt.show()       
         naive_cost = np.square(decoded_image - current_data).sum() * 0.25
         print("Current Iter :",iter,"  Current Image Index:  ",image_index ," Real Time Update Cost: ", naive_cost,end='\r')
         total_cost+= naive_cost
@@ -296,7 +294,7 @@ for iter in range(num_epoch):
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost/len(training_data))
 
-        for test_index in range(10):
+        for test_index in range(5):
             
             temp = shuffle(training_data)
 
@@ -312,7 +310,7 @@ for iter in range(num_epoch):
             axarr[0, 1].set_title('Add noise')
             axarr[1, 0].imshow(decoded_image,cmap='gray')
             axarr[1, 0].set_title('Decoded')
-            plt.savefig(str(iter)+'_.png', bbox_inches='tight')
+            plt.savefig(str(iter)+'_'+str(test_index)+'_.png', bbox_inches='tight')
         print('======================================')
 
     cost_array.append(total_cost/len(training_data))

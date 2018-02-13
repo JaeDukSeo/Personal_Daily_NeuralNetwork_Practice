@@ -32,14 +32,14 @@ def softmax(x):
 
 
 # 0. Get the list
-PathDicom = "../lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186756880.24/"
+PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186756880.24/"
 lstFilesDCM1 = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
         if ".dcm" in filename.lower():  # check whether the file's DICOM
             lstFilesDCM1.append(os.path.join(dirName,filename))
 
-PathDicom = "../lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757037.38/"
+PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757037.38/"
 lstFilesDCM2 = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
@@ -47,7 +47,7 @@ for dirName, subdirList, fileList in os.walk(PathDicom):
             lstFilesDCM2.append(os.path.join(dirName,filename))
 
 
-PathDicom = "../lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757214.54/"
+PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757214.54/"
 lstFilesDCM3 = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
@@ -74,9 +74,8 @@ training_data = one
 # training_data = np.vstack((one,two,three))
 
 num_epoch = 100
-    #          0.000006
-learn_rate_e = 0.0000007
-learn_rate_d = 0.0000001
+learn_rate_e = 0.000006
+learn_rate_d = 0.0000006
 cost_array = []
 total_cost = 0 
 
@@ -110,15 +109,15 @@ class Encoder():
         self.input = input
         self.l1  = convolve2d(input,self.w1,'same')
         self.l1M = block_reduce(self.l1,(2,2), np.mean)
-        self.l1A = tanh(self.l1M)
+        self.l1A = ReLu(self.l1M)
 
         self.l2  = convolve2d(self.l1A,self.w2,'same')
         self.l2M = block_reduce(self.l2,(2,2), np.mean)
-        self.l2A = arctan(self.l2M)
+        self.l2A = ReLu(self.l2M)
 
         self.l3  = convolve2d(self.l2A,self.w3,'same')
         self.l3M = block_reduce(self.l3,(2,2), np.mean)
-        self.l3A = tanh(self.l3M)
+        self.l3A = ReLu(self.l3M)
 
         self.l4Input = np.reshape(self.l3A,(1,-1))
         self.l4 = self.l4Input.dot(self.w4)
@@ -134,19 +133,19 @@ class Encoder():
         grad_4 = grad_4_part_3.T.dot(grad_4_part_1 * grad_4_part_2)
 
         grad_3_part_1 = np.reshape((grad_4_part_1 * grad_4_part_2).dot(self.w4.T),(64,64))
-        grad_3_part_2 = d_tanh(self.l3M)
+        grad_3_part_2 = d_ReLu(self.l3M)
         grad_3_part_M = (grad_3_part_1 * grad_3_part_2).repeat(2,axis=0).repeat(2,axis=1)
         grad_3_part_3 = np.pad(self.l2A,1,'constant')
         grad_3 = np.rot90(convolve2d(grad_3_part_3,    np.rot90( grad_3_part_M ,2),'valid')  ,2)
 
         grad_2_part_1 = convolve2d( self.w3  , np.rot90(np.pad(grad_3_part_M,1,'constant')    ,2)  ,'valid')
-        grad_2_part_2 = d_arctan(self.l2M)
+        grad_2_part_2 = d_ReLu(self.l2M)
         grad_2_part_M = (grad_2_part_1 * grad_2_part_2).repeat(2,axis=0).repeat(2,axis=1)
         grad_2_part_3 = np.pad(self.l1A,2,'constant')
         grad_2 = np.rot90(convolve2d(grad_2_part_3,    np.rot90( grad_2_part_M ,2),'valid')  ,2)
                 
         grad_1_part_1 = convolve2d( self.w2  , np.rot90(np.pad(grad_2_part_M,2,'constant')    ,2)  ,'valid')
-        grad_1_part_2 = d_tanh(self.l1M)
+        grad_1_part_2 = d_ReLu(self.l1M)
         grad_1_part_M = (grad_1_part_1 * grad_1_part_2).repeat(2,axis=0).repeat(2,axis=1)
         grad_1_part_3 = np.pad(self.input,3,'constant')
         grad_1 = np.rot90(convolve2d(grad_1_part_3,    np.rot90( grad_1_part_M ,2),'valid')  ,2)
@@ -201,16 +200,16 @@ class Decoder():
         self.input = input
         
         self.l1 = self.input.dot(self.w1)
-        self.l1A = arctan(self.l1)
+        self.l1A = tanh(self.l1)
 
         self.l2Input = np.reshape(self.l1A,(64,64))
         self.l2M   =   self.l2Input.repeat(2,axis=0).repeat(2,axis=1)
         self.l2    =   convolve2d(self.l2M,self.w2,'same')
-        self.l2A   =   arctan(self.l2)
+        self.l2A   =   tanh(self.l2)
 
         self.l3M   = self.l2A.repeat(2,axis=0).repeat(2,axis=1)
         self.l3    = convolve2d(self.l3M,self.w3,'same')
-        self.l3A   = arctan(self.l3)
+        self.l3A   = ReLu(self.l3)
         
         self.l4M   = self.l3A.repeat(2,axis=0).repeat(2,axis=1)
         self.l4    = convolve2d(self.l4M,self.w4,'same')
@@ -226,17 +225,17 @@ class Decoder():
         grad_4 = np.rot90(convolve2d(grad_4_part_3,np.rot90(grad_4_part_1 * grad_4_part_2,2),'valid'),2)
 
         grad_3_part_1 = convolve2d( self.w4,  np.rot90(np.pad(grad_4_part_1 * grad_4_part_2,3,'constant') ,2), 'valid'  )[::2,::2]  
-        grad_3_part_2 = d_arctan(self.l3)
+        grad_3_part_2 = d_ReLu(self.l3)
         grad_3_part_3 = np.pad(self.l3M,2,'constant')
         grad_3 = np.rot90(convolve2d(grad_3_part_3,np.rot90(grad_3_part_1 * grad_3_part_2,2),'valid'),2)
 
         grad_2_part_1 = convolve2d( self.w3,  np.rot90(np.pad(grad_3_part_1 * grad_3_part_2,2,'constant') ,2), 'valid'  )[::2,::2]  
-        grad_2_part_2 = d_arctan(self.l2)
+        grad_2_part_2 = d_tanh(self.l2)
         grad_2_part_3 = np.pad(self.l2M,1,'constant')
         grad_2 = np.rot90(convolve2d(grad_2_part_3,np.rot90(grad_2_part_1 * grad_2_part_2,2),'valid'),2)
 
         grad_1_part_1 = np.reshape(convolve2d( self.w2,  np.rot90(np.pad(grad_2_part_1 * grad_2_part_2,1,'constant') ,2), 'valid'  )[::2,::2],(1,-1))
-        grad_1_part_2 = d_arctan(self.l1)
+        grad_1_part_2 = d_tanh(self.l1)
         grad_1_part_3 = self.input
         grad_1 = grad_1_part_3.T.dot(grad_1_part_1 * grad_1_part_2)
 
@@ -272,6 +271,7 @@ class Decoder():
 # 3. Define Each Layer object
 encoder = Encoder()
 decoder = Decoder()
+f, axarr = plt.subplots(2, 2)
 
 # 4. Training both the encoder and decoder
 for iter in range(num_epoch):
@@ -304,6 +304,13 @@ for iter in range(num_epoch):
             encoded_vector = encoder.feed_forward(current_data_noise)
             decoded_image  = decoder.feed_forward(encoded_vector)
  
+            axarr[0, 0].imshow(current_data,cmap='gray')
+            axarr[0, 0].set_title('Original')
+            axarr[0, 1].imshow(current_data_noise,cmap='gray')
+            axarr[0, 1].set_title('Add noise')
+            axarr[1, 0].imshow(decoded_image,cmap='gray')
+            axarr[1, 0].set_title('Decoded')
+            plt.savefig(str(iter)+'_'+str(test_index)+'_.png', bbox_inches='tight')
         print('======================================')
 
     cost_array.append(total_cost/len(training_data))
@@ -319,14 +326,13 @@ for test_index in range(30):
     encoded_vector = encoder.feed_forward(current_data_noise)
     decoded_image  = decoder.feed_forward(encoded_vector)
 
-    f, axarr = plt.subplots(2, 2)
     axarr[0, 0].imshow(current_data,cmap='gray')
     axarr[0, 0].set_title('Original : ' + str(test_index))
     axarr[0, 1].imshow(current_data_noise,cmap='gray')
     axarr[0, 1].set_title('Add noise: ' + str(test_index))
     axarr[1, 0].imshow(decoded_image,cmap='gray')
     axarr[1, 0].set_title('Decoded: ' + str(test_index))
-    plt.show()
+    plt.savefig(str(iter)+'_test_.png', bbox_inches='tight')
 
 plt.title("Cost over time")
 plt.plot(np.arange(len(cost_array)), cost_array)
