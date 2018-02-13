@@ -269,7 +269,7 @@ class Decoder():
 # 3. Define Each Layer object
 encoder = Encoder()
 decoder = Decoder()
-f, axarr = plt.subplots(2, 2)
+# f, axarr = plt.subplots(2, 2)
 
 # 4. Training both the encoder and decoder
 for iter in range(num_epoch):
@@ -280,7 +280,11 @@ for iter in range(num_epoch):
 
         encoded_vector = encoder.feed_forward(current_data_noise)
         decoded_image  = decoder.feed_forward(encoded_vector)
+        plt.imshow(current_data,cmap='gray')
+        plt.show()        
 
+        plt.imshow(current_data_noise,cmap='gray')
+        plt.show()       
         naive_cost = np.square(decoded_image - current_data).sum() * 0.25
         print("Current Iter :",iter,"  Current Image Index:  ",image_index ," Real Time Update Cost: ", naive_cost,end='\r')
         total_cost+= naive_cost

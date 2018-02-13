@@ -74,22 +74,22 @@ training_data = one
 # training_data = np.vstack((one,two,three))
 
 num_epoch = 100
-learn_rate_d = 0.0002
-learn_rate_e = 0.00007
+learn_rate_e = 0.000005
+learn_rate_d = 0.000001
 cost_array = []
 total_cost = 0 
 
-beta_1,beta_2 = 0.5,0.88
+beta_1,beta_2 = 0.9,0.88
 adam_e = 0.00000001
 
 # 2. Build Class for Encoder and Decoder
 class Encoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(7,7)* 0.04
-        self.w2 = np.random.randn(5,5)* 0.04
-        self.w3 = np.random.randn(3,3)* 0.04
-        self.w4 = np.random.randn(4096,50)* 0.04
+        self.w1 = np.random.randn(7,7)* 0.01
+        self.w2 = np.random.randn(5,5)* 0.01
+        self.w3 = np.random.randn(3,3)* 0.01
+        self.w4 = np.random.randn(4096,850)* 0.1
 
         self.input,self.output = None,None
 
@@ -178,10 +178,10 @@ class Encoder():
 class Decoder():
     
     def __init__(self):
-        self.w1 = np.random.randn(50,4096) * 0.04
-        self.w2 = np.random.randn(3,3)* 0.04
-        self.w3 = np.random.randn(5,5)* 0.04
-        self.w4 = np.random.randn(7,7)* 0.04
+        self.w1 = np.random.randn(850,4096) * 0.1
+        self.w2 = np.random.randn(3,3)* 0.01
+        self.w3 = np.random.randn(5,5)* 0.01
+        self.w4 = np.random.randn(7,7)* 0.01
 
         self.input,self.output = None, None
 
