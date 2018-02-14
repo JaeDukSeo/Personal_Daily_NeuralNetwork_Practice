@@ -72,7 +72,7 @@ class Diluted_RNN:
 
         return layerA
 
-    def backpropagation(self,Time_Stamp,input):
+    def backpropagation(self,Time_Stamp,gradient):
         print("bakc")
 
 # 4. Make the object
@@ -109,7 +109,6 @@ for iter in range(num_epoch):
 
         output_Soft = softmax(output)
         cost = ( -1 * (current_label * np.log(output_Soft)  + ( 1- current_label) * np.log(1 - output_Soft)  )).sum() 
-        
         print(cost)
         
         
