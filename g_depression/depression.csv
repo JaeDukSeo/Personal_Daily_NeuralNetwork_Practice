@@ -1,0 +1,110 @@
+Hospt,Treat,Time (Recurrence or Not),AcuteT (Depressed Prior),Age,Gender,Outcome
+1,Imipramine,105.143,176,49,1,No Recurrence
+1,Imipramine,74.571,191,50,1,No Recurrence
+1,Imipramine,106.429,165,58,1,No Recurrence
+1,Imipramine,105.143,129,31,1,No Recurrence
+1,Imipramine,83,428,44,1,No Recurrence
+1,Imipramine,27.286,256,55,2,Recurrence
+1,Imipramine,98,168,58,1,No Recurrence
+2,Imipramine,100,47,65,1,No Recurrence
+2,Imipramine,27.143,95,27,1,Recurrence
+2,Imipramine,17.429,234,27,2,Recurrence
+2,Imipramine,78,322,32,1,No Recurrence
+2,Imipramine,66.857,141,43,2,Recurrence
+2,Imipramine,78.143,147,36,2,No Recurrence
+2,Imipramine,15.857,348,22,2,No Recurrence
+3,Imipramine,32.571,130,40,2,No Recurrence
+3,Imipramine,206,90,48,1,No Recurrence
+5,Imipramine,1.571,159,31,2,No Recurrence
+5,Imipramine,126.714,115,61,1,No Recurrence
+5,Imipramine,155,214,49,1,No Recurrence
+5,Imipramine,39.571,224,45,1,No Recurrence
+5,Imipramine,28,147,34,1,No Recurrence
+5,Imipramine,38,138,60,1,No Recurrence
+5,Imipramine,111.571,196,23,2,No Recurrence
+5,Imipramine,3.429,372,52,1,Recurrence
+5,Imipramine,26,131,38,1,No Recurrence
+5,Imipramine,92.714,105,23,1,Recurrence
+5,Imipramine,106.714,140,31,1,No Recurrence
+5,Imipramine,75,175,62,2,No Recurrence
+5,Imipramine,86,195,33,2,No Recurrence
+6,Imipramine,3.429,130,30,2,Recurrence
+6,Imipramine,5,209,40,1,No Recurrence
+6,Imipramine,1,72,52,1,Recurrence
+6,Imipramine,109.571,148,26,2,No Recurrence
+6,Imipramine,0.571,212,30,2,Recurrence
+6,Imipramine,9.143,168,39,1,No Recurrence
+6,Imipramine,102,305,49,1,No Recurrence
+6,Imipramine,31.857,154,28,1,Recurrence
+6,Imipramine,22,203,51,1,Recurrence
+1,Lithium,36.143,211,33,1,Recurrence
+1,Lithium,49.714,206,29,2,Recurrence
+1,Lithium,14.429,63,29,1,No Recurrence
+1,Lithium,104.857,55,56,1,No Recurrence
+1,Lithium,105.857,197,57,2,No Recurrence
+1,Lithium,5.571,227,46,1,Recurrence
+1,Lithium,16.286,194,57,1,No Recurrence
+2,Lithium,1.286,173,54,1,Recurrence
+2,Lithium,2.143,48,23,1,No Recurrence
+2,Lithium,4,148,50,1,Recurrence
+2,Lithium,74.143,127,41,2,Recurrence
+2,Lithium,78.429,239,23,2,No Recurrence
+3,Lithium,79,274,49,2,No Recurrence
+3,Lithium,9,98,54,2,Recurrence
+3,Lithium,3.286,77,26,1,Recurrence
+3,Lithium,30,280,51,2,Recurrence
+5,Lithium,3.286,182,47,1,Recurrence
+5,Lithium,19.714,122,27,1,Recurrence
+5,Lithium,71.714,114,28,1,Recurrence
+5,Lithium,50.857,110,34,1,No Recurrence
+5,Lithium,36.286,294,28,1,Recurrence
+5,Lithium,165,139,35,1,No Recurrence
+5,Lithium,124.571,105,46,1,No Recurrence
+5,Lithium,68,160,38,2,No Recurrence
+5,Lithium,42,146,50,2,No Recurrence
+5,Lithium,37.857,237,47,1,Recurrence
+5,Lithium,0.286,146,46,1,Recurrence
+5,Lithium,22,441,37,2,No Recurrence
+6,Lithium,5.429,86,40,2,Recurrence
+6,Lithium,67,201,22,1,No Recurrence
+6,Lithium,6.286,86,63,2,Recurrence
+6,Lithium,5.286,214,23,1,Recurrence
+6,Lithium,0.857,285,46,1,Recurrence
+6,Lithium,46.286,204,57,1,Recurrence
+6,Lithium,0.571,140,51,1,Recurrence
+6,Lithium,6.429,182,53,1,Recurrence
+6,Lithium,2,176,33,1,Recurrence
+1,Placebo,5,70,30,2,Recurrence
+1,Placebo,2.857,512,48,1,Recurrence
+1,Placebo,102.429,162,22,2,No Recurrence
+1,Placebo,55.714,306,61,2,Recurrence
+2,Placebo,104.857,129,65,1,No Recurrence
+2,Placebo,0.143,182,52,1,Recurrence
+2,Placebo,1.429,90,60,1,Recurrence
+2,Placebo,45.857,177,25,2,Recurrence
+2,Placebo,78.429,165,20,2,No Recurrence
+3,Placebo,7.143,167,35,2,Recurrence
+3,Placebo,31,181,28,1,Recurrence
+3,Placebo,17.286,399,23,1,Recurrence
+3,Placebo,0.143,289,57,2,Recurrence
+5,Placebo,8,343,60,1,Recurrence
+5,Placebo,63.714,249,36,1,Recurrence
+5,Placebo,96.286,140,29,1,No Recurrence
+5,Placebo,102.571,162,24,2,No Recurrence
+5,Placebo,8.143,140,33,2,Recurrence
+5,Placebo,16,246,45,1,Recurrence
+5,Placebo,39.571,146,32,2,No Recurrence
+5,Placebo,131,187,33,1,No Recurrence
+5,Placebo,11.143,136,55,1,Recurrence
+5,Placebo,115,147,39,1,No Recurrence
+5,Placebo,44,160,41,1,Recurrence
+5,Placebo,77.857,261,50,2,No Recurrence
+5,Placebo,12.429,476,22,1,No Recurrence
+6,Placebo,3.429,238,23,1,Recurrence
+6,Placebo,6.571,133,22,2,Recurrence
+6,Placebo,1,128,23,1,Recurrence
+6,Placebo,45,139,30,2,No Recurrence
+6,Placebo,4.714,141,61,1,Recurrence
+6,Placebo,0,162,31,1,Recurrence
+6,Placebo,20.857,207,43,1,Recurrence
+6,Placebo,18.286,102,29,1,Recurrence
