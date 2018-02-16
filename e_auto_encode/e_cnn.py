@@ -3,7 +3,7 @@ from scipy.signal import convolve2d
 from skimage.measure import block_reduce
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
-import re
+from scipy.ndimage import imread
 from matplotlib.pyplot import plot, draw, show,ion
 np.random.randn(6789)
 
@@ -51,67 +51,43 @@ def sort_nicely(l):
     return l
 
 # 0. Get the list
-PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186756880.24/"
+PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186756880.24_jpg/"
 lstFilesDCM1 = []  # create an empty list
 for dirName, subdirList, fileList in sorted(os.walk(PathDicom)):
     for filename in fileList:
-        if ".dcm" in filename.lower():  # check whether the file's DICOM
+        if ".jpg" in filename.lower():  # check whether the file's DICOM
             lstFilesDCM1.append(os.path.join(dirName,filename))
 
-lstFilesDCM1_sort = sort_nicely(lstFilesDCM1)
+# lstFilesDCM1_sort = sort_nicely(lstFilesDCM1)
 
-PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757037.38/"
+PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757037.38_jpg/"
 lstFilesDCM2 = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
-        if ".dcm" in filename.lower():  # check whether the file's DICOM
+        if ".jpg" in filename.lower():  # check whether the file's DICOM
             lstFilesDCM2.append(os.path.join(dirName,filename))
 
 
-PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757214.54/"
+PathDicom = "./lung_data/DOI/NoduleLayout_1/1.2.840.113704.1.111.1664.1186756141.2/1.2.840.113704.1.111.4116.1186757214.54_jpg/"
 lstFilesDCM3 = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
-        if ".dcm" in filename.lower():  # check whether the file's DICOM
+        if ".jpg" in filename.lower():  # check whether the file's DICOM
             lstFilesDCM3.append(os.path.join(dirName,filename))
 
 
 
 
 
+print(len(lstFilesDCM1))
+print(len(lstFilesDCM2))
+print(len(lstFilesDCM3))
 
-for file_index in range(len(lstFilesDCM1_sort)):
-    print(lstFilesDCM1_sort[file_index])
-    temp = dicom.read_file(lstFilesDCM1_sort[file_index])
-
-    print(dir(temp))
-    sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-sys.exit()
-# 1. Read the data into Numpy
-one = np.zeros((119,512,512))
-# two = np.zeros((119,512,512))
-# three = np.zeros((119,512,512))
-# 1.5 Transfer All of the Data into array
-print('===== READING DATA ========')
-for file_index in range(len(lstFilesDCM1_sort)):
-    print(lstFilesDCM1_sort[file_index])
-    one[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM1_sort[file_index]).pixel_array)
-# for file_index in range(len(lstFilesDCM2)):
-#     two[file_index,:,:]   = np.array(dicom.read_file(lstFilesDCM2[file_index]).pixel_array)
-# for file_index in range(len(lstFilesDCM3)):
-#     three[file_index,:,:] = np.array(dicom.read_file(lstFilesDCM3[file_index]).pixel_array)
-print('===== Done READING DATA ========')
+for x in lstFilesDCM3:
+    temp = imread(x,mode='F')
+    print(temp.shape)
+    plt.imshow(temp,cmap='gray')
+    plt.pause(0.5)
 
 
 
