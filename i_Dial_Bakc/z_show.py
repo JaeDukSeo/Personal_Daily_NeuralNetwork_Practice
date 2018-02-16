@@ -101,23 +101,23 @@ for iter in range(num_epoch):
         current_5_block = np.reshape(block_reduce(current_full_image,(2,2),np.median),(1,-1))
 
         plt.imshow(np.reshape(current_1_mean,(14,14)),cmap='gray')
-        plt.title('mean')
+        plt.title('Mean')
         plt.show()
 
         plt.imshow(np.reshape(current_2_block,(14,14)),cmap='gray')
-        plt.title('Max')
+        plt.title('var')
         plt.show()
 
         plt.imshow(np.reshape(current_3_block,(14,14)),cmap='gray')
-        plt.title('median')
+        plt.title('max')
         plt.show()
 
         plt.imshow(np.reshape(current_4_block,(14,14)),cmap='gray')
-        plt.title('std')
+        plt.title('STD')
         plt.show()
 
         plt.imshow(np.reshape(current_5_block,(14,14)),cmap='gray')
-        plt.title('var')
+        plt.title('Mdian')
         plt.show()
                 
 

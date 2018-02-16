@@ -24,7 +24,6 @@ def arctan(x):
     return np.arctan(x)
 def d_arctan(x):
     return 1 / (1 + x ** 2)
-
 def softmax(x):
     shiftx = x - np.max(x)
     exp = np.exp(shiftx)

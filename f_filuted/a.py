@@ -2,6 +2,7 @@ import numpy as np,dicom,sys,os
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from tensorflow.examples.tutorials.mnist import input_data
+from skimage.measure import block_reduce
 
 np.random.randn(6789)
 
@@ -37,12 +38,21 @@ print(label.shape)
 full_image = np.reshape(images[0,:],(28,28))
 temp = full_image[:14,:14]
 
+
+
+
+current_1_mean  = np.reshape(block_reduce(full_image,(2,2),np.mean),(14,14))
+plt.imshow(current_1_mean,cmap='gray')
+plt.show()
+
+
+
+
 f, axarr = plt.subplots(2, 2)
 axarr[0, 0].imshow(full_image[:14,:14],cmap='gray')
 # axarr[0, 0].set_title('Axis [0,0]')
 axarr[0, 0].get_xaxis().set_visible(False)
 axarr[0, 0].get_yaxis().set_visible(False)
-
 
 axarr[0, 1].imshow(full_image[:14,14:],cmap='gray')
 # axarr[0, 1].set_title('Axis [0,1]')
