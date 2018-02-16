@@ -103,36 +103,50 @@ class convolutional_net():
     def backpropagation(self,gradient=None):
         print("Gradient")
 
-    def dilated_backpropagation(self,gradient=None):
-        print("Gradient")
-
 
 # 3. Declare the model 
 conv_net = convolutional_net()
-conv_net_dilated = convolutional_net()
 
 # 4. Hyper Parameters
 num_epoch = 1
+
+
+
 
 for iter in range(num_epoch):
 
     for image_index in range(len(training_data)):
         
-        current_data = np.expand_dims(training_data[image_index,:,:],axis=0)
-        current_data_noise =  current_data + 0.3 * current_data.max() *np.random.randn(current_data.shape[1],current_data.shape[2])
+        current_data = training_data[image_index,:,:]
+        current_data_noise =  current_data + 0.3 * current_data.max() *np.random.randn(current_data.shape[0],current_data.shape[1])
 
-        current_data_split =       np.vstack((current_data[:,:256,:256],current_data[:,:256,256:],current_data[:,256:,:256],current_data[:,256:,256:]))
-        current_data_noise_split = np.vstack((current_data_noise[:,:256,:256],current_data_noise[:,:256,256:],current_data_noise[:,256:,:256],current_data_noise[:,256:,256:]))
+        f, axarr = plt.subplots(2, 2)
+        axarr[0, 0].imshow(current_data_noise[:256,:256],cmap='gray')
+        axarr[0, 0].get_xaxis().set_visible(False)
+        axarr[0, 0].get_yaxis().set_visible(False)
+        
+        axarr[0, 1].imshow(current_data_noise[:256,256:],cmap='gray')
+        axarr[0, 1].set_title('dfsafdsa')
+        axarr[0, 1].get_xaxis().set_visible(False)
+        axarr[0, 1].get_yaxis().set_visible(False)
+        
+        axarr[1, 0].imshow(current_data_noise[256:,:256],cmap='gray')
+        axarr[1, 0].get_xaxis().set_visible(False)
+        axarr[1, 0].get_yaxis().set_visible(False)
 
-        out = conv_net.feed_forward(current_data_split)
-        cost = np.square(current_data_split - out).sum() * 0.25
-        conv_net.backpropagation()
+        axarr[1, 1].imshow(current_data_noise[256:,256:],cmap='gray')
+        axarr[1, 1].get_xaxis().set_visible(False)
+        axarr[1, 1].get_yaxis().set_visible(False)
+        plt.show()      
 
+        plt.imshow(current_data_noise,cmap='gray')
+        plt.show()
 
+        plt.imshow(current_data,cmap='gray')
+        plt.show()
 
-
-
-        sys.exit()
+        out = conv_net.feed_forward(current_data)
+        cost = np.square(current_data - out).sum() * 0.5
         
 
 # -- end code --
