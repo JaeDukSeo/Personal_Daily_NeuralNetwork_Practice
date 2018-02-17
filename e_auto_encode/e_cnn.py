@@ -251,10 +251,10 @@ case4_convnet = convolutional_net()
 
 # 4. Hyper Parameters
 num_epoch = 100
-learning_rate_1 = 0.00000000001
-learning_rate_2 = 0.0000000001
-learning_rate_3 = 0.0000000001
-learning_rate_4 = 0.0000000001
+learning_rate_1 = 0.0000000001
+learning_rate_2 = 0.000000001
+learning_rate_3 = 0.000000001
+learning_rate_4 = 0.000000001
 
 proportion_rate = 0.05
 decay_rate = 0.07
@@ -290,17 +290,17 @@ for iter in range(num_epoch):
         total_cost4 =+ cost_case4
         print("Real Time Cost image_index : " +str(image_index)+ " Update iter: " + str(iter)+ " Case 1: ",cost_case1, " Case 2: ",cost_case2, " Case 3: ",cost_case3, " Case 4: ",cost_case4,end='\n')
 
-        case1_convnet.case1_backpropagation(            (current_data_split - case1_out) * 0.5 )
-        case2_convnet.case2_Google_Brain_noise(         (current_data_split - case2_out) * 0.5,iter  )
-        case3_convnet.case3_dilated_backpropagation(    (current_data_split - case3_out) * 0.5,iter  )
-        case4_convnet.case4_dilated_Google_Brain_noise( (current_data_split - case4_out) * 0.5,iter  )
+        case1_convnet.case1_backpropagation(            (current_data_split - case1_out) * 0.125 )
+        case2_convnet.case2_Google_Brain_noise(         (current_data_split - case2_out) * 0.125,iter  )
+        case3_convnet.case3_dilated_backpropagation(    (current_data_split - case3_out) * 0.125,iter  )
+        case4_convnet.case4_dilated_Google_Brain_noise( (current_data_split - case4_out) * 0.125,iter  )
         
     cost_array1.append(total_cost1/(len(training_data)*4))
     cost_array2.append(total_cost2/(len(training_data)*4))
     cost_array3.append(total_cost3/(len(training_data)*4))
     cost_array4.append(total_cost4/(len(training_data)*4))
 
-    if iter%2 == 0 :
+    if iter%10 == 0 :
         print('============ SAMPLE OUTPUT==================')
         for test_index in range(10):
             current_data = np.expand_dims(training_data[test_index,:,:],axis=0)
