@@ -121,20 +121,19 @@ for iter in range(num_epoch):
         current_data_noise =  current_data + 0.3 * current_data.max() *np.random.randn(current_data.shape[0],current_data.shape[1])
 
         f, axarr = plt.subplots(2, 2)
-        axarr[0, 0].imshow(current_data_noise[:256,:256],cmap='gray')
+        axarr[0, 0].imshow(current_data[:256,:256],cmap='gray')
         axarr[0, 0].get_xaxis().set_visible(False)
         axarr[0, 0].get_yaxis().set_visible(False)
         
-        axarr[0, 1].imshow(current_data_noise[:256,256:],cmap='gray')
-        axarr[0, 1].set_title('dfsafdsa')
+        axarr[0, 1].imshow(current_data[:256,256:],cmap='gray')
         axarr[0, 1].get_xaxis().set_visible(False)
         axarr[0, 1].get_yaxis().set_visible(False)
         
-        axarr[1, 0].imshow(current_data_noise[256:,:256],cmap='gray')
+        axarr[1, 0].imshow(current_data[256:,:256],cmap='gray')
         axarr[1, 0].get_xaxis().set_visible(False)
         axarr[1, 0].get_yaxis().set_visible(False)
 
-        axarr[1, 1].imshow(current_data_noise[256:,256:],cmap='gray')
+        axarr[1, 1].imshow(current_data[256:,256:],cmap='gray')
         axarr[1, 1].get_xaxis().set_visible(False)
         axarr[1, 1].get_yaxis().set_visible(False)
         plt.show()      
