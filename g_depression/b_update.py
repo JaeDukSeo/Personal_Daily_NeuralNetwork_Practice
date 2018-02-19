@@ -147,7 +147,7 @@ layer2_case1 = Dilated_Update_RNN(hid_state_l2,3,
                                 wx_h_layer_2_g,wh_h_layer_2_g)
 
 # 4.Hyper Parameter
-num_epoch = 500
+num_epoch = 300
 learning_rate_h = 0.0006
 learning_rate_x = 0.0006
 total_cost = 0
@@ -189,9 +189,9 @@ for iter in range(num_epoch):
         _,              gradient_l1_1_h = layer1_case1.case1_back_prop(gradient_l2_1_x+gradient_l1_2_h,1)
 
 
-    if iter % 250 == 0 :
+    if iter % 50 == 0 :
         print('\n======================================')
-        print("current Iter: ", iter, " Current Total Cost :", total_cost/len(test_datas))
+        print("current Iter: ", iter, " Current Total Cost :", total_cost)
         for current_batch_index in range(len(test_datas)):
     
             current_data = test_datas[current_batch_index,:]
@@ -213,7 +213,7 @@ for iter in range(num_epoch):
 
         print('======================================')
 
-    cost_array_case_1.append(total_cost/len(traing_datas))
+    cost_array_case_1.append(total_cost)
     total_cost = 0
 
 print('==============FINAL Prediction====================')
