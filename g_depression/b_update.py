@@ -137,7 +137,147 @@ class Dilated_Update_RNN():
         self.wh_h_g = self.wh_h_g - learning_rate_h * grad_g_h
 
         return grad_pass_respect_to_x,grad_pass_respect_to_h
+
+    def case2_back_prop(self,gradient=None,time_stamp = None,iter=None):
         
+        fake_time_for_matrix  = time_stamp - 1
+        gradient_common  =      gradient
+
+        # ===== Gradient Respect to G Gate =======
+        grad_g_part_1 = self.hid_state[:,fake_time_for_matrix] - self.layer_cA[:,fake_time_for_matrix]
+        grad_g_part_2 = d_tanh(self.layer_g[:,fake_time_for_matrix])
+        grad_g_part_h = np.expand_dims(self.hid_state[:,fake_time_for_matrix],axis=0)
+        grad_g_part_x = np.expand_dims(self.input[:,fake_time_for_matrix],axis=0)
+
+        grad_g_h = grad_g_part_h.T.dot(np.expand_dims(gradient_common * grad_g_part_1 * grad_g_part_2 ,axis=0))
+        grad_g_x = grad_g_part_x.T.dot(np.expand_dims(gradient_common * grad_g_part_1 * grad_g_part_2 ,axis=0))
+        
+        # ===== Gradient Respect to C Gate =======
+        grad_c_part_1 = 1 - self.layer_gA[:,fake_time_for_matrix]
+        grad_c_part_2 = d_arctan(self.layer_c[:,fake_time_for_matrix])
+        grad_c_part_h = np.expand_dims(self.hid_state[:,fake_time_for_matrix],axis=0)
+        grad_c_part_x = np.expand_dims(self.input[:,fake_time_for_matrix],axis=0)
+
+        grad_c_h = grad_c_part_h.T.dot(np.expand_dims(gradient_common * grad_c_part_1 * grad_c_part_2 ,axis=0))
+        grad_c_x = grad_c_part_x.T.dot(np.expand_dims(gradient_common * grad_c_part_1 * grad_c_part_2 ,axis=0))
+
+        # ===== Gradient to Pass on ======
+        grad_pass_h = self.layer_gA[:,fake_time_for_matrix]
+        grad_pass_g_h = (grad_g_part_1 * grad_g_part_2).dot(self.wh_h_g.T)
+        grad_pass_c_h = (grad_c_part_1 * grad_c_part_2).dot(self.wh_h_c.T)
+        grad_pass_respect_to_h =  gradient_common + grad_pass_h + grad_pass_g_h + grad_pass_c_h
+
+        grad_pass_g_h = (grad_g_part_1 * grad_g_part_2).dot(self.wx_h_g.T)
+        grad_pass_c_h = (grad_c_part_1 * grad_c_part_2).dot(self.wx_h_c.T)
+        grad_pass_respect_to_x = gradient_common + grad_pass_g_h + grad_pass_c_h
+
+        # ------ Calculate The Additive Noise -------
+        n_value = 0.01
+        ADDITIVE_NOISE_STD = n_value / (np.power((1 + iter), 0.55))
+        ADDITIVE_GAUSSIAN_NOISE = np.random.normal(loc=0,scale=ADDITIVE_NOISE_STD)
+        # ------ Calculate The Additive Noise -------
+
+        # ==== Update the weights =====
+        self.wx_h_c = self.wx_h_c - learning_rate_x * (grad_c_x + ADDITIVE_GAUSSIAN_NOISE)
+        self.wh_h_c = self.wh_h_c - learning_rate_h * (grad_c_h + ADDITIVE_GAUSSIAN_NOISE)
+
+        self.wx_h_g = self.wx_h_g - learning_rate_x * (grad_g_x + ADDITIVE_GAUSSIAN_NOISE)
+        self.wh_h_g = self.wh_h_g - learning_rate_h * (grad_g_h + ADDITIVE_GAUSSIAN_NOISE)
+
+        return grad_pass_respect_to_x,grad_pass_respect_to_h
+
+    def case3_back_prop(self,gradient=None,time_stamp = None):
+        
+        fake_time_for_matrix  = time_stamp - 1
+        gradient_common  =      gradient
+
+        # ===== Gradient Respect to G Gate =======
+        grad_g_part_1 = self.hid_state[:,fake_time_for_matrix] - self.layer_cA[:,fake_time_for_matrix]
+        grad_g_part_2 = d_tanh(self.layer_g[:,fake_time_for_matrix])
+        grad_g_part_h = np.expand_dims(self.hid_state[:,fake_time_for_matrix],axis=0)
+        grad_g_part_x = np.expand_dims(self.input[:,fake_time_for_matrix],axis=0)
+
+        grad_g_h = grad_g_part_h.T.dot(np.expand_dims(gradient_common * grad_g_part_1 * grad_g_part_2 ,axis=0))
+        grad_g_x = grad_g_part_x.T.dot(np.expand_dims(gradient_common * grad_g_part_1 * grad_g_part_2 ,axis=0))
+        
+        # ===== Gradient Respect to C Gate =======
+        grad_c_part_1 = 1 - self.layer_gA[:,fake_time_for_matrix]
+        grad_c_part_2 = d_arctan(self.layer_c[:,fake_time_for_matrix])
+        grad_c_part_h = np.expand_dims(self.hid_state[:,fake_time_for_matrix],axis=0)
+        grad_c_part_x = np.expand_dims(self.input[:,fake_time_for_matrix],axis=0)
+
+        grad_c_h = grad_c_part_h.T.dot(np.expand_dims(gradient_common * grad_c_part_1 * grad_c_part_2 ,axis=0))
+        grad_c_x = grad_c_part_x.T.dot(np.expand_dims(gradient_common * grad_c_part_1 * grad_c_part_2 ,axis=0))
+
+        # ===== Gradient to Pass on ======
+        grad_pass_h = self.layer_gA[:,fake_time_for_matrix]
+        grad_pass_g_h = (grad_g_part_1 * grad_g_part_2).dot(self.wh_h_g.T)
+        grad_pass_c_h = (grad_c_part_1 * grad_c_part_2).dot(self.wh_h_c.T)
+        grad_pass_respect_to_h =  gradient_common + grad_pass_h + grad_pass_g_h + grad_pass_c_h
+
+        grad_pass_g_h = (grad_g_part_1 * grad_g_part_2).dot(self.wx_h_g.T)
+        grad_pass_c_h = (grad_c_part_1 * grad_c_part_2).dot(self.wx_h_c.T)
+        grad_pass_respect_to_x = gradient_common + grad_pass_g_h + grad_pass_c_h
+
+        # ==== Update the weights =====
+        self.wx_h_c = self.wx_h_c - learning_rate_x * grad_c_x
+        self.wh_h_c = self.wh_h_c - learning_rate_h * grad_c_h
+
+        self.wx_h_g = self.wx_h_g - learning_rate_x * grad_g_x
+        self.wh_h_g = self.wh_h_g - learning_rate_h * grad_g_h
+
+        return grad_pass_respect_to_x,grad_pass_respect_to_h
+
+    def case4_back_prop(self,gradient=None,time_stamp = None,iter=None):
+        decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter)
+        
+        fake_time_for_matrix  = time_stamp - 1
+        gradient_common  =      gradient
+
+        # ===== Gradient Respect to G Gate =======
+        grad_g_part_1 = self.hid_state[:,fake_time_for_matrix] - self.layer_cA[:,fake_time_for_matrix]
+        grad_g_part_2 = d_tanh(self.layer_g[:,fake_time_for_matrix])
+        grad_g_part_h = np.expand_dims(self.hid_state[:,fake_time_for_matrix],axis=0)
+        grad_g_part_x = np.expand_dims(self.input[:,fake_time_for_matrix],axis=0)
+
+        grad_g_h = grad_g_part_h.T.dot(np.expand_dims(gradient_common * grad_g_part_1 * grad_g_part_2 ,axis=0))
+        grad_g_x = grad_g_part_x.T.dot(np.expand_dims(gradient_common * grad_g_part_1 * grad_g_part_2 ,axis=0))
+        
+        # ===== Gradient Respect to C Gate =======
+        grad_c_part_1 = 1 - self.layer_gA[:,fake_time_for_matrix]
+        grad_c_part_2 = d_arctan(self.layer_c[:,fake_time_for_matrix])
+        grad_c_part_h = np.expand_dims(self.hid_state[:,fake_time_for_matrix],axis=0)
+        grad_c_part_x = np.expand_dims(self.input[:,fake_time_for_matrix],axis=0)
+
+        grad_c_h = grad_c_part_h.T.dot(np.expand_dims(gradient_common * grad_c_part_1 * grad_c_part_2 ,axis=0))
+        grad_c_x = grad_c_part_x.T.dot(np.expand_dims(gradient_common * grad_c_part_1 * grad_c_part_2 ,axis=0))
+
+        # ===== Gradient to Pass on ======
+        grad_pass_h = self.layer_gA[:,fake_time_for_matrix]
+        grad_pass_g_h = (grad_g_part_1 * grad_g_part_2).dot(self.wh_h_g.T)
+        grad_pass_c_h = (grad_c_part_1 * grad_c_part_2).dot(self.wh_h_c.T)
+        grad_pass_respect_to_h =  gradient_common + grad_pass_h + grad_pass_g_h + grad_pass_c_h
+
+        grad_pass_g_h = (grad_g_part_1 * grad_g_part_2).dot(self.wx_h_g.T)
+        grad_pass_c_h = (grad_c_part_1 * grad_c_part_2).dot(self.wx_h_c.T)
+        grad_pass_respect_to_x = gradient_common + grad_pass_g_h + grad_pass_c_h
+
+        # ------ Calculate The Additive Noise -------
+        n_value = 0.01
+        ADDITIVE_NOISE_STD = n_value / (np.power((1 + iter), 0.55))
+        ADDITIVE_GAUSSIAN_NOISE = np.random.normal(loc=0,scale=ADDITIVE_NOISE_STD)
+        # ------ Calculate The Additive Noise -------
+
+
+        # ==== Update the weights =====
+        self.wx_h_c = self.wx_h_c - learning_rate_x * (grad_c_x + ADDITIVE_GAUSSIAN_NOISE)
+        self.wh_h_c = self.wh_h_c - learning_rate_h * (grad_c_h + ADDITIVE_GAUSSIAN_NOISE)
+
+        self.wx_h_g = self.wx_h_g - learning_rate_x * (grad_g_x + ADDITIVE_GAUSSIAN_NOISE)
+        self.wh_h_g = self.wh_h_g - learning_rate_h * (grad_g_h + ADDITIVE_GAUSSIAN_NOISE)
+
+        return grad_pass_respect_to_x,grad_pass_respect_to_h
+                 
         
 layer1_case1 = Dilated_Update_RNN(hid_state_l1,4,
                                 wx_h_layer_1_c,wh_h_layer_1_c,   
@@ -146,14 +286,41 @@ layer2_case1 = Dilated_Update_RNN(hid_state_l2,3,
                                 wx_h_layer_2_c,wh_h_layer_2_c,   
                                 wx_h_layer_2_g,wh_h_layer_2_g)
 
+layer1_case2 = Dilated_Update_RNN(hid_state_l1,4,
+                                wx_h_layer_1_c,wh_h_layer_1_c,   
+                                wx_h_layer_1_g,wh_h_layer_1_g)
+layer2_case2 = Dilated_Update_RNN(hid_state_l2,3,
+                                wx_h_layer_2_c,wh_h_layer_2_c,   
+                                wx_h_layer_2_g,wh_h_layer_2_g)
+
+layer1_case3 = Dilated_Update_RNN(hid_state_l1,4,
+                                wx_h_layer_1_c,wh_h_layer_1_c,   
+                                wx_h_layer_1_g,wh_h_layer_1_g)
+layer2_case3 = Dilated_Update_RNN(hid_state_l2,3,
+                                wx_h_layer_2_c,wh_h_layer_2_c,   
+                                wx_h_layer_2_g,wh_h_layer_2_g)
+
+layer1_case4 = Dilated_Update_RNN(hid_state_l1,4,
+                                wx_h_layer_1_c,wh_h_layer_1_c,   
+                                wx_h_layer_1_g,wh_h_layer_1_g)
+layer2_case4 = Dilated_Update_RNN(hid_state_l2,3,
+                                wx_h_layer_2_c,wh_h_layer_2_c,   
+                                wx_h_layer_2_g,wh_h_layer_2_g)
+
 # 4.Hyper Parameter
-num_epoch = 300
+num_epoch = 150
 learning_rate_h = 0.0006
 learning_rate_x = 0.0006
 total_cost = 0
+proportion_rate = 0.05
+decay_rate = 0.07
 
 cost_array_case_1 = []
+cost_array_case_2 = []
+cost_array_case_3 = []
+cost_array_case_4 = []
 
+# ======= CASE 1 =======
 for iter in range(num_epoch):
 
     for current_data_index in range(len(traing_datas)):
@@ -188,7 +355,6 @@ for iter in range(num_epoch):
         gradient_l2_1_x,gradient_l2_1_h = layer2_case1.case1_back_prop(gradient_l2_2_h,1)
         _,              gradient_l1_1_h = layer1_case1.case1_back_prop(gradient_l2_1_x+gradient_l1_2_h,1)
 
-
     if iter % 50 == 0 :
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost)
@@ -212,12 +378,11 @@ for iter in range(num_epoch):
             print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
 
         print('======================================')
-
     cost_array_case_1.append(total_cost)
     total_cost = 0
-
-print('==============FINAL Prediction====================')
+print('==============FINAL Prediction Case 1 ====================')
 correct = 0
+total_cost = 0
 for current_batch_index in range(len(test_datas)):
 
     current_data = test_datas[current_batch_index,:]
@@ -239,10 +404,319 @@ for current_batch_index in range(len(test_datas)):
 
     if np.round(outLog) == current_label:
         correct = correct + 1
-
 print('Correct : ',correct, ' Out of : ',len(test_datas) )
 plt.title("Cost over time")
 plt.plot(np.arange(len(cost_array_case_1)), cost_array_case_1)
 plt.show()
+# ======= CASE 1 =======
+
+
+
+
+
+
+
+
+
+
+
+# ======= CASE 2 =======
+for iter in range(num_epoch):
+
+    for current_data_index in range(len(traing_datas)):
+        
+        current_data = traing_datas[current_data_index,:]
+        current_label= traing_label[current_data_index,:]
+
+        l1_1 = layer1_case2.feed_forward(current_data[0],1)
+        _    = layer2_case2.feed_forward(l1_1,1)
+
+        _    = layer1_case2.feed_forward(current_data[1],2)
+        
+        l1_3 = layer1_case2.feed_forward(current_data[2],3)
+        _    = layer2_case2.feed_forward(l1_3,2)
+
+        l1_4 = layer1_case2.feed_forward(current_data[3],4)
+        out  = layer2_case2.feed_forward(l1_4,3)
+        outLog = log(out)
+        
+        cost = np.square(outLog-current_label).sum() * 0.5
+        print("Current Iter :",iter," Real Time Update Cost: ", cost,end='\r')
+        total_cost += cost
+
+        gradient_l2_3_x,gradient_l2_3_h = layer2_case2.case2_back_prop(d_log(out)*(outLog-current_label)   ,3,iter)
+        _,              gradient_l1_4_h = layer1_case2.case2_back_prop(gradient_l2_3_x,4,iter)
+
+        gradient_l2_2_x,gradient_l2_2_h = layer2_case2.case2_back_prop(gradient_l2_3_h,2,iter)
+        _,              gradient_l1_3_h = layer1_case2.case2_back_prop(gradient_l2_2_x+gradient_l1_4_h,3,iter)
+
+        _,              gradient_l1_2_h = layer1_case2.case2_back_prop(gradient_l1_3_h,2,iter)
+
+        gradient_l2_1_x,gradient_l2_1_h = layer2_case2.case2_back_prop(gradient_l2_2_h,1,iter)
+        _,              gradient_l1_1_h = layer1_case2.case2_back_prop(gradient_l2_1_x+gradient_l1_2_h,1,iter)
+
+    if iter % 50 == 0 :
+        print('\n======================================')
+        print("current Iter: ", iter, " Current Total Cost :", total_cost)
+        for current_batch_index in range(len(test_datas)):
+    
+            current_data = test_datas[current_batch_index,:]
+            current_label= test_label[current_batch_index,:]
+
+            l1_1 = layer1_case2.feed_forward(current_data[0],1)
+            _    = layer2_case2.feed_forward(l1_1,1)
+
+            _    = layer1_case2.feed_forward(current_data[1],2)
+            
+            l1_3 = layer1_case2.feed_forward(current_data[2],3)
+            _    = layer2_case2.feed_forward(l1_3,2)
+
+            l1_4 = layer1_case2.feed_forward(current_data[3],4)
+            out  = layer2_case2.feed_forward(l1_4,3)
+            outLog = log(out)
+
+            print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
+
+        print('======================================')
+    cost_array_case_2.append(total_cost)
+    total_cost = 0
+print('==============FINAL Prediction Case 2 ====================')
+correct = 0
+total_cost = 0
+for current_batch_index in range(len(test_datas)):
+
+    current_data = test_datas[current_batch_index,:]
+    current_label= test_label[current_batch_index,:]
+
+    l1_1 = layer1_case2.feed_forward(current_data[0],1)
+    _    = layer2_case2.feed_forward(l1_1,1)
+
+    _    = layer1_case2.feed_forward(current_data[1],2)
+    
+    l1_3 = layer1_case2.feed_forward(current_data[2],3)
+    _    = layer2_case2.feed_forward(l1_3,2)
+
+    l1_4 = layer1_case2.feed_forward(current_data[3],4)
+    out  = layer2_case2.feed_forward(l1_4,3)
+    outLog = log(out)
+
+    print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
+
+    if np.round(outLog) == current_label:
+        correct = correct + 1
+print('Correct : ',correct, ' Out of : ',len(test_datas) )
+plt.title("Cost over time")
+plt.plot(np.arange(len(cost_array_case_2)), cost_array_case_2)
+plt.show()
+# ======= CASE 2 =======
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ======= CASE 3 =======
+for iter in range(num_epoch):
+
+    for current_data_index in range(len(traing_datas)):
+        
+        current_data = traing_datas[current_data_index,:]
+        current_label= traing_label[current_data_index,:]
+
+        l1_1 = layer1_case3.feed_forward(current_data[0],1)
+        _    = layer2_case3.feed_forward(l1_1,1)
+
+        _    = layer1_case3.feed_forward(current_data[1],2)
+        
+        l1_3 = layer1_case3.feed_forward(current_data[2],3)
+        _    = layer2_case3.feed_forward(l1_3,2)
+
+        l1_4 = layer1_case3.feed_forward(current_data[3],4)
+        out  = layer2_case3.feed_forward(l1_4,3)
+        outLog = log(out)
+        
+        cost = np.square(outLog-current_label).sum() * 0.5
+        print("Current Iter :",iter," Real Time Update Cost: ", cost,end='\r')
+        total_cost += cost
+        decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter)
+
+        gradient_l2_3_x,gradient_l2_3_h = layer2_case3.case3_back_prop(d_log(out)*(outLog-current_label)   ,3)
+        _,              gradient_l1_4_h = layer1_case3.case3_back_prop(gradient_l2_3_x,4)
+
+        gradient_l2_2_x,gradient_l2_2_h = layer2_case3.case3_back_prop(gradient_l2_3_h,2)
+        _,              gradient_l1_3_h = layer1_case3.case3_back_prop(gradient_l2_2_x+gradient_l1_4_h,3)
+
+        _,              gradient_l1_2_h = layer1_case3.case3_back_prop(gradient_l1_3_h + decay_propotoin_rate * gradient_l1_4_h,2)
+
+        gradient_l2_1_x,gradient_l2_1_h = layer2_case3.case3_back_prop(gradient_l2_2_h + decay_propotoin_rate * gradient_l2_3_h,1)
+        _,              gradient_l1_1_h = layer1_case3.case3_back_prop(gradient_l2_1_x+gradient_l1_2_h + decay_propotoin_rate * gradient_l1_3_h ,1)
+
+    if iter % 50 == 0 :
+        print('\n======================================')
+        print("current Iter: ", iter, " Current Total Cost :", total_cost)
+        for current_batch_index in range(len(test_datas)):
+    
+            current_data = test_datas[current_batch_index,:]
+            current_label= test_label[current_batch_index,:]
+
+            l1_1 = layer1_case3.feed_forward(current_data[0],1)
+            _    = layer2_case3.feed_forward(l1_1,1)
+
+            _    = layer1_case3.feed_forward(current_data[1],2)
+            
+            l1_3 = layer1_case3.feed_forward(current_data[2],3)
+            _    = layer2_case3.feed_forward(l1_3,2)
+
+            l1_4 = layer1_case3.feed_forward(current_data[3],4)
+            out  = layer2_case3.feed_forward(l1_4,3)
+            outLog = log(out)
+
+            print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
+
+        print('======================================')
+    cost_array_case_3.append(total_cost)
+    total_cost = 0
+print('==============FINAL Prediction Case 3 ====================')
+total_cost = 0
+correct = 0
+for current_batch_index in range(len(test_datas)):
+
+    current_data = test_datas[current_batch_index,:]
+    current_label= test_label[current_batch_index,:]
+
+    l1_1 = layer1_case3.feed_forward(current_data[0],1)
+    _    = layer2_case3.feed_forward(l1_1,1)
+
+    _    = layer1_case3.feed_forward(current_data[1],2)
+    
+    l1_3 = layer1_case3.feed_forward(current_data[2],3)
+    _    = layer2_case3.feed_forward(l1_3,2)
+
+    l1_4 = layer1_case3.feed_forward(current_data[3],4)
+    out  = layer2_case3.feed_forward(l1_4,3)
+    outLog = log(out)
+
+    print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
+
+    if np.round(outLog) == current_label:
+        correct = correct + 1
+print('Correct : ',correct, ' Out of : ',len(test_datas) )
+plt.title("Cost over time")
+plt.plot(np.arange(len(cost_array_case_3)), cost_array_case_3)
+plt.show()
+# ======= CASE 3 =======
+
+
+
+
+
+
+# ======= CASE 4 =======
+for iter in range(num_epoch):
+
+    for current_data_index in range(len(traing_datas)):
+        
+        current_data = traing_datas[current_data_index,:]
+        current_label= traing_label[current_data_index,:]
+
+        l1_1 = layer1_case4.feed_forward(current_data[0],1)
+        _    = layer2_case4.feed_forward(l1_1,1)
+
+        _    = layer1_case4.feed_forward(current_data[1],2)
+        
+        l1_3 = layer1_case4.feed_forward(current_data[2],3)
+        _    = layer2_case4.feed_forward(l1_3,2)
+
+        l1_4 = layer1_case4.feed_forward(current_data[3],4)
+        out  = layer2_case4.feed_forward(l1_4,3)
+        outLog = log(out)
+        
+        cost = np.square(outLog-current_label).sum() * 0.5
+        print("Current Iter :",iter," Real Time Update Cost: ", cost,end='\r')
+        total_cost += cost
+        decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter)
+
+        gradient_l2_3_x,gradient_l2_3_h = layer2_case4.case4_back_prop(d_log(out)*(outLog-current_label)   ,3,iter)
+        _,              gradient_l1_4_h = layer1_case4.case4_back_prop(gradient_l2_3_x,4,iter)
+
+        gradient_l2_2_x,gradient_l2_2_h = layer2_case4.case4_back_prop(gradient_l2_3_h,2,iter)
+        _,              gradient_l1_3_h = layer1_case4.case4_back_prop(gradient_l2_2_x+gradient_l1_4_h,3,iter)
+
+        _,              gradient_l1_2_h = layer1_case4.case4_back_prop(gradient_l1_3_h + decay_propotoin_rate * gradient_l1_4_h,2,iter)
+
+        gradient_l2_1_x,gradient_l2_1_h = layer2_case4.case4_back_prop(gradient_l2_2_h + decay_propotoin_rate * gradient_l2_3_h,1,iter)
+        _,              gradient_l1_1_h = layer1_case4.case4_back_prop(gradient_l2_1_x+gradient_l1_2_h + decay_propotoin_rate * gradient_l1_3_h ,1,iter)
+
+
+    if iter % 50 == 0 :
+        print('\n======================================')
+        print("current Iter: ", iter, " Current Total Cost :", total_cost)
+        for current_batch_index in range(len(test_datas)):
+    
+            current_data = test_datas[current_batch_index,:]
+            current_label= test_label[current_batch_index,:]
+
+            l1_1 = layer1_case4.feed_forward(current_data[0],1)
+            _    = layer2_case4.feed_forward(l1_1,1)
+
+            _    = layer1_case4.feed_forward(current_data[1],2)
+            
+            l1_3 = layer1_case4.feed_forward(current_data[2],3)
+            _    = layer2_case4.feed_forward(l1_3,2)
+
+            l1_4 = layer1_case4.feed_forward(current_data[3],4)
+            out  = layer2_case4.feed_forward(l1_4,3)
+            outLog = log(out)
+
+            print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
+
+        print('======================================')
+    cost_array_case_4.append(total_cost)
+    total_cost = 0
+print('==============FINAL Prediction Case 4 ====================')
+total_cost = 0
+correct = 0
+for current_batch_index in range(len(test_datas)):
+
+    current_data = test_datas[current_batch_index,:]
+    current_label= test_label[current_batch_index,:]
+
+    l1_1 = layer1_case4.feed_forward(current_data[0],1)
+    _    = layer2_case4.feed_forward(l1_1,1)
+
+    _    = layer1_case4.feed_forward(current_data[1],2)
+
+    l1_3 = layer1_case4.feed_forward(current_data[2],3)
+    _    = layer2_case4.feed_forward(l1_3,2)
+
+    l1_4 = layer1_case4.feed_forward(current_data[3],4)
+    out  = layer2_case4.feed_forward(l1_4,3)
+    outLog = log(out)
+
+    print("Predicted: ",outLog, " Predict Rounded: " , np.round(outLog) ," GT : ",current_label )
+
+    if np.round(outLog) == current_label:
+        correct = correct + 1
+print('Correct : ',correct, ' Out of : ',len(test_datas) )
+plt.title("Cost over time")
+plt.plot(np.arange(len(cost_array_case_4)), cost_array_case_4)
+plt.show()
+# ======= CASE 4 =======
+
+
+
+
+
+
+
+
+
 
 # -- end code --
