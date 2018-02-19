@@ -355,7 +355,7 @@ for iter in range(num_epoch):
         gradient_l2_1_x,gradient_l2_1_h = layer2_case1.case1_back_prop(gradient_l2_2_h,1)
         _,              gradient_l1_1_h = layer1_case1.case1_back_prop(gradient_l2_1_x+gradient_l1_2_h,1)
 
-    if iter % 50 == 0 :
+    if iter % 150 == 0 :
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost)
         for current_batch_index in range(len(test_datas)):
@@ -455,7 +455,7 @@ for iter in range(num_epoch):
         gradient_l2_1_x,gradient_l2_1_h = layer2_case2.case2_back_prop(gradient_l2_2_h,1,iter)
         _,              gradient_l1_1_h = layer1_case2.case2_back_prop(gradient_l2_1_x+gradient_l1_2_h,1,iter)
 
-    if iter % 50 == 0 :
+    if iter % 150 == 0 :
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost)
         for current_batch_index in range(len(test_datas)):
@@ -558,7 +558,7 @@ for iter in range(num_epoch):
         gradient_l2_1_x,gradient_l2_1_h = layer2_case3.case3_back_prop(gradient_l2_2_h + decay_propotoin_rate * gradient_l2_3_h,1)
         _,              gradient_l1_1_h = layer1_case3.case3_back_prop(gradient_l2_1_x+gradient_l1_2_h + decay_propotoin_rate * gradient_l1_3_h ,1)
 
-    if iter % 50 == 0 :
+    if iter % 150 == 0 :
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost)
         for current_batch_index in range(len(test_datas)):
@@ -655,7 +655,7 @@ for iter in range(num_epoch):
         _,              gradient_l1_1_h = layer1_case4.case4_back_prop(gradient_l2_1_x+gradient_l1_2_h + decay_propotoin_rate * gradient_l1_3_h ,1,iter)
 
 
-    if iter % 50 == 0 :
+    if iter % 150 == 0 :
         print('\n======================================')
         print("current Iter: ", iter, " Current Total Cost :", total_cost)
         for current_batch_index in range(len(test_datas)):
@@ -711,11 +711,61 @@ plt.show()
 # ======= CASE 4 =======
 
 
+# ======= Ask the user =======
+user_acute_t = int(input("How many days prior today, have you been depressed? :"))
+user_age =    int(input("What is your age? : "))
+user_gender = int(input("What is your gender? (Female: 1 Male: 2) : "))
+
+user_data_Imipramine = [0.3,user_acute_t,user_age,user_gender]
+user_data_Lithium    = [0.6,user_acute_t,user_age,user_gender]
+user_data_Placebo    = [0.9,user_acute_t,user_age,user_gender]
+
+l1_1 = layer1_case4.feed_forward(user_data_Imipramine[0],1)
+_    = layer2_case4.feed_forward(l1_1,1)
+
+_    = layer1_case4.feed_forward(user_data_Imipramine[1],2)
+
+l1_3 = layer1_case4.feed_forward(user_data_Imipramine[2],3)
+_    = layer2_case4.feed_forward(l1_3,2)
+
+l1_4 = layer1_case4.feed_forward(user_data_Imipramine[3],4)
+out  = layer2_case4.feed_forward(l1_4,3)
+outLog_case4_Imipramin = log(out)
 
 
+l1_1 = layer1_case4.feed_forward(user_data_Lithium[0],1)
+_    = layer2_case4.feed_forward(l1_1,1)
+
+_    = layer1_case4.feed_forward(user_data_Lithium[1],2)
+
+l1_3 = layer1_case4.feed_forward(user_data_Lithium[2],3)
+_    = layer2_case4.feed_forward(l1_3,2)
+
+l1_4 = layer1_case4.feed_forward(user_data_Lithium[3],4)
+out  = layer2_case4.feed_forward(l1_4,3)
+outLog_case4_Lithium = log(out)
 
 
+l1_1 = layer1_case4.feed_forward(user_data_Placebo[0],1)
+_    = layer2_case4.feed_forward(l1_1,1)
 
+_    = layer1_case4.feed_forward(user_data_Placebo[1],2)
+
+l1_3 = layer1_case4.feed_forward(user_data_Placebo[2],3)
+_    = layer2_case4.feed_forward(l1_3,2)
+
+l1_4 = layer1_case4.feed_forward(user_data_Placebo[3],4)
+out  = layer2_case4.feed_forward(l1_4,3)
+outLog_case4_Placebo = log(out)
+
+
+if outLog_case4_Placebo > outLog_case4_Lithium and outLog_case4_Placebo>outLog_case4_Imipramin:
+    print("Placebo")
+elif outLog_case4_Lithium > outLog_case4_Placebo and outLog_case4_Lithium>outLog_case4_Imipramin:
+    print("Lithium")
+else:
+    print("Imipramin")
+    
 
 
 
