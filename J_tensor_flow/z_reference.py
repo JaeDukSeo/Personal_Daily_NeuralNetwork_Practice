@@ -17,7 +17,6 @@ def tf_tanh(x):
 def d_tf_tanh(x):
     return tf.subtract(tf.constant(1.0),tf.square(tf.tanh(x)))
 
-
 def tf_arctan(x):
     return tf.atan(x)
 def d_tf_arctan(x):
