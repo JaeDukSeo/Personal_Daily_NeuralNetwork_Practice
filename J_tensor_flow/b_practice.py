@@ -16,6 +16,8 @@ def tf_tanh(x):
 def d_tf_tanh(x):
     return 1.0 - tf.square(tf.tanh(x))
 
+def tf_softmax(x):
+    return tf.nn.softmax(x)
 
 # 1. Preprocess the data
 
@@ -26,12 +28,21 @@ class simple_FCC():
     def __init__(self):
         
         w = tf.Variable(tf.random_normal([784,784],stddev=0.45))
+        b = tf.Variable(tf.random_normal([1,1],stddev=0.4))
 
-    def feed_forward(self):
+    def feed_forward(self,input=None):
         print(8)
+
+        return 8
+
+    def back_propagation(self,gradient= None):
+        
+        return 789
 
 # 3. Delcare the Model
 layer1 = simple_FCC()
+layer2 = simple_FCC()
+layer3 = simple_FCC()
 
 # 4. Run the session
 with tf.Session() as sess:
