@@ -26,19 +26,12 @@ def tf_softmax(x=None):
     return tf.nn.softmax(x)
 
 # 1. Preprocess the data
-mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True).test
-images,label = shuffle(mnist.images,mnist.labels)
-test_image_num,training_image_num = 50,1000
-num_epoch = 1
-cost_array = []
-batch_size = 3
-total_cost = 0 
-testing_images, testing_lables =images[:test_image_num,:],label[:test_image_num,:]
-training_images,training_lables =images[test_image_num:test_image_num + training_image_num,:],label[test_image_num:test_image_num + training_image_num,:]
+mnist = input_data.read_data_sets("../MNIST_data/", one_hot=True)
+testing_images, testing_lables =mnist.test.images,mnist.test.labels
+training_images,training_lables =mnist.train.images,mnist.train.labels
 
 learning_rate= 0.001
 num_epoch =300
-batch_size = 100
 print_size = 50
 
 # 2. Build a model with class
@@ -200,8 +193,6 @@ with tf.Session() as sess:
 
 print('\n===== MOVING ON TO THE NEXT============\n')
 
-
-
 # =============Dilated Back Propagation ======================
 # 3. Delcare the Model
 layer1_dil = simple_FCC(tf_log,d_tf_log,input_dim = 784,ouput_dim = 825)
@@ -212,20 +203,20 @@ layer3_dil = simple_FCC(tf_tanh,d_tf_tanh,input_dim = 1024,ouput_dim = 10)
 x_dil = tf.placeholder(tf.float32, shape=(None, 784))
 y_dil = tf.placeholder(tf.float32, shape=(None,10))
 
-l1_dil = layer1_dil.feed_forward(x)
-l2_dil = layer2_dil.feed_forward(l1)
-l3_dil = layer3_dil.feed_forward(l2)
-l3Soft_dil = tf_softmax(l3)
+l1_dil = layer1_dil.feed_forward(x_dil)
+l2_dil = layer2_dil.feed_forward(l1_dil)
+l3_dil = layer3_dil.feed_forward(l2_dil)
+l3Soft_dil = tf_softmax(l3_dil)
 
-cost = tf.reduce_sum( -1 * ( y*tf.log(l3Soft) + (1-y) * tf.log(1-l3Soft ) ) )
+cost_dil = tf.reduce_sum( -1 * ( y*tf.log(l3Soft_dil) + (1-y) * tf.log(1-l3Soft_dil ) ) )
 
-gradient3,weightup_3 = layer3.back_propagation(l3Soft - y,3)
-gradient2,weightup_2 = layer2.back_propagation(gradient3,2)
-gradient1,weightup_1 = layer1.back_propagation(gradient2,1)
-weight_update = [weightup_3,weightup_2,weightup_1]
+gradient3_dil,weightup_3_dil = layer3.back_propagation(l3Soft_dil - y_dil,3)
+gradient2_dil,weightup_2_dil = layer2.back_propagation(gradient3_dil,2)
+gradient1_dil,weightup_1_dil = layer1.back_propagation(gradient2_dil,1)
+weight_update_dil = [weightup_3_dil,weightup_2_dil,weightup_1_dil]
 
 total_cost = 0 
-manual_cost = []
+dilated_cost = []
 # 4. Run the session - Manual
 with tf.Session() as sess:
 
@@ -237,7 +228,7 @@ with tf.Session() as sess:
             current_batch = training_images[current_image_batch:current_image_batch+batch_size,:]
             current_label = training_lables[current_image_batch:current_image_batch+batch_size,:]
 
-            sess_result = sess.run([cost,gradient1,weight_update],feed_dict={x:current_batch,y:current_label })
+            sess_result = sess.run([cost_dil,gradient1_dil,weight_update_dil],feed_dict={x:current_batch,y:current_label })
             total_cost = total_cost +sess_result[0]
             print("Real Time Cost Update Iter: ",iter, "  Cost : ",sess_result[0],end='\r' )
             
@@ -257,10 +248,21 @@ with tf.Session() as sess:
             )
             print('--------------------')
 
-        manual_cost.append(total_cost/len(training_images))
+        dilated_cost.append(total_cost/len(training_images))
         total_cost = 0
 # =============Dilated Back Propagation ======================
 
+print('\n===== MOVING ON TO THE NEXT============\n')
+
+# =============Google Brain Noise ======================
+
+# =============Google Brain Noise ======================
+
+print('\n===== MOVING ON TO THE NEXT============\n')
+
+# =============Dilated + Google Brain Noise ======================
+
+# =============Dilated + Google Brain Noise ======================
 
 
 # -- end code ---
