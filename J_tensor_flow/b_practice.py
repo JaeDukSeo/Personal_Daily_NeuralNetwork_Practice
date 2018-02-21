@@ -39,6 +39,8 @@ with tf.Session() as sess:
     value = sess.run(d_tf_tanh(7.9))
     print(value)
 
+    print("start over")
+
 
 
 
