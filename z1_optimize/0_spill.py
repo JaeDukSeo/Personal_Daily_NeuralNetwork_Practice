@@ -16,7 +16,22 @@ def spill(x,y,stren):
 
         cell = surface[x,y]
 
-        if cell == -1 :return 
+        if cell == -1 : return 
+        if cell < stren :
+            surface[x,y] = stren
+        
+        spill(x-1,y-1,stren-1)
+        spill(x-1,y,stren-1)
+        spill(x-1,y+1,stren-1)
+        spill(x,y-1,stren-1)
+        spill(x,y+1,stren-1)
+        spill(x+1,y-1,stren-1)
+        spill(x+1,y,stren-1)
+        spill(x+1,y+1,stren-1)
+
+print(surface)
+spill(2,2,5)
+print(surface)
 
 
 
