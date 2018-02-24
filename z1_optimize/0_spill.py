@@ -3,10 +3,11 @@ import time
 
 global m,n,surface
 
-m = 5
-n = 5
+m = 13  
+n = 13
 surface = np.zeros((m,n))
 
+# 0. Original Spill
 def spill(x,y,stren):
 
         global m,n,surface
@@ -29,13 +30,16 @@ def spill(x,y,stren):
         spill(x+1,y,stren-1)
         spill(x+1,y+1,stren-1)
 
+
+# This is really slow, since the strength is also in the way. 
+# It takes 6 seconds lol
 print(surface)
-spill(2,2,5)
+start_time = time.time()
+spill(7,7,8)
+print("--- %s seconds ---" % (time.time() - start_time))
 print(surface)
 
 
-
-print('done') 
 
 
 # -- end code -------
