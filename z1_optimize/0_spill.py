@@ -30,16 +30,47 @@ def spill(x,y,stren):
         spill(x+1,y,stren-1)
         spill(x+1,y+1,stren-1)
 
+# 1. Spill Short cut
+def spill2(x,y,stren):
+    
+        global m,n,surface
+
+        if stren == 0 : return
+        if x < 0 or x >= m or y <0 or y>=n: return
+
+        cell = surface[x,y]
+
+        if cell == -1 : return 
+        if cell >= stren : return
+        surface[x,y] = stren
+        
+        spill(x-1,y-1,stren-1)
+        spill(x-1,y,stren-1)
+        spill(x-1,y+1,stren-1)
+        spill(x,y-1,stren-1)
+        spill(x,y+1,stren-1)
+        spill(x+1,y-1,stren-1)
+        spill(x+1,y,stren-1)
+        spill(x+1,y+1,stren-1)
+
+
 
 # This is really slow, since the strength is also in the way. 
 # It takes 6 seconds lol
-print(surface)
+m = 13  
+n = 13
+surface = np.zeros((m,n))
 start_time = time.time()
 spill(7,7,8)
 print("--- %s seconds ---" % (time.time() - start_time))
-print(surface)
 
-
+# Short cut actually make it worse LOL
+m = 13  
+n = 13
+surface = np.zeros((m,n))
+start_time = time.time()
+spill2(7,7,8)
+print("--- %s seconds ---" % (time.time() - start_time))
 
 
 # -- end code -------
