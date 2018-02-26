@@ -144,6 +144,7 @@ class discriminator():
 
     def feed_forward_fake(self,input = None):
         
+        self.input_fake = input
         return 8
 
     def backprop_real(self,gradient=None):
@@ -164,12 +165,11 @@ x_fake = tf.placeholder(shape=[None,512,512,1],dtype="float")
 y_label= tf.placeholder(shape=[1],dtype="float")
 
 layer_g = G.feed_forward(x_fake)
-layer_D_Fake = D.feed_forward(layer_g)
-layer_D_Real = D.feed_forward(x_real)
+layer_D_Fake = D.feed_forward_fake(layer_g)
+layer_D_Real = D.feed_forward_real(x_real)
 
-cost = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
-
-D_BackProp = D.backprop(-1.0 * 1/(layer_D_Real),1.0/(1.0-layer_D_Fake))
+# cost = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
+# D_BackProp = D.backprop(-1.0 * 1/(layer_D_Real),1.0/(1.0-layer_D_Fake))
 
 
 # 4. Train Via loop
