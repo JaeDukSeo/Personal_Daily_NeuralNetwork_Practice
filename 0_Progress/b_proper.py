@@ -116,44 +116,51 @@ class discriminator():
 
     def feed_forward_real(self,input=None):
         
-        self.input = input
-        self.layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
-        self.layer1Mean = tf.nn.pool(self.layer1,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        self.input_real = input
+        self.layer1_real = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
+        self.layer1Mean_real = tf.nn.pool(self.layer1_real,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
         
-        self.layer2 = tf.nn.conv2d(self.layer1Mean,self.w2,strides=[1,1,1,1],padding='SAME')
-        self.layer2Mean = tf.nn.pool(self.layer2,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        self.layer2_real = tf.nn.conv2d(self.layer1Mean_real,self.w2,strides=[1,1,1,1],padding='SAME')
+        self.layer2Mean_real = tf.nn.pool(self.layer2_real ,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
         
-        self.layer3 = tf.nn.conv2d(self.layer2Mean,self.w3,strides=[1,1,1,1],padding='SAME')
-        self.layer3Mean = tf.nn.pool(self.layer3,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        self.layer3_real = tf.nn.conv2d(self.layer2Mean_real ,self.w3,strides=[1,1,1,1],padding='SAME')
+        self.layer3Mean_real = tf.nn.pool(self.layer3_real ,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
         
-        self.layer4Input = tf.reshape(self.layer3Mean,[batch_size,-1])
+        self.layer4Input_real = tf.reshape(self.layer3Mean_real ,[batch_size,-1])
 
-        self.layer4 = tf.matmul(self.layer4Input,self.w4)
-        self.layer4A = tf_arctan(self.layer4)
+        self.layer4_real = tf.matmul(self.layer4Input_real ,self.w4)
+        self.layer4A_real = tf_arctan(self.layer4_real )
         
-        self.layer5 = tf.matmul(self.layer4A,self.w5)
-        self.layer5A = tf_arctan(self.layer5)
-        
-        self.layer6 = tf.matmul(self.layer5A,self.w6)
-        self.layer6A = tf_arctan(self.layer6)
+        self.layer5_real = tf.matmul(self.layer4A_real ,self.w5)
+        self.layer5A_real = tf_log(self.layer5_real)
 
-        self.layer7 = tf.matmul(self.layer6A,self.w7)
-        self.layer7A = tf_log(self.layer7)
-
-        return self.layer7A 
+        return self.layer5A_real 
 
     def feed_forward_fake(self,input = None):
         
         self.input_fake = input
-        return 8
-
-    def backprop_real(self,gradient=None):
-
-        return 8
-
-    def backprop_fake(self,gradient=None):
+        self.layer1_fake = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
+        self.layer1Mean_fake = tf.nn.pool(self.layer1_fake,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
         
-        return 8
+        self.layer2_fake = tf.nn.conv2d(self.layer1Mean_fake,self.w2,strides=[1,1,1,1],padding='SAME')
+        self.layer2Mean_fake = tf.nn.pool(self.layer2_fake ,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        
+        self.layer3_fake = tf.nn.conv2d(self.layer2Mean_fake ,self.w3,strides=[1,1,1,1],padding='SAME')
+        self.layer3Mean_fake = tf.nn.pool(self.layer3_fake ,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        
+        self.layer4Input_fake = tf.reshape(self.layer3Mean_fake ,[batch_size,-1])
+
+        self.layer4_fake = tf.matmul(self.layer4Input_fake ,self.w4)
+        self.layer4A_fake = tf_arctan(self.layer4_fake )
+        
+        self.layer5_fake = tf.matmul(self.layer4A_fake ,self.w5)
+        self.layer5A_fake = tf_log(self.layer5_fake)
+
+        return self.layer5A_fake 
+
+    def backprop(self,gradient=None):
+        
+        return 8,8
 
 # 2.5 Make the class 
 G = generator()
@@ -168,8 +175,8 @@ layer_g = G.feed_forward(x_fake)
 layer_D_Fake = D.feed_forward_fake(layer_g)
 layer_D_Real = D.feed_forward_real(x_real)
 
-# cost = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
-# D_BackProp = D.backprop(-1.0 * 1/(layer_D_Real),1.0/(1.0-layer_D_Fake))
+cost = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
+D_BackProp,D_weightupdate = D.backprop(-1.0 * 1/(layer_D_Real),1.0/(1.0-layer_D_Fake))
 
 
 # 4. Train Via loop
@@ -192,6 +199,7 @@ with tf.Session() as sess:
 
             sess_results = sess.run(cost,feed_dict={x_real:current_image,x_fake:current_data_noise})
 
+            print(sess_results.shape)
 
             sys.exit()
 
