@@ -97,20 +97,24 @@ class discriminator():
         self.w3 = tf.Variable(tf.random_normal([3,3,3,3]))
 
         self.w4 = tf.Variable(tf.random_normal([12288,4096]))
-        self.w5 = tf.Variable(tf.random_normal([4096,2048]))
-        self.w6 = tf.Variable(tf.random_normal([2048,1024]))
-        self.w7 = tf.Variable(tf.random_normal([1024,1]))
+        self.w5 = tf.Variable(tf.random_normal([4096,1]))
         
-        self.input,self.output = None,None
+        self.input_real,self.output_real = None,None
+        self.layer1_real,self.layer2_real,self.layer3_real = None,None,None
+        self.layer1Mean_real,self.layer2Mean_real,self.layer3Mean_real = None,None,None
+        self.layer4Input_real = None
+        self.layer4_real,self.layer5_real   = None,None
+        self.layer4A_real,self.layer5A_real = None,None
 
-        self.layer1,self.layer2,self.layer3 = None,None,None
-        self.layer1Mean,self.layer2Mean,self.layer3Mean = None,None,None
-        self.layer4Input = None
+        self.input_fake,self.output_fake = None,None
+        self.layer1_fake,self.layer2_fake,self.layer3_fake = None,None,None
+        self.layer1Mean_fake,self.layer2Mean_fake,self.layer3Mean_fake = None,None,None
+        self.layer4Input_fake = None
+        self.layer4_fake,self.layer5_fake   = None,None
+        self.layer4A_fake,self.layer5A_fake = None,None
 
-        self.layer4,self.layer5,self.layer6,self.layer7 = None,None,None,None
-        self.layer4A,self.layer5A,self.layer6A,self.layer7A = None,None,None,None
 
-    def feed_forward(self,input=None):
+    def feed_forward_real(self,input=None):
         
         self.input = input
         self.layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
@@ -137,6 +141,10 @@ class discriminator():
         self.layer7A = tf_log(self.layer7)
 
         return self.layer7A 
+
+    def feed_forward_fake(self,input = None):
+        
+        return 8
 
     def backprop_real(self,gradient=None):
 
