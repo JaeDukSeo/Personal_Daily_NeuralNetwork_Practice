@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt,os,sys
 from sklearn.utils import shuffle
 from scipy.ndimage import imread
-
+from numpy import float32
 # -2. Set the Random Seed Values
 tf.set_random_seed(789)
 np.random.seed(568)
@@ -48,43 +48,120 @@ print('===== Done READING DATA ========')
 training_data = one
 # training_data = np.vstack((one,two,three))
 
-
 # 1.75 Training Hyper Parameters
 num_epoch = 1
 batch_size = 20
-
 
 # 2. Create the Class
 class generator():
     
     def __init__(self):
         
-        self.w1 = tf.Variable(tf.random_normal([893,4],seed=0))
+        self.w1 = tf.Variable(tf.random_normal([7,7,1,3]))
+        self.w2 = tf.Variable(tf.random_normal([5,5,3,5]))
+        self.w3 = tf.Variable(tf.random_normal([3,3,5,7]))
+        self.w4 = tf.Variable(tf.random_normal([1,1,7,1]))
+
+        self.layer1,self.layer2,self.layer3,self.layer4 = None,None,None,None
+        self.layer1A,self.layer2A,self.layer3A,self.layer4A = None,None,None,None
+        
+        self.input = None
 
     def feed_forward(self,input=None):
         
-        return 8
+        self.input = input
+        
+        self.layer1 = tf.nn.conv2d(self.input,self.w1,strides=[1,1,1,1],padding="SAME")
+        self.layer1A = tf_ReLU(self.layer1 )
+
+        self.layer2 = tf.nn.conv2d(self.layer1A,self.w2,strides=[1,1,1,1],padding="SAME")
+        self.layer2A = tf_arctan(self.layer2 )
+
+        self.layer3 = tf.nn.conv2d(self.layer2A,self.w3,strides=[1,1,1,1],padding="SAME")
+        self.layer3A = tf_ReLU(self.layer3 )
+
+        self.layer4 = tf.nn.conv2d(self.layer3A,self.w4,strides=[1,1,1,1],padding="SAME")
+        self.layer4A =self.output = tf_log(self.layer4 )
+
+        return self.output
+
+    def backprop(self,gradient = None):
+        print(8)
 
 class discriminator():
     
     def __init__(self):
-        print(7)
+
+        self.w1 = tf.Variable(tf.random_normal([7,7,1,2]))
+        self.w2 = tf.Variable(tf.random_normal([5,5,2,3]))
+        self.w3 = tf.Variable(tf.random_normal([3,3,3,3]))
+
+        self.w4 = tf.Variable(tf.random_normal([12288,4096]))
+        self.w5 = tf.Variable(tf.random_normal([4096,2048]))
+        self.w6 = tf.Variable(tf.random_normal([2048,1024]))
+        self.w7 = tf.Variable(tf.random_normal([1024,1]))
+        
+        self.input,self.output = None,None
+
+        self.layer1,self.layer2,self.layer3 = None,None,None
+        self.layer1Mean,self.layer2Mean,self.layer3Mean = None,None,None
+        self.layer4Input = None
+
+        self.layer4,self.layer5,self.layer6,self.layer7 = None,None,None,None
+        self.layer4A,self.layer5A,self.layer6A,self.layer7A = None,None,None,None
 
     def feed_forward(self,input=None):
         
+        self.input = input
+        self.layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
+        self.layer1Mean = tf.nn.pool(self.layer1,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        
+        self.layer2 = tf.nn.conv2d(self.layer1Mean,self.w2,strides=[1,1,1,1],padding='SAME')
+        self.layer2Mean = tf.nn.pool(self.layer2,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        
+        self.layer3 = tf.nn.conv2d(self.layer2Mean,self.w3,strides=[1,1,1,1],padding='SAME')
+        self.layer3Mean = tf.nn.pool(self.layer3,window_shape=[2,2],strides=[2,2],pooling_type="AVG",padding="VALID")
+        
+        self.layer4Input = tf.reshape(self.layer3Mean,[batch_size,-1])
+
+        self.layer4 = tf.matmul(self.layer4Input,self.w4)
+        self.layer4A = tf_arctan(self.layer4)
+        
+        self.layer5 = tf.matmul(self.layer4A,self.w5)
+        self.layer5A = tf_arctan(self.layer5)
+        
+        self.layer6 = tf.matmul(self.layer5A,self.w6)
+        self.layer6A = tf_arctan(self.layer6)
+
+        self.layer7 = tf.matmul(self.layer6A,self.w7)
+        self.layer7A = tf_log(self.layer7)
+
+        return self.layer7A 
+
+    def backprop_real(self,gradient=None):
+
         return 8
 
+    def backprop_fake(self,gradient=None):
+        
+        return 8
 
 # 2.5 Make the class 
 G = generator()
 D = discriminator()
 
 # 3. Make the Graph
-x = tf.placeholder(shape=[None,512,512,1],dtype="float")
-y = tf.placeholder(shape=[None,512,512,1],dtype="float")
+x_real = tf.placeholder(shape=[None,512,512,1],dtype="float")
+x_fake = tf.placeholder(shape=[None,512,512,1],dtype="float")
+y_label= tf.placeholder(shape=[1],dtype="float")
 
-layer_g = G.feed_forward(x)
-layer_D = D.feed_forward(layer_g)
+layer_g = G.feed_forward(x_fake)
+layer_D_Fake = D.feed_forward(layer_g)
+layer_D_Real = D.feed_forward(x_real)
+
+cost = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
+
+D_BackProp = D.backprop(-1.0 * 1/(layer_D_Real),1.0/(1.0-layer_D_Fake))
 
 
 # 4. Train Via loop
@@ -99,11 +176,14 @@ with tf.Session() as sess:
             current_image = training_data[current_batch:current_batch+batch_size,:,:]
             current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
 
-            plt.imshow(current_image[0,:,:])
-            plt.show()
+            # current_image      = tf.cast(np.expand_dims(current_image,axis=3),tf.float32) 
+            # current_data_noise = tf.cast(np.expand_dims(current_data_noise,axis=3),tf.float32)           
 
-            plt.imshow(current_data_noise[0,:,:])
-            plt.show()
+            current_image      = float32(np.expand_dims(current_image,axis=3)) 
+            current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
+
+            sess_results = sess.run(cost,feed_dict={x_real:current_image,x_fake:current_data_noise})
+
 
             sys.exit()
 
