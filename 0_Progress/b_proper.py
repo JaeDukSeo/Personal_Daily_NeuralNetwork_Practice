@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt,os
+import matplotlib.pyplot as plt,os,sys
 from sklearn.utils import shuffle
 from scipy.ndimage import imread
 
@@ -51,7 +51,7 @@ training_data = one
 
 # 1.75 Training Hyper Parameters
 num_epoch = 1
-
+batch_size = 20
 
 
 # 2. Create the Class
@@ -94,15 +94,17 @@ with tf.Session() as sess:
 
     for iter in range(num_epoch):
         
-        temp = tf.constant([[1,-2,0],[4,5,6],[7,8,9]])
+        for current_batch in range(0,len(training_data),batch_size):
+            
+            current_image = training_data[current_batch:current_batch+batch_size,:,:]
+            current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
 
-        ss = d_tf_ReLu(temp).eval()
+            plt.imshow(current_image[0,:,:])
+            plt.show()
 
-        print(ss)
+            plt.imshow(current_data_noise[0,:,:])
+            plt.show()
 
-
-
-
-
+            sys.exit()
 
 # -- end code --
