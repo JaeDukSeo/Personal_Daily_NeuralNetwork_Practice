@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt,os
 from sklearn.utils import shuffle
 from scipy.ndimage import imread
 
@@ -9,6 +9,20 @@ tf.set_random_seed(789)
 np.random.seed(568)
 
 # -1 Tf activation functions
+def tf_arctan(x):
+    return tf.atan(x)
+def d_tf_arctan(x):
+    return 1.0/(1+tf.square(x))
+
+def tf_ReLU(x):
+    return tf.nn.relu(x)
+def d_tf_ReLu(x):
+    return tf.cast(tf.greater(x, 0),dtype=tf.float32)
+
+def tf_log(x):
+    return tf.sigmoid(x)
+def d_tf_log(x):
+    return tf.sigmoid(x) * (1.0 - tf.sigmoid(x))
 
 # 0. Get the list
 PathDicom = "../lung_data_1/"
@@ -34,6 +48,12 @@ print('===== Done READING DATA ========')
 training_data = one
 # training_data = np.vstack((one,two,three))
 
+
+# 1.75 Training Hyper Parameters
+num_epoch = 1
+
+
+
 # 2. Create the Class
 class generator():
     
@@ -45,14 +65,43 @@ class generator():
         
         return 8
 
-
-
 class discriminator():
     
     def __init__(self):
         print(7)
 
-G = generator
+    def feed_forward(self,input=None):
+        
+        return 8
+
+
+# 2.5 Make the class 
+G = generator()
+D = discriminator()
+
+# 3. Make the Graph
+x = tf.placeholder(shape=[None,512,512,1],dtype="float")
+y = tf.placeholder(shape=[None,512,512,1],dtype="float")
+
+layer_g = G.feed_forward(x)
+layer_D = D.feed_forward(layer_g)
+
+
+# 4. Train Via loop
+with tf.Session() as sess:
+
+    sess.run(tf.global_variables_initializer())
+
+    for iter in range(num_epoch):
+        
+        temp = tf.constant([[1,-2,0],[4,5,6],[7,8,9]])
+
+        ss = d_tf_ReLu(temp).eval()
+
+        print(ss)
+
+
+
 
 
 
