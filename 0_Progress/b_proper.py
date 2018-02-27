@@ -45,26 +45,31 @@ for file_index in range(len(lstFilesDCM1)):
     # three[file_index,:,:]   = imread(lstFilesDCM3[file_index],mode='F')
 print('===== Done READING DATA ========')
 
-training_data = one
+training_data = one[:100,:,:]
 # training_data = np.vstack((one,two,three))
 
 # 1.75 Training Hyper Parameters
-num_epoch = 1
-batch_size = 20
+num_epoch = 100
+batch_size = 5
 
 # 2. Create the Class
 class generator():
     
     def __init__(self):
         
-        self.w1 = tf.Variable(tf.random_normal([7,7,1,3]))
-        self.w2 = tf.Variable(tf.random_normal([5,5,3,5]))
-        self.w3 = tf.Variable(tf.random_normal([3,3,5,7]))
-        self.w4 = tf.Variable(tf.random_normal([1,1,7,1]))
+        self.w1 = tf.Variable(tf.random_normal([13,13,1,3]))
+        self.w2 = tf.Variable(tf.random_normal([11,11,3,5]))
+        self.w3 = tf.Variable(tf.random_normal([9,9,5,7]))
+        self.w4 = tf.Variable(tf.random_normal([7,7,7,9]))
+        self.w5 = tf.Variable(tf.random_normal([5,5,9,9]))
+        self.w6 = tf.Variable(tf.random_normal([3,3,9,1]))
 
         self.layer1,self.layer2,self.layer3,self.layer4 = None,None,None,None
         self.layer1A,self.layer2A,self.layer3A,self.layer4A = None,None,None,None
-        
+
+        self.layer5,self.layer6 = None,None
+        self.layer5A,self.layer6A = None,None   
+
         self.input = None
 
     def feed_forward(self,input=None):
@@ -78,15 +83,18 @@ class generator():
         self.layer2A = tf_arctan(self.layer2 )
 
         self.layer3 = tf.nn.conv2d(self.layer2A,self.w3,strides=[1,1,1,1],padding="SAME")
-        self.layer3A = tf_ReLU(self.layer3 )
+        self.layer3A = tf_log(self.layer3 )
 
         self.layer4 = tf.nn.conv2d(self.layer3A,self.w4,strides=[1,1,1,1],padding="SAME")
-        self.layer4A =self.output = tf_log(self.layer4 )
+        self.layer4A  = tf_arctan(self.layer4 )
+
+        self.layer5 = tf.nn.conv2d(self.layer4A,self.w5,strides=[1,1,1,1],padding="SAME")
+        self.layer5A  = tf_ReLU(self.layer5 )
+
+        self.layer6 = tf.nn.conv2d(self.layer5A,self.w6,strides=[1,1,1,1],padding="SAME")
+        self.layer6A =self.output = tf_log(self.layer6 )
 
         return self.output
-
-    def backprop(self,gradient = None):
-        print(8)
 
 class discriminator():
     
@@ -175,8 +183,9 @@ layer_g = G.feed_forward(x_fake)
 layer_D_Fake = D.feed_forward_fake(layer_g)
 layer_D_Real = D.feed_forward_real(x_real)
 
-cost = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
-D_BackProp,D_weightupdate = D.backprop(-1.0 * 1/(layer_D_Real),1.0/(1.0-layer_D_Fake))
+cost_D = -1.0 * tf_log(layer_D_Real) + tf_log(1.0-layer_D_Fake)
+auto_dif = tf.train.AdamOptimizer(learning_rate=0.000001).minimize(cost_D)
+
 
 
 # 4. Train Via loop
@@ -191,16 +200,25 @@ with tf.Session() as sess:
             current_image = training_data[current_batch:current_batch+batch_size,:,:]
             current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
 
-            # current_image      = tf.cast(np.expand_dims(current_image,axis=3),tf.float32) 
-            # current_data_noise = tf.cast(np.expand_dims(current_data_noise,axis=3),tf.float32)           
+            current_image      = float32(np.expand_dims(current_image,axis=3)) 
+            current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
+
+            sess_results = sess.run([cost,auto_dif],feed_dict={x_real:current_image,x_fake:current_data_noise})
+            print("Current Iter: ", iter," Current batch : ",current_batch ," current cost: ",sess_results[0].sum(),end='\r')
+
+
+        if iter % 10 == 0:
+            current_image = training_data[:5,:,:]
+            current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
 
             current_image      = float32(np.expand_dims(current_image,axis=3)) 
             current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
 
-            sess_results = sess.run(cost,feed_dict={x_real:current_image,x_fake:current_data_noise})
+            temp = sess.run(layer_g,feed_dict={x_fake:current_data_noise})
 
-            print(sess_results.shape)
-
-            sys.exit()
+            plt.imshow(np.squeeze(current_image[1,:,:,:]),cmap='gray')
+            plt.show()
+            plt.imshow(np.squeeze(temp[1,:,:,:]),cmap='gray')
+            plt.show()
 
 # -- end code --
