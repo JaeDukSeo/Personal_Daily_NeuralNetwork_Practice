@@ -2,6 +2,10 @@ import numpy as np
 import time,sys
 from collections import deque
 from collections import defaultdict
+from collections import *
+
+from queue import *
+
 global m,n,surface
 
 m = 13  
@@ -127,54 +131,88 @@ def spillBFS2( x,  y, strength):
     global m,n,surface
 
     if strength == 0: return 
-    if x<0  or y<0 : return
+    if strength > 1:
+        if x<0  or y<0 : return
+        if x >= n-1 or y>=m-1: return
 
-    if x > m-2:
-        x = m-1
-    
-    if y > n-2:
-        y = n-1
+        cell = surface[y,x]
+        if cell > strength: return
+        if not cell == -1: 
+            surface[y,x] = strength
+        
+        queu = deque()
+        for x_cor in range(x-1,x+2):
+            for y_cor in range(y-1,y+2):
+                
+                print(x_cor,y_cor)
 
-    cell = surface[y,x]
-    if cell > strength: return
-    if not cell == -1: 
-        surface[y,x] = strength
-    
-    queu = deque()
-    for x_cor in range(x-1,x+2):
-        for y_cor in range(y-1,y+2):
-            if not surface[x_cor,y_cor] == -1 :
-                if not (x_cor==x and  y_cor == y):
+                if (not surface[x_cor,y_cor] == -1) and (not (x_cor==x and  y_cor == y)) and (surface[x_cor,y_cor]<strength-1):
                     queu.append((x_cor,y_cor))
 
-    for coor in queu:
-        cell = surface[coor[0],coor[1]]
-        if cell < strength:
+        print("Current Strength : ",strength, "made queue: ", queu, ' Current Coordinate : ', x, ' and ', y)
+        print(surface)
+        input()
+
+        for coor in queu:
+            cell = surface[coor[0],coor[1]]
             surface[coor[0],coor[1]] = strength-1
 
-    for coor in queu:
-        spillBFS2(coor[0],coor[1],strength-1)
+        for coor in queu:
+            spillBFS2(coor[0],coor[1],strength-1)
+
+def spill_BFS_final(x,y,strength,passon_queue,strength_queue):
+    global m,n,surface
+
+    if strength == 0: return
+    if x<0 or y<0: return
+    if x>m-1 or y>n-1: return
+    if surface[x,y] == -1: return
+
+    surface[x,y] = strength
+    
+    for x_cor in range(x-1,x+2):
+        for y_cor in range(y-1,y+2):
+            if  (x_cor>=0 and y_cor>=0) and (x_cor<m and y_cor<n) :
+                if (not(x_cor==x and y_cor==y)) and (not surface[x_cor,y_cor] == -1) and (surface[x_cor,y_cor]<strength-1) and (not (x_cor,y_cor) in passon_queue.queue):
+                    passon_queue.put((x_cor,y_cor))
+                    strength_queue.put(strength-1)
+
+    if passon_queue.empty() : return
+    next_coor = passon_queue.get()
+    next_strength = strength_queue.get()
+    spill_BFS_final(next_coor[0],next_coor[1],next_strength,passon_queue,strength_queue)
 
 
-m = 7  
-n = 7
+
+m = 9
+n = 9
 surface = np.zeros((m,n))
 start_time = time.time()
+queue = Queue()
+strength_queue = Queue()
 
-surface[0,1] = -1
-surface[1,1] = -1
-surface[2,1] = -1
-# surface[2,2] = -1
+surface[0,2] = -1
+surface[0,3] = -1
+surface[2,6] = -1
+surface[3,6] = -1
+surface[3,7] = -1
+surface[4,7] = -1
+surface[5,7] = -1
+surface[6,7] = -1
+surface[5,1] = -1
 
-x_coordinate_spill = 0
-y_coordinate_spill = 0
-strength = 3
-print("Gloabal: y ",m, ' and x ', n)
-print(surface)
-spillBFS2(x_coordinate_spill,y_coordinate_spill,strength)
+
+
+x_coordinate_spill = 1
+y_coordinate_spill = 5
+strength = 5
+start_time = time.time()
+spill_BFS_final(x_coordinate_spill,y_coordinate_spill,strength,queue,strength_queue)
 print("--- %s seconds ---" % (time.time() - start_time))
-print(surface)
 
+
+print('========FINAL==============')
+print(surface)
 
 sys.exit()
 
