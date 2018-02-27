@@ -122,6 +122,74 @@ def spillBFS( x_left,  x_right, y_top, y_bottom,strength):
         print('---- Going Down right----\n')
         spillBFS(x_left-1,x_right+1,y_top-1,y_bottom+1,strength-1)
 
+def spillBFS2( x_left,  x_right, y_top, y_bottom,strength,past_Q=None):
+    
+    global m,n,surface
+    print('Current Strength: ',strength, ' Current X Small: ', x_left, x_right, y_top, y_bottom)
+
+    if strength == 0: return
+    if x_left == -1: x_left = 0
+    if x_right == n-1: x_right = n-2
+    if y_top == -1: y_top = 0
+    if y_bottom == m-1: y_bottom = m-2
+
+    if x_left==x_right and y_top == y_bottom:
+        if x_left<0 or x_left >n-1 or y_top<0 or y_top>m-1: return
+        if not surface[y_top,x_left] == -1 :
+            surface[y_top,x_left] = strength
+
+        queue = deque()
+        print('---- Going Across Top----')
+        for x_cor in range(x_left-1,x_right+2):
+            print(y_top-1,x_cor)
+        print('---- Going Across Top----')
+
+        print('---- Going Across Bottom----')
+        for x_cor in range(x_left-1,x_right+2):
+            print(y_bottom+1,x_cor)
+        print('---- Going Across Bottom----')
+
+        print('---- Going Down left----')
+        for y_cor in range(y_top,y_bottom+1):
+            print(y_cor,x_left-1)
+        print('---- Going Down left----')
+        
+        print('---- Going Down right----')
+        for y_cor in range(y_top,y_bottom+1):
+            print(y_cor,x_right+1)
+        print('---- Going Down right----\n')
+    else:
+        
+        print('---- Going Across Top----')
+        for x_cor in range(x_left,x_right+1):
+            print(y_top,x_cor)
+            if not surface[y_top,x_cor] == -1 and surface[y_top,x_cor]<strength:
+                surface[y_top,x_cor] = strength
+        print('---- Going Across Top----')
+
+        print('---- Going Across Bottom----')
+        for x_cor in range(x_left,x_right+1):
+            print(y_bottom,x_cor)
+            if not surface[y_bottom,x_cor] == -1 and surface[y_bottom,x_cor]<strength:
+                surface[y_bottom,x_cor] = strength
+        print('---- Going Across Bottom----')
+
+        print('---- Going Down left----')
+        for y_cor in range(y_top+1,y_bottom):
+            print(y_cor,x_left)
+            if not surface[y_cor,x_left] == -1 and surface[y_cor,x_left]<strength:
+                surface[y_cor,x_left] = strength
+        print('---- Going Down left----')
+        
+        print('---- Going Down right----')
+        for y_cor in range(y_top+1,y_bottom):
+            print(y_cor,x_right)
+            if not surface[y_cor,x_right] == -1 and surface[y_cor,x_right]<strength:
+                surface[y_cor,x_right] = strength
+        print('---- Going Down right----\n')
+        spillBFS(x_left-1,x_right+1,y_top-1,y_bottom+1,strength-1)
+
+
 m = 7  
 n = 7
 surface = np.zeros((m,n))
@@ -135,12 +203,12 @@ surface[2,1] = -1
 
 surface[m-1,n-1] = -1
 
-x_coordinate_spill = 0
-y_coordinate_spill = 0
+x_coordinate_spill = 3
+y_coordinate_spill = 3
 strength = 4
 print("Gloabal: y ",m, ' and x ', n)
 print(surface)
-spillBFS(x_coordinate_spill,x_coordinate_spill,y_coordinate_spill,y_coordinate_spill,strength)
+spillBFS2(x_coordinate_spill,x_coordinate_spill,y_coordinate_spill,y_coordinate_spill,strength)
 print("--- %s seconds ---" % (time.time() - start_time))
 print(surface)
 
