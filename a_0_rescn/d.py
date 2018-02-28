@@ -55,16 +55,16 @@ print('===== Done READING DATA ========')
 
 training_data = one[:100,:,:]
 
-if not os.path.exists('images_Dilate/'):
-    os.makedirs('images_Dilate/')
+if not os.path.exists('images_Dilate3/'):
+    os.makedirs('images_Dilate3/')
 
 # Make Hyper Parameter
 num_epoch = 801
 batch_size = 2
 learning_rate = 0.000000001
 
-proportion_rate = 1000
-decay_rate = 0.08
+proportion_rate = 800
+decay_rate = 0.064
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -155,9 +155,9 @@ grad_6,g6w = l6.backprop(tf.subtract(layer6,y),x)
 grad_5,g5w = l5.backprop(grad_6,x)
 grad_4,g4w = l4.backprop(grad_5+decay_propotoin_rate*(grad_6),x)
 
-grad_3,g3w = l3.backprop(grad_4+decay_propotoin_rate*(grad_6+grad_5),x)
-grad_2,g2w = l2.backprop(grad_3+decay_propotoin_rate*(grad_6+grad_5+grad_4),x)
-grad_1,g1w = l1.backprop(grad_2+decay_propotoin_rate*(grad_6+grad_5+grad_4+grad_3),x)
+grad_3,g3w = l3.backprop(grad_4+decay_propotoin_rate*(grad_6*grad_5),x)
+grad_2,g2w = l2.backprop(grad_3+decay_propotoin_rate*(grad_6*grad_5*grad_4),x)
+grad_1,g1w = l1.backprop(grad_2+decay_propotoin_rate*(grad_6*grad_5*grad_4*grad_3),x)
 
 update = g1w+g2w+g3w+g4w+g5w+g6w
 
@@ -193,11 +193,11 @@ with tf.Session(config=config) as sess:
             current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
             temp = sess.run(layer6,feed_dict={x:current_data_noise})
             plt.imshow(np.squeeze(current_image[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_og.png')
+            plt.savefig('images_Dilate3/'+str(iter)+'_og.png')
             plt.imshow(np.squeeze(current_data_noise[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_noise.png')
+            plt.savefig('images_Dilate3/'+str(iter)+'_noise.png')
             plt.imshow(np.squeeze(temp[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_denoise.png')
+            plt.savefig('images_Dilate3/'+str(iter)+'_denoise.png')
 
 
 # -- end code --

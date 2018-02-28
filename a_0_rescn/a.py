@@ -8,7 +8,7 @@ from numpy import float32
 tf.set_random_seed(789)
 np.random.seed(568)
 
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333333)
 
 config = tf.ConfigProto(gpu_options=gpu_options)
 
@@ -61,7 +61,7 @@ if not os.path.exists('images/'):
 # Make Hyper Parameter
 num_epoch = 101
 batch_size = 2
-learning_rate = 0.000001
+learning_rate = 0.000000001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -175,11 +175,12 @@ with tf.Session(config=config) as sess:
             # sys.exit()
 
             auto_results = sess.run([loss,update],feed_dict={x:current_batch_noise,y:current_batch})
-            print("Current Iter: ", iter," Current batch : ",current_batch_index ," Current Loss: ",auto_results[0],end='\n')
+            print("Current Iter: ", iter," Current batch : ",current_batch_index ," Current Loss: ",auto_results[0],end='\r')
             
 
         # b. Show the Data While Traing
         if iter % 10 == 0:
+            print('\n\n')
             current_image = training_data[:2,:,:]
             current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
             current_image      = float32(np.expand_dims(current_image,axis=3)) 

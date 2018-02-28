@@ -55,16 +55,16 @@ print('===== Done READING DATA ========')
 
 training_data = one[:100,:,:]
 
-if not os.path.exists('images_Dilate/'):
-    os.makedirs('images_Dilate/')
+if not os.path.exists('images_Dilate2/'):
+    os.makedirs('images_Dilate2/')
 
 # Make Hyper Parameter
 num_epoch = 801
 batch_size = 2
 learning_rate = 0.000000001
 
-proportion_rate = 1000
-decay_rate = 0.08
+proportion_rate = 800
+decay_rate = 0.064
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -193,11 +193,11 @@ with tf.Session(config=config) as sess:
             current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
             temp = sess.run(layer6,feed_dict={x:current_data_noise})
             plt.imshow(np.squeeze(current_image[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_og.png')
+            plt.savefig('images_Dilate2/'+str(iter)+'_og.png')
             plt.imshow(np.squeeze(current_data_noise[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_noise.png')
+            plt.savefig('images_Dilate2/'+str(iter)+'_noise.png')
             plt.imshow(np.squeeze(temp[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_denoise.png')
+            plt.savefig('images_Dilate2/'+str(iter)+'_denoise.png')
 
 
 # -- end code --
