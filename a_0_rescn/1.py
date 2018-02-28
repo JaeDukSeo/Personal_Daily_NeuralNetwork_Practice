@@ -9,11 +9,8 @@ tf.set_random_seed(789)
 np.random.seed(568)
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
-
 config = tf.ConfigProto(gpu_options=gpu_options)
-
 config.gpu_options.allow_growth=True
-
 
 # -1 Tf activation functions
 def tf_arctan(x):

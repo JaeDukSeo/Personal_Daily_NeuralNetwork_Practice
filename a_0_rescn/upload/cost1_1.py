@@ -8,12 +8,9 @@ from numpy import float32
 tf.set_random_seed(789)
 np.random.seed(568)
 
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333333)
-
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.33333)
 config = tf.ConfigProto(gpu_options=gpu_options)
-
 config.gpu_options.allow_growth=True
-
 
 # -1 Tf activation functions
 def tf_arctan(x):
@@ -26,41 +23,53 @@ def tf_ReLU(x):
 def d_tf_ReLu(x):
     return tf.cast(tf.greater(x, 0),dtype=tf.float32)
 
-def tf_tanh(x):
-    return tf.tanh(x)
-def d_tf_tanh(x):
-    return 1. - tf.square(tf_tanh(x))
-
 def tf_log(x):
     return tf.sigmoid(x)
 def d_tf_log(x):
     return tf.sigmoid(x) * (1.0 - tf.sigmoid(x))
 
 # 0. Get the list
-PathDicom = "../lung_data_1/"
+PathDicom = "../../lung_data_1/"
 lstFilesDCM1 = []  # create an empty list
 for dirName, subdirList, fileList in sorted(os.walk(PathDicom)):
     for filename in fileList:
         if ".jpg" in filename.lower():  # check whether the file's DICOM
             lstFilesDCM1.append(os.path.join(dirName,filename))
+PathDicom = "../../lung_data_2/"
+lstFilesDCM2 = []  # create an empty list
+for dirName, subdirList, fileList in sorted(os.walk(PathDicom)):
+    for filename in fileList:
+        if ".jpg" in filename.lower():  # check whether the file's DICOM
+            lstFilesDCM2.append(os.path.join(dirName,filename))
+PathDicom = "../../lung_data_3/"
+lstFilesDCM3 = []  # create an empty list
+for dirName, subdirList, fileList in sorted(os.walk(PathDicom)):
+    for filename in fileList:
+        if ".jpg" in filename.lower():  # check whether the file's DICOM
+            lstFilesDCM3.append(os.path.join(dirName,filename))
 
 # 1. Read the data into Numpy
 one = np.zeros((119,512,512))
+two = np.zeros((119,512,512))
+three = np.zeros((119,512,512))
 
 # 1.5 Transfer All of the Data into array
 print('===== READING DATA ========')
 for file_index in range(len(lstFilesDCM1)):
     one[file_index,:,:]   = imread(lstFilesDCM1[file_index],mode='F')
+    two[file_index,:,:]   = imread(lstFilesDCM2[file_index],mode='F')
+    three[file_index,:,:]   = imread(lstFilesDCM3[file_index],mode='F')
 print('===== Done READING DATA ========')
 
-training_data = one[:100,:,:]
+# 1.75 Make the Training data and make it fir 
+training_data = np.vstack((one,two,three[:-2,:,:]))
+path = 'cost1_1/'
+if not os.path.exists(path):
+    os.makedirs(path)
 
-if not os.path.exists('images/'):
-    os.makedirs('images/')
-
-# Make Hyper Parameter
+# 2. Declare hyper parameter
 num_epoch = 101
-batch_size = 2
+batch_size = 5
 learning_rate = 0.000000001
 
 beta1,beta2 = 0.9,0.999
@@ -86,7 +95,7 @@ class ResCNNLayer():
         self.input = input
         self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
         self.layerA =  self.act(self.layer)
-        self.layerRes = self.output = tf.add(tf.multiply(self.layerA,og_input),og_input)
+        self.layerRes = self.output = tf.multiply(self.layerA,og_input)
         return self.output
 
     def backprop(self,gradient=None,og_input=None):
@@ -118,13 +127,13 @@ class ResCNNLayer():
         return self.w
 
 # Make the Netwokr
-l1 = ResCNNLayer(13,1,5,tf_log,d_tf_log)
-l2 = ResCNNLayer(7,5,7,tf_tanh,d_tf_tanh)
-l3 = ResCNNLayer(3,7,9,tf_arctan,d_tf_arctan)
+l1 = ResCNNLayer(1,1,1,tf_arctan,d_tf_arctan)
+l2 = ResCNNLayer(3,1,3,tf_log,d_tf_log)
+l3 = ResCNNLayer(5,3,3,tf_arctan,d_tf_arctan)
 
-l4 = ResCNNLayer(5,9,9,tf_ReLU,d_tf_ReLu)
-l5 = ResCNNLayer(3,9,3,tf_tanh,d_tf_tanh)
-l6 = ResCNNLayer(1,3,1,tf_ReLU,d_tf_ReLu)
+l4 = ResCNNLayer(5,3,5,tf_log,d_tf_log)
+l5 = ResCNNLayer(3,5,7,tf_log,d_tf_log)
+l6 = ResCNNLayer(1,7,1,tf_ReLU,d_tf_ReLu)
 
 l1w,l2w,l3w,l4w,l5w,l6w = l1.getw(),l2.getw(),l3.getw(),l4.getw(),l5.getw(),l6.getw()
 
@@ -141,7 +150,6 @@ layer5 = l5.feed_forward(layer4,x)
 layer6 = l6.feed_forward(layer5,x)
 
 loss = tf.reduce_sum(tf.square(tf.subtract(layer6,y) * 0.5))
-# auto_dif = tf.train.AdamOptimizer(learning_rate=0.000001).minimize(loss,var_list=[l1w,l2w,l3w,l4w,l5w,l6w])
 
 grad_6,g6w = l6.backprop(tf.subtract(layer6,y),x)
 grad_5,g5w = l5.backprop(grad_6,x)
@@ -154,10 +162,12 @@ grad_1,g1w = l1.backprop(grad_2,x)
 update = g1w+g2w+g3w+g4w+g5w+g6w
 
 # Make the Session
+total_cost = 0 
 with tf.Session(config=config) as sess:
 
     sess.run(tf.global_variables_initializer())
 
+    # Traing for Epoch
     for iter in range(num_epoch):
         
         for current_batch_index in range(0,len(training_data),batch_size):
@@ -168,28 +178,35 @@ with tf.Session(config=config) as sess:
             current_batch       = float32(np.expand_dims(current_batch,axis=3)) 
             current_batch_noise = float32(np.expand_dims(current_batch_noise,axis=3))
 
-            # auto_results = sess.run(update,feed_dict={x:current_batch_noise,y:current_batch})
-            # print(auto_results)
-            # sys.exit()
-
             auto_results = sess.run([loss,update],feed_dict={x:current_batch_noise,y:current_batch})
             print("Current Iter: ", iter," Current batch : ",current_batch_index ," Current Loss: ",auto_results[0],end='\r')
-            
+            total_cost = total_cost + auto_results[0]
+        if iter%5==0: 
+            print("\nCurrent Iter: ", iter," Total Cost until now: ",total_cost,'\n')
+        total_cost = 0
 
-        # b. Show the Data While Traing
-        if iter % 10 == 0:
-            print('\n\n')
-            current_image = training_data[:2,:,:]
-            current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
-            current_image      = float32(np.expand_dims(current_image,axis=3)) 
-            current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
-            temp = sess.run(layer6,feed_dict={x:current_data_noise})
-            plt.imshow(np.squeeze(current_image[1,:,:,:]),cmap='gray')
-            plt.savefig('images/'+str(iter)+'_og.png')
-            plt.imshow(np.squeeze(current_data_noise[1,:,:,:]),cmap='gray')
-            plt.savefig('images/'+str(iter)+'_noise.png')
-            plt.imshow(np.squeeze(temp[1,:,:,:]),cmap='gray')
-            plt.savefig('images/'+str(iter)+'_denoise.png')
+        if iter%10==0:
+            # After All oc the num epoch training make sample output
+            for image_in_one in range(0,len(one)):
+                
+                current_image = np.expand_dims(one[image_in_one,:,:],axis=0)
+                current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
+                current_image      = float32(np.expand_dims(current_image,axis=3)) 
+                current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
+                temp = sess.run(layer6,feed_dict={x:current_data_noise})
+
+                f, axarr = plt.subplots(2, 2)
+                axarr[0, 0].imshow(np.squeeze(current_image[0,:,:,:]),cmap='gray')
+                axarr[0, 0].set_title('Original Image at :' + str(image_in_one))
+
+                axarr[0, 1].imshow(np.squeeze(current_data_noise[0,:,:,:]),cmap='gray')
+                axarr[0, 1].set_title('Noise Image at :' + str(image_in_one))
+                
+                axarr[1, 0].imshow(np.squeeze(temp[0,:,:,:]),cmap='gray')
+                axarr[1, 0].set_title('Denoise Image at :' + str(image_in_one))
+
+                plt.savefig(path+str(image_in_one)+'.png')
+                plt.close('all')
 
 
 # -- end code --
