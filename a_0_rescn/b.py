@@ -55,13 +55,16 @@ print('===== Done READING DATA ========')
 
 training_data = one[:100,:,:]
 
-if not os.path.exists('images/'):
-    os.makedirs('images/')
+if not os.path.exists('images_Dilate/'):
+    os.makedirs('images_Dilate/')
 
 # Make Hyper Parameter
 num_epoch = 101
 batch_size = 2
 learning_rate = 0.000001
+
+proportion_rate = 800
+decay_rate = 0.064
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -120,12 +123,12 @@ class ResCNNLayer():
         return self.w
 
 # Make the Netwokr
-l1 = ResCNNLayer(13,1,5,tf_log,d_tf_log)
-l2 = ResCNNLayer(7,5,7,tf_tanh,d_tf_tanh)
-l3 = ResCNNLayer(3,7,9,tf_arctan,d_tf_arctan)
+l1 = ResCNNLayer(13,1,3,tf_log,d_tf_log)
+l2 = ResCNNLayer(7,3,3,tf_tanh,d_tf_tanh)
+l3 = ResCNNLayer(3,3,3,tf_arctan,d_tf_arctan)
 
-l4 = ResCNNLayer(5,9,9,tf_ReLU,d_tf_ReLu)
-l5 = ResCNNLayer(3,9,3,tf_tanh,d_tf_tanh)
+l4 = ResCNNLayer(5,3,3,tf_ReLU,d_tf_ReLu)
+l5 = ResCNNLayer(3,3,3,tf_tanh,d_tf_tanh)
 l6 = ResCNNLayer(1,3,1,tf_ReLU,d_tf_ReLu)
 
 l1w,l2w,l3w,l4w,l5w,l6w = l1.getw(),l2.getw(),l3.getw(),l4.getw(),l5.getw(),l6.getw()
@@ -133,6 +136,9 @@ l1w,l2w,l3w,l4w,l5w,l6w = l1.getw(),l2.getw(),l3.getw(),l4.getw(),l5.getw(),l6.g
 # Make the graph
 x = tf.placeholder(shape=[None,512,512,1],dtype="float")
 y = tf.placeholder(shape=[None,512,512,1],dtype="float")
+
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 layer1 = l1.feed_forward(x,x)
 layer2 = l2.feed_forward(layer1,x)
@@ -147,11 +153,11 @@ loss = tf.reduce_sum(tf.square(tf.subtract(layer6,y) * 0.5))
 
 grad_6,g6w = l6.backprop(tf.subtract(layer6,y),x)
 grad_5,g5w = l5.backprop(grad_6,x)
-grad_4,g4w = l4.backprop(grad_5,x)
+grad_4,g4w = l4.backprop(grad_5+decay_propotoin_rate*(grad_6),x)
 
-grad_3,g3w = l3.backprop(grad_4,x)
-grad_2,g2w = l2.backprop(grad_3,x)
-grad_1,g1w = l1.backprop(grad_2,x)
+grad_3,g3w = l3.backprop(grad_4+decay_propotoin_rate*(grad_6+grad_5),x)
+grad_2,g2w = l2.backprop(grad_3+decay_propotoin_rate*(grad_6+grad_5+grad_4),x)
+grad_1,g1w = l1.backprop(grad_2+decay_propotoin_rate*(grad_6+grad_5+grad_4+grad_3),x)
 
 update = g1w+g2w+g3w+g4w+g5w+g6w
 
@@ -174,7 +180,7 @@ with tf.Session(config=config) as sess:
             # print(auto_results)
             # sys.exit()
 
-            auto_results = sess.run([loss,update],feed_dict={x:current_batch_noise,y:current_batch})
+            auto_results = sess.run([loss,update],feed_dict={x:current_batch_noise,y:current_batch,iter_variable_dil:iter})
             print("Current Iter: ", iter," Current batch : ",current_batch_index ," Current Loss: ",auto_results[0],end='\n')
             
 
@@ -186,11 +192,11 @@ with tf.Session(config=config) as sess:
             current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
             temp = sess.run(layer6,feed_dict={x:current_data_noise})
             plt.imshow(np.squeeze(current_image[1,:,:,:]),cmap='gray')
-            plt.savefig('images/'+str(iter)+'_og.png')
+            plt.savefig('images_Dilate/'+str(iter)+'_og.png')
             plt.imshow(np.squeeze(current_data_noise[1,:,:,:]),cmap='gray')
-            plt.savefig('images/'+str(iter)+'_noise.png')
+            plt.savefig('images_Dilate/'+str(iter)+'_noise.png')
             plt.imshow(np.squeeze(temp[1,:,:,:]),cmap='gray')
-            plt.savefig('images/'+str(iter)+'_denoise.png')
+            plt.savefig('images_Dilate/'+str(iter)+'_denoise.png')
 
 
 # -- end code --
