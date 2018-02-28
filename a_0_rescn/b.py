@@ -149,7 +149,6 @@ layer5 = l5.feed_forward(layer4,x)
 layer6 = l6.feed_forward(layer5,x)
 
 loss = tf.reduce_sum(tf.square(tf.subtract(layer6,y) * 0.5))
-# auto_dif = tf.train.AdamOptimizer(learning_rate=0.000001).minimize(loss,var_list=[l1w,l2w,l3w,l4w,l5w,l6w])
 
 grad_6,g6w = l6.backprop(tf.subtract(layer6,y),x)
 grad_5,g5w = l5.backprop(grad_6,x)
@@ -161,11 +160,14 @@ grad_1,g1w = l1.backprop(grad_2+decay_propotoin_rate*(grad_6+grad_5+grad_4+grad_
 
 update = g1w+g2w+g3w+g4w+g5w+g6w
 
+
 # Make the Session
+total_cost = 0 
 with tf.Session(config=config) as sess:
 
     sess.run(tf.global_variables_initializer())
 
+    # Traing for Epoch
     for iter in range(num_epoch):
         
         for current_batch_index in range(0,len(training_data),batch_size):
@@ -176,28 +178,33 @@ with tf.Session(config=config) as sess:
             current_batch       = float32(np.expand_dims(current_batch,axis=3)) 
             current_batch_noise = float32(np.expand_dims(current_batch_noise,axis=3))
 
-            # auto_results = sess.run(update,feed_dict={x:current_batch_noise,y:current_batch})
-            # print(auto_results)
-            # sys.exit()
-
-            auto_results = sess.run([loss,update],feed_dict={x:current_batch_noise,y:current_batch,iter_variable_dil:iter})
+            auto_results = sess.run([loss,update],feed_dict={x:current_batch_noise,y:current_batch})
             print("Current Iter: ", iter," Current batch : ",current_batch_index ," Current Loss: ",auto_results[0],end='\r')
-            
+            total_cost = total_cost + auto_results[0]
+        if iter%5==0: 
+            print("\nCurrent Iter: ", iter," Total Cost until now: ",total_cost,'\n')
+        total_cost = 0
 
-        # b. Show the Data While Traing
-        if iter % 10 == 0:
-            print('\n\n')
-            current_image = training_data[:2,:,:]
-            current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
-            current_image      = float32(np.expand_dims(current_image,axis=3)) 
-            current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
-            temp = sess.run(layer6,feed_dict={x:current_data_noise})
-            plt.imshow(np.squeeze(current_image[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_og.png')
-            plt.imshow(np.squeeze(current_data_noise[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_noise.png')
-            plt.imshow(np.squeeze(temp[1,:,:,:]),cmap='gray')
-            plt.savefig('images_Dilate/'+str(iter)+'_denoise.png')
+        if iter%100==0:
+            # After All oc the num epoch training make sample output
+            for image_in_one in range(0,len(one)):
+                
+                current_image = np.expand_dims(one[image_in_one,:,:],axis=0)
+                current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
+                current_image      = float32(np.expand_dims(current_image,axis=3)) 
+                current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
+                temp = sess.run(layer6,feed_dict={x:current_data_noise})
+
+                f, axarr = plt.subplots(2, 2)
+                axarr[0, 0].imshow(np.squeeze(current_image[0,:,:,:]),cmap='gray')
+                axarr[0, 0].set_title('Original Image at :' + str(image_in_one))
+
+                axarr[0, 1].imshow(np.squeeze(current_data_noise[0,:,:,:]),cmap='gray')
+                axarr[0, 1].set_title('Noise Image at :' + str(image_in_one))
+                
+                axarr[1, 0].imshow(np.squeeze(temp[0,:,:,:]),cmap='gray')
+                axarr[1, 0].set_title('Denoise Image at :' + str(image_in_one))
+                plt.show()
 
 
 # -- end code --

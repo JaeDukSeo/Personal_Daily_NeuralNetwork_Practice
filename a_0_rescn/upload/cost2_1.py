@@ -8,7 +8,7 @@ from numpy import float32
 tf.set_random_seed(789)
 np.random.seed(568)
 
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.166666)
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333333)
 config = tf.ConfigProto(gpu_options=gpu_options)
 config.gpu_options.allow_growth=True
 
@@ -75,7 +75,7 @@ if not os.path.exists(path):
 # 2. Declare hyper parameter
 num_epoch = 101
 batch_size = 5
-learning_rate = 0.000000001
+learning_rate = 0.000001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -187,31 +187,31 @@ with tf.Session(config=config) as sess:
             print("Current Iter: ", iter," Current batch : ",current_batch_index ," Current Loss: ",auto_results[0],end='\r')
             total_cost = total_cost + auto_results[0]
         if iter%5==0: 
-            print("Current Iter: ", iter," Total Cost until now: ",total_cost,'\n\n')
+            print("\nCurrent Iter: ", iter," Total Cost until now: ",total_cost,'\n')
         total_cost = 0
 
-    if iter%10==0:
-        # After All oc the num epoch training make sample output
-        for image_in_one in range(0,len(one)):
-            
-            current_image = np.expand_dims(one[image_in_one,:,:],axis=0)
-            current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
-            current_image      = float32(np.expand_dims(current_image,axis=3)) 
-            current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
-            temp = sess.run(layer6,feed_dict={x:current_data_noise})
+        if iter%10==0:
+            # After All oc the num epoch training make sample output
+            for image_in_one in range(0,len(one)):
+                
+                current_image = np.expand_dims(one[image_in_one,:,:],axis=0)
+                current_data_noise =  current_image + 0.3 * current_image.max() *np.random.randn(current_image.shape[0],current_image.shape[1],current_image.shape[2])
+                current_image      = float32(np.expand_dims(current_image,axis=3)) 
+                current_data_noise = float32(np.expand_dims(current_data_noise,axis=3))
+                temp = sess.run(layer6,feed_dict={x:current_data_noise})
 
-            f, axarr = plt.subplots(2, 2)
-            axarr[0, 0].imshow(np.squeeze(current_image[0,:,:,:]),cmap='gray')
-            axarr[0, 0].set_title('Original Image at :' + str(image_in_one))
+                f, axarr = plt.subplots(2, 2)
+                axarr[0, 0].imshow(np.squeeze(current_image[0,:,:,:]),cmap='gray')
+                axarr[0, 0].set_title('Original Image at :' + str(image_in_one))
 
-            axarr[0, 1].imshow(np.squeeze(current_data_noise[0,:,:,:]),cmap='gray')
-            axarr[0, 1].set_title('Noise Image at :' + str(image_in_one))
-            
-            axarr[1, 0].imshow(np.squeeze(temp[0,:,:,:]),cmap='gray')
-            axarr[1, 0].set_title('Denoise Image at :' + str(image_in_one))
+                axarr[0, 1].imshow(np.squeeze(current_data_noise[0,:,:,:]),cmap='gray')
+                axarr[0, 1].set_title('Noise Image at :' + str(image_in_one))
+                
+                axarr[1, 0].imshow(np.squeeze(temp[0,:,:,:]),cmap='gray')
+                axarr[1, 0].set_title('Denoise Image at :' + str(image_in_one))
 
-            plt.savefig(path+str(image_in_one)+'.png')
-            plt.close('all')
+                plt.savefig(path+str(image_in_one)+'.png')
+                plt.close('all')
 
 
 # -- end code --
