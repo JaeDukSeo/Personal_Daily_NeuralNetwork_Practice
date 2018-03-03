@@ -34,7 +34,7 @@ config.gpu_options.allow_growth=True
 
 
 
-
+best_cost_final = np.ones((17))
 
 names = ['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16']
 
@@ -60,7 +60,7 @@ plt.figure()
 
 
 
-plt.title('Frequency of Lowest Cost among total of ' + str(fundamental_checkup) + ' trials')
+plt.title('Case and Colors')
 
 
 
