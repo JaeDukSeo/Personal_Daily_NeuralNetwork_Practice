@@ -37,21 +37,9 @@ config.gpu_options.allow_growth=True
 best_cost_final = np.ones((17))
 
 names = ['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16']
-
-
-
 colors_bar = ['tab:green','tab:red','tab:purple','tab:grey',
-
-
-
         'tab:orange','tab:pink','tab:brown','aqua',
-
-
-
         'azure','coral','indigo','lime',
-
-
-
         'tan','ivory','lightblue','lavender','teal']
 
 
