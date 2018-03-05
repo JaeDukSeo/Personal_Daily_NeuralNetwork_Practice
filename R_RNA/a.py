@@ -1,10 +1,8 @@
 # Read the file and get the DNA string
 # file = open('sample_dna.txt', 'r')
 # dna = file.read()
+import random
 
-dna = "ATGGAAGTATTTAAAGCGCCACCTATTGGGATATAA"
-print("DNA Sequence: ", dna)
-print(len(dna))
 
 # DNA codon table
 protein = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
@@ -17,13 +15,56 @@ protein = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
            "TCG" : "S", "CCG" : "P", "ACG" : "T", "GCG" : "A",
            "TAT" : "Y", "CAT" : "H", "AAT" : "N", "GAT" : "D",
            "TAC" : "Y", "CAC" : "H", "AAC" : "N", "GAC" : "D",
-           "TAA" : "STOP", "CAA" : "Q", "AAA" : "K", "GAA" : "E",
-           "TAG" : "STOP", "CAG" : "Q", "AAG" : "K", "GAG" : "E",
+            "CAA" : "Q", "AAA" : "K", "GAA" : "E",
+            "CAG" : "Q", "AAG" : "K", "GAG" : "E",
            "TGT" : "C", "CGT" : "R", "AGT" : "S", "GGT" : "G",
            "TGC" : "C", "CGC" : "R", "AGC" : "S", "GGC" : "G",
-           "TGA" : "STOP", "CGA" : "R", "AGA" : "R", "GGA" : "G",
+            "CGA" : "R", "AGA" : "R", "GGA" : "G",
            "TGG" : "W", "CGG" : "R", "AGG" : "R", "GGG" : "G" 
            }
+
+
+
+dna = "ATGGAAGTATTTAAAGCGCCACCTATTGGGATATAA"
+num_train = 3
+RNA = ['A','G','T','C']
+Terminal_Sig = ['TAA','TAG','TGA']
+
+for _ in range(num_train):
+    
+    current_data = ""
+    protein_sequence = ""
+    protein_test = ""
+    
+    for _ in range(11):
+        
+        rna,protein_data = random.choice(list(protein.items()))
+
+        current_data = current_data + rna
+        protein_sequence = protein_sequence + protein_data
+
+    current_data = current_data + 'TGA'
+
+    # Generate protein sequence
+    for i in range(0, len(dna)-(3+len(dna)%3), 3):
+        if protein[current_data[i:i+3]] == "STOP" :
+            break
+        protein_test += protein[current_data[i:i+3]]
+
+    print("Made Protein: ",current_data )
+    print("Made Protein: ",protein_sequence )
+    print("test Protein: ",protein_test )
+    
+    
+
+
+
+sys.exit()
+
+dna = "ATGGAAGTATTTAAAGCGCCACCTATTGGGATATAA"
+print("DNA Sequence: ", dna)
+print(len(dna))
+
 
 protein_sequence = ""
 
