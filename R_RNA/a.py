@@ -2,7 +2,7 @@
 # file = open('sample_dna.txt', 'r')
 # dna = file.read()
 import random
-
+import sys
 
 # DNA codon table
 protein = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
@@ -26,7 +26,7 @@ protein = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
 
 
 dna = "ATGGAAGTATTTAAAGCGCCACCTATTGGGATATAA"
-num_train = 3
+num_training_data = 5
 RNA = ['A','G','T','C']
 Terminal_Sig = ['TAA','TAG','TGA']
 
@@ -36,17 +36,15 @@ for _ in range(num_train):
     protein_sequence = ""
     protein_test = ""
     
-    for _ in range(11):
-        
+    for _ in range(30):
         rna,protein_data = random.choice(list(protein.items()))
-
         current_data = current_data + rna
         protein_sequence = protein_sequence + protein_data
 
     current_data = current_data + 'TGA'
 
     # Generate protein sequence
-    for i in range(0, len(dna)-(3+len(dna)%3), 3):
+    for i in range(0, len(current_data)-(3+len(current_data)%3), 3):
         if protein[current_data[i:i+3]] == "STOP" :
             break
         protein_test += protein[current_data[i:i+3]]
