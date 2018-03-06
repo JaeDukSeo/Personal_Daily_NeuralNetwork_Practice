@@ -37,8 +37,8 @@ protein_table = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
 Terminal_Sig = ['TAA','TAG','TGA']
 
 # 0. Generate Random Data of dna to convert to Protein
-num_training_data = 3
-length_of_dna = 9
+num_training_data = 100
+length_of_dna = 3
 
 dna_data = np.array([])
 protein_data = np.array([])
@@ -70,7 +70,6 @@ print(dna_data.shape)
 print(protein_data.shape)
 print('---- the shape of training data -----')
 
-
 # 0.5 Convert letter to digit
 dna_to_num = dna_data.view(np.uint8)
 protein_to_num = protein_data.view(np.uint8)
@@ -78,32 +77,61 @@ protein_to_num = protein_data.view(np.uint8)
 # 1. Create the Model
 class simpleRNN():
 
-    def __init__(self,activation,d_activation,hidden_lenght):
+    def __init__(self,activation,d_activation,hidden_lengths):
 
         self.w_x = tf.Variable(tf.random_normal([]))
         self.w_h = tf.Variable(tf.random_normal([]))
-        self.h = tf.zeros([hidden_lenght])
+        self.h = tf.zeros([hidden_lengths])
         self.act = activation
         self.d_act = d_activation
 
     def feed_forward(self,input=None,time_stamp=None):
-
         self.input = input
         self.layer = tf.multiply(input,self.w_x)  + tf.multiply(self.h[time_stamp],self.w_h)  
+        self.layerA = self.act(self.layer)
+        return self.layerA
 
-        return self.act(self.input)
+    def getw(self): return [self.w_x,self.w_h]
+
+    def backpropagation(self,gradient=None,time_stamp=None):
+        
+        return 8
 
 # 1.5 Make the objects and graphs
-l1 = simpleRNN(tf_log,d_tf_log,length_of_dna*3+1)
+l1  = simpleRNN(tf_tanh,d_tf_tanh,length_of_dna*3+1)
+l1w = l1.getw()
 
-x = tf.placeholder(dtype=tf.float32)
-y = tf.placeholder(dtype=tf.float32)
-time_stamp = tf.placeholder(dtype=tf.int32)
 
-layer = l1.feed_forward(x,time_stamp)
+# 1.8 Make the graph
+x = tf.placeholder(shape=[length_of_dna*3],dtype=tf.float32)
+y = tf.placeholder(shape=[length_of_dna],dtype=tf.float32)
+output_list = tf.Variable(tf.zeros(length_of_dna))
+output_assign = []
+timestamp = tf.constant(0)
 
-auto_update = tf.train.AdamOptimizer().minimize()
+layer1 = l1.feed_forward(x[timestamp],  time_stamp=timestamp)
+layer2 = l1.feed_forward(x[timestamp+1],time_stamp=timestamp+1)
+layer3 = l1.feed_forward(x[timestamp+2],time_stamp=timestamp+2)
+output_assign.append(tf.assign(output_list[timestamp] ,layer3))
 
+layer4 = l1.feed_forward(x[timestamp+3],time_stamp=timestamp+3)
+layer5 = l1.feed_forward(x[timestamp+4],time_stamp=timestamp+4)
+layer6 = l1.feed_forward(x[timestamp+5],time_stamp=timestamp+5)
+output_assign.append(tf.assign(output_list[timestamp+1] ,layer6))
+
+
+layer7 = l1.feed_forward(x[timestamp+6],time_stamp=timestamp+6)
+layer8 = l1.feed_forward(x[timestamp+7],time_stamp=timestamp+7)
+layer9 = l1.feed_forward(x[timestamp+8],time_stamp=timestamp+8)
+output_assign.append(tf.assign(output_list[timestamp+2] ,layer9))
+
+# cost1 = tf.square(output_list[timestamp]-  y[timestamp])
+# cost2 = tf.square(output_list[timestamp+1]-y[timestamp+1])
+cost3 = tf.square(output_list[timestamp+2]-y[timestamp+2])
+
+total_cost = cost3 
+auto_train = tf.train.AdamOptimizer().minimize(total_cost,var_list=l1w)
+# grad9 = l1.backpropagation()
 
 
 # 2. Declare Hyper Parameteres
@@ -126,21 +154,40 @@ with tf.Session() as sess:
             
             current_dna_data = dna_to_num[current_train_index,:]
             current_proten_data = protein_to_num[current_train_index,:]
-            output_list = np.zeros((length_of_dna*3+1))
+            print("Current Data: ",current_dna_data)
+            print("Current protien: ",current_proten_data)
 
-            # c. Get the line of the protein
-            for data_index in range(len(current_proten_data)):
+            sess_result = sess.run([total_cost,output_assign,auto_train],feed_dict={x:current_dna_data,y:current_proten_data})
+            
+            print(sess_result[0])
+            
+            
+            
 
-                # d. Loop via the DNA as well ( Feed Forward Here )
-                for dna_data_index in range(data_index*3,data_index*3+3):
-                    # print(current_dna_data[dna_data_index],end=' ')
-                    # print(dna_data_index,end=' ')
-                    layer_ts_1 = l1.feed_forward(float32(current_dna_data[dna_data_index]),time_stamp=dna_data_index)
-                print('\n')
-                print(current_proten_data[data_index],end='\n')
-                print('======================')
+            sys.exit()
+# # a. Training Epoch
+# for iter in range(num_epoch):
+    
+#     # b. For Each DNA lines
+#     for current_train_index in range(num_training_data):
+        
+#         current_dna_data = dna_to_num[current_train_index,:]
+#         current_proten_data = protein_to_num[current_train_index,:]
+#         output_list = np.zeros((length_of_dna*3+1))
 
-            print('---------------------------------')
+#         # c. Get the line of the protein
+#         for data_index in range(len(current_proten_data)):
+
+#             # d. Loop via the DNA as well ( Feed Forward Here )
+#             for dna_data_index in range(data_index*3,data_index*3+3):
+#                 # print(current_dna_data[dna_data_index],end=' ')
+#                 # print(dna_data_index,end=' ')
+#                 layer_ts_1 = l1.feed_forward(float32(current_dna_data[dna_data_index]),time_stamp=dna_data_index)
+#             print('\n')
+#             print(current_proten_data[data_index],end='\n')
+#             print('======================')
+
+#         print('---------------------------------')
         
                 
             
