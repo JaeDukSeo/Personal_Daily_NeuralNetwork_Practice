@@ -102,8 +102,16 @@ time_stamp = tf.placeholder(dtype=tf.int32)
 
 layer = l1.feed_forward(x,time_stamp)
 
+auto_update = tf.train.AdamOptimizer().minimize()
+
+
+
 # 2. Declare Hyper Parameteres
 num_epoch = 1
+
+
+
+
 
 # 3. Start the training
 with tf.Session() as sess:
@@ -118,7 +126,8 @@ with tf.Session() as sess:
             
             current_dna_data = dna_to_num[current_train_index,:]
             current_proten_data = protein_to_num[current_train_index,:]
-            
+            output_list = np.zeros((length_of_dna*3+1))
+
             # c. Get the line of the protein
             for data_index in range(len(current_proten_data)):
 
