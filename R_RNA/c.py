@@ -96,9 +96,11 @@ class simpleRNN():
 # 1.5 Make the objects and graphs
 l1 = simpleRNN(tf_log,d_tf_log,length_of_dna*3+1)
 
-x = tf.placeholder()
+x = tf.placeholder(dtype=tf.float32)
+y = tf.placeholder(dtype=tf.float32)
+time_stamp = tf.placeholder(dtype=tf.int32)
 
-
+layer = l1.feed_forward(x,time_stamp)
 
 # 2. Declare Hyper Parameteres
 num_epoch = 1
