@@ -40,14 +40,14 @@ protein_table = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
 Terminal_Sig = ['TAA','TAG','TGA']
 
 # 0. Generate Random Data of dna to convert to Protein
-num_training_data = 1000
-length_of_dna = 3
+num_training_data = 300
+length_of_dna = 1
 print_interval = 3
 
 learning_rate_h = 0.000000001
 learning_rate_x = 0.00000001
 num_epoch = 300
-l1_hid_num = 12
+l1_hid_num = 4
 l2_hid_num = 1
 
 dna_data = np.array([])
@@ -155,43 +155,44 @@ layer21,l21_hidden = l2.feed_forward(layer3,time_stamp=timestamp)
 output_assign.append([l1_hidden,l2_hidden,l3_hidden,l21_hidden])
 output_assign.append(tf.assign(output_list[timestamp] ,tf.squeeze(layer21)) )
 
-layer4,l4_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+3],axis=0),axis=1),time_stamp=timestamp+3)
-layer5,l5_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+4],axis=0),axis=1),time_stamp=timestamp+4)
-layer6,l6_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+5],axis=0),axis=1),time_stamp=timestamp+5)
-layer22,l22_hidden = l2.feed_forward(layer6,time_stamp=timestamp+1)
-output_assign.append([l4_hidden,l5_hidden,l6_hidden,l22_hidden])
-output_assign.append(tf.assign(output_list[timestamp+1] ,tf.squeeze(layer22)) )
+# layer4,l4_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+3],axis=0),axis=1),time_stamp=timestamp+3)
+# layer5,l5_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+4],axis=0),axis=1),time_stamp=timestamp+4)
+# layer6,l6_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+5],axis=0),axis=1),time_stamp=timestamp+5)
+# layer22,l22_hidden = l2.feed_forward(layer6,time_stamp=timestamp+1)
+# output_assign.append([l4_hidden,l5_hidden,l6_hidden,l22_hidden])
+# output_assign.append(tf.assign(output_list[timestamp+1] ,tf.squeeze(layer22)) )
 
-layer7,l7_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+6],axis=0),axis=1),time_stamp=timestamp+6)
-layer8,l8_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+7],axis=0),axis=1),time_stamp=timestamp+7)
-layer9,l9_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+8],axis=0),axis=1),time_stamp=timestamp+8)
-layer23,l23_hidden = l2.feed_forward(layer9,time_stamp=timestamp+2)
-output_assign.append([l7_hidden,l8_hidden,l9_hidden,l23_hidden])
-output_assign.append(tf.assign(output_list[timestamp+2] ,tf.squeeze(layer23)) )
+# layer7,l7_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+6],axis=0),axis=1),time_stamp=timestamp+6)
+# layer8,l8_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+7],axis=0),axis=1),time_stamp=timestamp+7)
+# layer9,l9_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+8],axis=0),axis=1),time_stamp=timestamp+8)
+# layer23,l23_hidden = l2.feed_forward(layer9,time_stamp=timestamp+2)
+# output_assign.append([l7_hidden,l8_hidden,l9_hidden,l23_hidden])
+# output_assign.append(tf.assign(output_list[timestamp+2] ,tf.squeeze(layer23)) )
 
 cost1 = tf.square(output_list[timestamp]-  y[0,timestamp])
-cost2 = tf.square(output_list[timestamp+1]-y[0,timestamp+1])
-cost3 = tf.square(output_list[timestamp+2]-y[0,timestamp+2])
-total_cost = cost1 + cost2 + cost3 
+# cost2 = tf.square(output_list[timestamp+1]-y[0,timestamp+1])
+# cost3 = tf.square(output_list[timestamp+2]-y[0,timestamp+2])
+# total_cost = cost1 + cost2 + cost3 
+total_cost = cost1 
 
-grad23,grad23_update = l2.backpropagation(tf.expand_dims(output_list[timestamp+2]-y[0,timestamp+2],axis=0),timestamp+2)
-grad9,grad9_update = l1.backpropagation(grad23,timestamp+8)
-grad8,grad8_update = l1.backpropagation(grad9,timestamp+7)
-grad7,grad7_update = l1.backpropagation(grad8,timestamp+6)
+# grad23,grad23_update = l2.backpropagation(tf.expand_dims(output_list[timestamp+2]-y[0,timestamp+2],axis=0),timestamp+2)
+# grad9,grad9_update = l1.backpropagation(grad23,timestamp+8)
+# grad8,grad8_update = l1.backpropagation(grad9,timestamp+7)
+# grad7,grad7_update = l1.backpropagation(grad8,timestamp+6)
 
-grad22,grad22_update = l2.backpropagation(tf.expand_dims(output_list[timestamp+1]-y[0,timestamp+1],axis=0),timestamp+1)
-grad6,grad6_update = l1.backpropagation(grad7+grad22,timestamp+5)
-grad5,grad5_update = l1.backpropagation(cost3,timestamp+4)
-grad4,grad4_update = l1.backpropagation(grad6,timestamp+3)
+# grad22,grad22_update = l2.backpropagation(tf.expand_dims(output_list[timestamp+1]-y[0,timestamp+1],axis=0),timestamp+1)
+# grad6,grad6_update = l1.backpropagation(grad7+grad22,timestamp+5)
+# grad5,grad5_update = l1.backpropagation(cost3,timestamp+4)
+# grad4,grad4_update = l1.backpropagation(grad6,timestamp+3)
 
 grad21,grad21_update = l2.backpropagation(tf.expand_dims(output_list[timestamp]-  y[0,timestamp],axis=0),timestamp)
 grad3,grad3_update = l1.backpropagation(grad21,timestamp+2)
 grad2,grad2_update = l1.backpropagation(grad3,timestamp+1)
 grad1,grad1_update = l1.backpropagation(grad2,timestamp+0)
-# grad_update.append([grad21_update,  grad3_update,grad2_update,grad1_update])
-grad_update.append([grad23_update,grad9_update,grad8_update,grad7_update,
-                    grad22_update,  grad6_update,grad5_update,grad4_update,
-                    grad21_update,  grad3_update,grad2_update,grad1_update])
+grad_update.append([grad21_update,  grad3_update,grad2_update,grad1_update])
+# grad_update.append([grad23_update,grad9_update,grad8_update,grad7_update,
+#                     grad22_update,  grad6_update,grad5_update,grad4_update,
+#                     grad21_update,  grad3_update,grad2_update,grad1_update])
 
 
 # 3. Start the training
@@ -224,11 +225,11 @@ with tf.Session() as sess:
             random_testing_index = np.random.randint(dna_to_num.shape[0])
             testing = np.expand_dims(dna_to_num[random_testing_index,:],axis=0)
             gt      = protein_to_num[random_testing_index,:]
-            sess_result = sess.run([layer21,layer22,layer23,output_assign],feed_dict={x:testing})
-            # sess_result = sess.run([layer21,output_assign],feed_dict={x:testing})
+            # sess_result = sess.run([layer21,layer22,layer23,output_assign],feed_dict={x:testing})
+            sess_result = sess.run([layer21,output_assign],feed_dict={x:testing})
             
-            # print("Predicted: ",sess_result[0])
-            print("Predicted: ",sess_result[0],sess_result[1],sess_result[2])
+            print("Predicted: ",sess_result[0])
+            # print("Predicted: ",sess_result[0],sess_result[1],sess_result[2])
             print("GT : " ,gt)
             print("Total cost now: ", total_cost_current)
             print("===== Testing Middle ======\n")
