@@ -26,6 +26,8 @@ class prepnetwork():
         self.w4 = tf.Variable(tf.random_normal([3,3,50,50]))
         self.w5 = tf.Variable(tf.random_normal([3,3,50,3]))
 
+    def getw(self): return [self.w1,self.w2,self.w3,self.w4,self.w5]
+
     def feedforward(self,input=None):
         layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
         layer2 = tf.nn.conv2d(layer1,self.w2,strides=[1,1,1,1],padding='SAME')
@@ -42,6 +44,8 @@ class hididingnetwork():
         self.w3 = tf.Variable(tf.random_normal([4,4,50,50]))
         self.w4 = tf.Variable(tf.random_normal([4,4,50,50]))
         self.w5 = tf.Variable(tf.random_normal([4,4,50,3]))
+
+    def getw(self): return [self.w1,self.w2,self.w3,self.w4,self.w5]
 
     def feedforward(self,input=None):
         layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
@@ -60,6 +64,8 @@ class revealnetwork():
         self.w4 = tf.Variable(tf.random_normal([5,5,50,50]))
         self.w5 = tf.Variable(tf.random_normal([5,5,50,3]))
 
+    def getw(self): return [self.w1,self.w2,self.w3,self.w4,self.w5]
+
     def feedforward(self,input=None):
         layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
         layer2 = tf.nn.conv2d(layer1,self.w2,strides=[1,1,1,1],padding='SAME')
@@ -68,10 +74,22 @@ class revealnetwork():
         layer5 = tf.nn.conv2d(layer4,self.w5,strides=[1,1,1,1],padding='SAME')
         return layer5
 
-# Declare the Objects and the networks
+    def backpropagation(self,gradient=None):
+        return 4
+
+# ------- Preprocess Data --------
+
+
+
+
+
+
+# Declare the Objects and the networks, and get the weigths for auto
 prepnetwork = prepnetwork()
 hididingnetwork = hididingnetwork()
 revealnetwork = revealnetwork()
+
+prepw,hidw,revw = prepnetwork.getw(),hididingnetwork.getw(),revealnetwork.getw()
 
 # Make the Graph
 s = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
@@ -94,7 +112,14 @@ s_alpha = revealnetwork.feedforward(c_alpha)
 # --- cost -----
 c_cost = tf.abs(c-c_alpha)
 s_cost = beta * tf.abs(s-s_alpha)
-total_cost = c_cost + s_cost
+total_cost = tf.reduce_sum(c_cost) + tf.reduce_sum(s_cost)
+
+# --- Auto diff ----
+auto_train = tf.train.AdamOptimizer().minimize(total_cost,var_list=prepw+hidw+revw)
+
+# --- Back Propagation for Reveal Network ----
+# grad_reveal = revealnetwork.backpropagation()
+
 
 # Start the training Session
 with tf.Session() as sess:
@@ -102,10 +127,9 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     temp = float32(np.ones((1,32,32,3)))
+    sess_results = sess.run([total_cost,auto_train],feed_dict={s:temp,c:temp,beta:1.0})
 
-    sess_results = sess.run(total_cost,feed_dict={s:temp,c:temp,beta:1.0})
-
-    print(sess_results.shape)
+    print(sess_results[0])
 
 
 
