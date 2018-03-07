@@ -2,15 +2,18 @@ import tensorflow as tf
 import numpy as np
 from numpy import float32
 
+# Activation Functions - however there was no indication in the original paper
 def tf_Relu(x): return tf.nn.relu(x)
 def d_tf_Relu(x): return 7 
 
 def tf_log(x): return tf.sigmoid(x)
 def d_tf_log(x): return tf_log(x) * (1.0 - tf.log(x))
 
+def tf_tanh(x): return tf.tanh(x)
+def d_tf_tansh(x): return 1.0 - tf.square(tf_tanh(x))
 
 
-
+# Make each class for the networks
 class prepnetwork():
     
     def __init__(self):
@@ -31,7 +34,7 @@ class prepnetwork():
 class hididingnetwork():
     
     def __init__(self):
-        self.w1 = tf.Variable(tf.random_normal([4,4,3,50]))
+        self.w1 = tf.Variable(tf.random_normal([4,4,6,50]))
         self.w2 = tf.Variable(tf.random_normal([4,4,50,50]))
         self.w3 = tf.Variable(tf.random_normal([4,4,50,50]))
         self.w4 = tf.Variable(tf.random_normal([4,4,50,50]))
@@ -62,23 +65,36 @@ class revealnetwork():
         layer5 = tf.nn.conv2d(layer4,self.w5,strides=[1,1,1,1],padding='SAME')
         return layer5
 
+# Declare the Objects and the networks
 prepnetwork = prepnetwork()
 hididingnetwork = hididingnetwork()
 revealnetwork = revealnetwork()
 
+# Make the Graph
+s = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
+c = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 
-temp = float32(np.ones((1,64,64,3)))
-print(temp.shape)
+# --- Prep part ---
+layer_prep  = prepnetwork.feedforward(s)
+
+# --- Cover part ---
+cover_and_secret = tf.concat([layer_prep,c],3)
+layer_hiddne = hididingnetwork.feedforward(cover_and_secret) 
+
+# --- Reveal part ---
+layer_reveal = revealnetwork.feedforward(layer_hiddne) 
 
 
+# Start the training Session
 with tf.Session() as sess:
 
     sess.run(tf.global_variables_initializer())
 
-    dddd = prepnetwork.feedforward(temp).eval()
-    dddd = hididingnetwork.feedforward(dddd).eval()
-    dddd = revealnetwork.feedforward(dddd).eval()
-    print(dddd.shape)
+    temp = float32(np.ones((1,32,32,3)))
+
+    sess_results = sess.run(layer_reveal,feed_dict={s:temp,c:temp})
+
+    print(sess_results.shape)
 
 
 
