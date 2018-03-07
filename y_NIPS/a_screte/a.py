@@ -12,6 +12,9 @@ def d_tf_log(x): return tf_log(x) * (1.0 - tf.log(x))
 def tf_tanh(x): return tf.tanh(x)
 def d_tf_tansh(x): return 1.0 - tf.square(tf_tanh(x))
 
+def gaussian_noise_layer(input_layer, std=1.0):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
+    return input_layer + noise
 
 # Make each class for the networks
 class prepnetwork():
@@ -73,17 +76,25 @@ revealnetwork = revealnetwork()
 # Make the Graph
 s = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 c = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
+beta = tf.placeholder(dtype=tf.float32)
 
 # --- Prep part ---
 layer_prep  = prepnetwork.feedforward(s)
 
 # --- Cover part ---
 cover_and_secret = tf.concat([layer_prep,c],3)
-layer_hiddne = hididingnetwork.feedforward(cover_and_secret) 
+c_alpha = hididingnetwork.feedforward(cover_and_secret) 
+
+# --- Adding Noise Part -----
+c_alpha = gaussian_noise_layer(c_alpha)
 
 # --- Reveal part ---
-layer_reveal = revealnetwork.feedforward(layer_hiddne) 
+s_alpha = revealnetwork.feedforward(c_alpha) 
 
+# --- cost -----
+c_cost = tf.abs(c-c_alpha)
+s_cost = beta * tf.abs(s-s_alpha)
+total_cost = c_cost + s_cost
 
 # Start the training Session
 with tf.Session() as sess:
@@ -92,7 +103,7 @@ with tf.Session() as sess:
 
     temp = float32(np.ones((1,32,32,3)))
 
-    sess_results = sess.run(layer_reveal,feed_dict={s:temp,c:temp})
+    sess_results = sess.run(total_cost,feed_dict={s:temp,c:temp,beta:1.0})
 
     print(sess_results.shape)
 
