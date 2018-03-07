@@ -19,10 +19,8 @@ class prepnetwork():
         self.w3 = tf.Variable(tf.random_normal([3,3,50,50]))
         self.w4 = tf.Variable(tf.random_normal([3,3,50,50]))
         self.w5 = tf.Variable(tf.random_normal([3,3,50,3]))
-        
 
     def feedforward(self,input=None):
-        
         layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
         layer2 = tf.nn.conv2d(layer1,self.w2,strides=[1,1,1,1],padding='SAME')
         layer3 = tf.nn.conv2d(layer2,self.w3,strides=[1,1,1,1],padding='SAME')
@@ -30,7 +28,7 @@ class prepnetwork():
         layer5 = tf.nn.conv2d(layer4,self.w5,strides=[1,1,1,1],padding='SAME')
         return layer5
 
-class hidiingnetwork():
+class hididingnetwork():
     
     def __init__(self):
         self.w1 = tf.Variable(tf.random_normal([4,4,3,50]))
@@ -38,10 +36,8 @@ class hidiingnetwork():
         self.w3 = tf.Variable(tf.random_normal([4,4,50,50]))
         self.w4 = tf.Variable(tf.random_normal([4,4,50,50]))
         self.w5 = tf.Variable(tf.random_normal([4,4,50,3]))
-        
 
     def feedforward(self,input=None):
-        
         layer1 = tf.nn.conv2d(input,self.w1,strides=[1,1,1,1],padding='SAME')
         layer2 = tf.nn.conv2d(layer1,self.w2,strides=[1,1,1,1],padding='SAME')
         layer3 = tf.nn.conv2d(layer2,self.w3,strides=[1,1,1,1],padding='SAME')
@@ -67,6 +63,8 @@ class revealnetwork():
         return layer5
 
 prepnetwork = prepnetwork()
+hididingnetwork = hididingnetwork()
+revealnetwork = revealnetwork()
 
 
 temp = float32(np.ones((1,64,64,3)))
@@ -78,7 +76,8 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     dddd = prepnetwork.feedforward(temp).eval()
-
+    dddd = hididingnetwork.feedforward(dddd).eval()
+    dddd = revealnetwork.feedforward(dddd).eval()
     print(dddd.shape)
 
 
