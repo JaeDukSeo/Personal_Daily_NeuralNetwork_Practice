@@ -136,62 +136,59 @@ class simpleRNN():
         
         return grad_pass,w_update
 
+class fnnlayer():
+    def __init__(self,activation,d_activation,input_dim=None,hidden_dim=None):
+    
+        self.w = tf.Variable(tf.truncated_normal([input_dim,hidden_dim]))
+        self.act = activation
+        self.d_act = d_activation
+
+    def feed_forward(self,input=None):
+        
+        self.input = input
+        self.layer = tf.matmul(input,self.w)
+        self.layerA = self.act(self.layer)
+        return self.layerA
+
+    def backpropagation(self,gradient=None,time_stamp=None):
+        
+        grad_part_1 = gradient
+        grad_part_2 = self.d_act(self.layer)
+        grad_part_3 = self.input 
+
+        grad_x_mid = tf.multiply(grad_part_1,grad_part_2)
+        grad_x = tf.matmul(tf.transpose(grad_part_3),grad_x_mid)
+        
+        grad_pass = tf.matmul(tf.multiply(grad_part_1,grad_part_2),tf.transpose(self.w))
+        
+        w_update = [tf.assign(self.w,tf.subtract(self.w,learning_rate_x*grad_x) )]
+        
+        return grad_pass,w_update
 # 1.5 Make the objects and graphs
-l1  = simpleRNN(tf_ReLU,d_tf_ReLU,length_of_dna*3+1,1,l1_hid_num)
-l2  = simpleRNN(tf_log,d_tf_log,3+1,l1_hid_num,1)
+l1  = fnnlayer(tf_tanh,d_tf_tanh,9,15)
+l2  = fnnlayer(tf_tanh,d_tf_tanh,15,17)
+l3  = fnnlayer(tf_tanh,d_tf_tanh,17,19)
+l4  = fnnlayer(tf_log,d_tf_log,19,3)
+
 
 # 1.8 Make the graph
 x = tf.placeholder(shape=[1,length_of_dna*3],dtype=tf.float32)
 y = tf.placeholder(shape=[1,length_of_dna],dtype=tf.float32)
-output_list = tf.Variable(tf.zeros(length_of_dna))
-output_assign = []
 grad_update = []
-timestamp = tf.constant(0)
 
-layer1,l1_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+0],axis=0),axis=1),  time_stamp=timestamp)
-layer2,l2_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+1],axis=0),axis=1),time_stamp=timestamp+1)
-layer3,l3_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+2],axis=0),axis=1),time_stamp=timestamp+2)
-layer21,l21_hidden = l2.feed_forward(layer3,time_stamp=timestamp)
-output_assign.append([l1_hidden,l2_hidden,l3_hidden,l21_hidden])
-output_assign.append(tf.assign(output_list[timestamp] ,tf.squeeze(layer21)) )
+layer1 = l1.feed_forward(x)
+layer2 = l2.feed_forward(layer1)
+layer3 = l3.feed_forward(layer2)
+layer4 = l4.feed_forward(layer3)
 
-layer4,l4_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+3],axis=0),axis=1),time_stamp=timestamp+3)
-layer5,l5_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+4],axis=0),axis=1),time_stamp=timestamp+4)
-layer6,l6_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+5],axis=0),axis=1),time_stamp=timestamp+5)
-layer22,l22_hidden = l2.feed_forward(layer6,time_stamp=timestamp+1)
-output_assign.append([l4_hidden,l5_hidden,l6_hidden,l22_hidden])
-output_assign.append(tf.assign(output_list[timestamp+1] ,tf.squeeze(layer22)) )
+total_cost = tf.square(layer4-y)
 
-layer7,l7_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+6],axis=0),axis=1),time_stamp=timestamp+6)
-layer8,l8_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+7],axis=0),axis=1),time_stamp=timestamp+7)
-layer9,l9_hidden = l1.feed_forward(tf.expand_dims(tf.expand_dims(x[0,timestamp+8],axis=0),axis=1),time_stamp=timestamp+8)
-layer23,l23_hidden = l2.feed_forward(layer9,time_stamp=timestamp+2)
-output_assign.append([l7_hidden,l8_hidden,l9_hidden,l23_hidden])
-output_assign.append(tf.assign(output_list[timestamp+2] ,tf.squeeze(layer23)) )
+grad4,grad4_u=l4.backpropagation(layer4-y)
+grad3,grad3_u=l3.backpropagation(grad4)
+grad2,grad2_u=l2.backpropagation(grad3)
+grad1,grad1_u=l1.backpropagation(grad2)
 
-cost1 = tf.square(output_list[timestamp]-  y[0,timestamp])
-cost2 = tf.square(output_list[timestamp+1]-y[0,timestamp+1])
-cost3 = tf.square(output_list[timestamp+2]-y[0,timestamp+2])
-total_cost = cost1 + cost2 + cost3 
-
-grad23,grad23_update = l2.backpropagation(tf.expand_dims(output_list[timestamp+2]-y[0,timestamp+2],axis=0),timestamp+2)
-grad9,grad9_update = l1.backpropagation(grad23,timestamp+8)
-grad8,grad8_update = l1.backpropagation(grad9,timestamp+7)
-grad7,grad7_update = l1.backpropagation(grad8,timestamp+6)
-
-grad22,grad22_update = l2.backpropagation(tf.expand_dims(output_list[timestamp+1]-y[0,timestamp+1],axis=0),timestamp+1)
-grad6,grad6_update = l1.backpropagation(grad7+grad22,timestamp+5)
-grad5,grad5_update = l1.backpropagation(cost3,timestamp+4)
-grad4,grad4_update = l1.backpropagation(grad6,timestamp+3)
-
-grad21,grad21_update = l2.backpropagation(tf.expand_dims(output_list[timestamp]-  y[0,timestamp],axis=0),timestamp)
-grad3,grad3_update = l1.backpropagation(grad21,timestamp+2)
-grad2,grad2_update = l1.backpropagation(grad3,timestamp+1)
-grad1,grad1_update = l1.backpropagation(grad2,timestamp+0)
-# grad_update.append([grad21_update,  grad3_update,grad2_update,grad1_update])
-grad_update.append([grad23_update,grad9_update,grad8_update,grad7_update,
-                    grad22_update,  grad6_update,grad5_update,grad4_update,
-                    grad21_update,  grad3_update,grad2_update,grad1_update])
+grad_update.append([grad1_u,grad2_u,grad3_u,grad4_u])
 
 
 # 3. Start the training
@@ -210,11 +207,7 @@ with tf.Session() as sess:
             current_dna_data = np.expand_dims(dna_to_num[current_train_index,:],axis=0)
             current_proten_data = np.expand_dims(protein_to_num[current_train_index,:],axis=0)
 
-            # sess_result = sess.run([layer1,l1_hidden],feed_dict={x:current_dna_data,y:current_proten_data})
-            # print(sess_result[0].shape)
-            # sys.exit()
-
-            sess_result = sess.run([total_cost,output_assign,grad_update],feed_dict={x:current_dna_data,y:current_proten_data})
+            sess_result = sess.run([total_cost,grad_update],feed_dict={x:current_dna_data,y:current_proten_data})
             print("Current Iter: ", iter,' Current train index: ',current_train_index, ' Current Total Cost: ',sess_result[0],end='\r')
             total_cost_current= total_cost_current+sess_result[0]
 
@@ -224,11 +217,9 @@ with tf.Session() as sess:
             random_testing_index = np.random.randint(dna_to_num.shape[0])
             testing = np.expand_dims(dna_to_num[random_testing_index,:],axis=0)
             gt      = protein_to_num[random_testing_index,:]
-            sess_result = sess.run([layer21,layer22,layer23,output_assign],feed_dict={x:testing})
-            # sess_result = sess.run([layer21,output_assign],feed_dict={x:testing})
+            sess_result = sess.run([layer4],feed_dict={x:testing})
             
-            # print("Predicted: ",sess_result[0])
-            print("Predicted: ",sess_result[0],sess_result[1],sess_result[2])
+            print("Predicted: ",sess_result[0])
             print("GT : " ,gt)
             print("Total cost now: ", total_cost_current)
             print("===== Testing Middle ======\n")
