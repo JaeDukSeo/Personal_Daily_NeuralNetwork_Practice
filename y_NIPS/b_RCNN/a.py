@@ -47,9 +47,10 @@ class RCNN():
 
     def feedforward(self,input=None,timestamp=None):
         
-        self.layer  = tf.nn.conv2d(input,self.w_x,strides=[1,1,1,1],padding='SAME')  + \
+        self.layer  = tf.nn.conv2d(input,self.w_x,strides=[1,1,1,1],padding='VALID')  + \
                       tf.nn.conv2d(
-                          tf.expand_dims(self.hidden[timestamp,:,:,:],axis=0),self.w_h,strides=[1,1,1,1],padding='SAME') 
+                          tf.expand_dims(self.hidden[timestamp,:,:,:],axis=0),
+                          self.w_h,strides=[1,1,1,1],padding='SAME') 
         self.layerA = self.act(self.layer)
 
         assign_hidden = []
@@ -61,8 +62,12 @@ class RCNN():
 class FNN():
     
     def __init__(self,input_shape=None,output_shape=None):
-        
         self.w = tf.Variable(tf.random_normal(shape=[input_shape,output_shape]))
+    
+    def feedforward(self,input=None):
+        self.layer  = tf.matmul(input,self.w)
+        self.layerA = tf_tanh(self.layer)
+        return self.layerA
 
 # ------- Preprocess Data --------
 X,Y,names = unpickle('../../z_CIFAR_data/cifar10batchespy/data_batch_1')
@@ -70,13 +75,25 @@ Y = Y.T
 X = np.reshape(X,(3,32,32,10000)).transpose([3,1,2,0])
 X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
 
+X_train,X_test = X[:8000,:,:,:],X[8000:,:,:,:]
+
+print(X.shape)
+print(X_train.shape)
+print(X_test.shape)
+
+
 # --- Hyper Parameter ----
 batch_size = 100
+num_epoch = 100
 
 # ---- Make Objects ----
-l1_RCNN = RCNN(4,32,32,1,5,tf_tanh,d_tf_tanh)
-l2_RCNN = RCNN(4,32,32,5,7,tf_tanh,d_tf_tanh)
-l3_RCNN = RCNN(4,32,32,7,1,tf_tanh,d_tf_tanh)
+l1_RCNN = RCNN(4,30,30,1,3,tf_tanh,d_tf_tanh)
+l2_RCNN = RCNN(4,28,28,3,5,tf_tanh,d_tf_tanh)
+l3_RCNN = RCNN(4,26,26,5,7,tf_tanh,d_tf_tanh)
+
+l4_FNN =  FNN(26*26*7,2048)
+l5_FNN =  FNN(2048,1024)
+l6_FNN =  FNN(1024,10)
 
 # ---- Make Graph -----
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
@@ -95,18 +112,21 @@ l3_1,l3_1w = l3_RCNN.feedforward(l2_1,time_stamp+0)
 l3_2,l3_2w = l3_RCNN.feedforward(l2_2,time_stamp+1)
 l3_3,l3_3w = l3_RCNN.feedforward(l2_3,time_stamp+2)
 
-print(tf.reshape(l3_3,[batch_size,-1]).shape)
-print(l3_3.shape)
+l4_input   = tf.reshape(l3_3,(batch_size,-1))
+l4_FNN     = l4_FNN.feedforward(l4_input) 
+l5_FNN     = l5_FNN.feedforward(l4_FNN) 
+l6_FNN     = l6_FNN.feedforward(l5_FNN) 
 
-final_softmax = tf_softmax(l3_3)
+final_softmax = tf_softmax(l6_FNN)
 cost_dil = tf.reduce_sum( -1 * ( y*tf.log(final_softmax) + (1-y) * tf.log(1-final_softmax ) ) )
 correct_prediction = tf.equal(tf.argmax(final_softmax, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-
 
 # --- train sesion ----
 with tf.Session() as sess:
 
     sess.run(tf.global_variables_initializer())
 
+    for iter in range(num_epoch):
+        
+        sys.exit()
