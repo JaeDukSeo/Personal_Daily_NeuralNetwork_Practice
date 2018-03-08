@@ -36,13 +36,14 @@ def unpickle(file):
 
 class RCNN():
     
-    def __init__(self,time_seq=None,Height=None,width=None,channel =None,act=None,d_act=None):
+    def __init__(self,time_seq=None,Height=None,width=None,
+                input_dim=None, hidden_dim =None,act=None,d_act=None):
         
-        self.w_x = tf.Variable(tf.random_normal([3,3,3,channel]))
-        self.w_h = tf.Variable(tf.random_normal([3,3,channel,channel]))
+        self.w_x = tf.Variable(tf.random_normal([3,3,input_dim,hidden_dim]))
+        self.w_h = tf.Variable(tf.random_normal([3,3,hidden_dim,hidden_dim]))
 
-        self.hidden  = tf.Variable(tf.zeros([time_seq,Height,width,channel]))
-        self.hiddenA = tf.Variable(tf.zeros([time_seq,Height,width,channel]))
+        self.hidden  = tf.Variable(tf.zeros([time_seq,Height,width,hidden_dim]))
+        self.hiddenA = tf.Variable(tf.zeros([time_seq,Height,width,hidden_dim]))
 
         self.act,self.d_act = act,d_act
 
@@ -69,12 +70,17 @@ X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
 batch_size = 100
 
 # ---- Make Objects ----
-l1_RCNN = RCNN(5,32,32,5,tf_tanh,d_tf_tanh)
+l1_RCNN = RCNN(4,32,32,1,5,tf_tanh,d_tf_tanh)
+l2_RCNN = RCNN(4,32,32,5,7,tf_tanh,d_tf_tanh)
 
 # ---- Make Graph -----
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 time_stamp = tf.constant(0)
 
-l1_1,l1_1w = l1_RCNN.feedforward(x,time_stamp)
+l1_1,l1_1w = l1_RCNN.feedforward(tf.expand_dims(x[:,:,:,0],axis=3),time_stamp+0)
+l1_2,l1_2w = l1_RCNN.feedforward(tf.expand_dims(x[:,:,:,1],axis=3),time_stamp+1)
+l1_3,l1_3w = l1_RCNN.feedforward(tf.expand_dims(x[:,:,:,2],axis=3),time_stamp+2)
+
+l1_2,l1_2w = l2_RCNN.feedforward(l1_1,time_stamp+0)
 
