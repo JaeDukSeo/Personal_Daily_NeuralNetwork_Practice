@@ -16,9 +16,7 @@ def d_tf_log(x): return tf_log(x) * (1.0 - tf.log(x))
 def tf_tanh(x): return tf.tanh(x)
 def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
 
-def gaussian_noise_layer(input_layer, std=1.0):
-    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
-    return input_layer + noise
+def tf_softmax(x): return tf.nn.softmax(x)
 
 def unpickle(file):
     import pickle
@@ -60,6 +58,12 @@ class RCNN():
 
         return self.layerA,assign_hidden
 
+class FNN():
+    
+    def __init__(self,input_shape=None,output_shape=None):
+        
+        self.w = tf.Variable(tf.random_normal(shape=[input_shape,output_shape]))
+
 # ------- Preprocess Data --------
 X,Y,names = unpickle('../../z_CIFAR_data/cifar10batchespy/data_batch_1')
 Y = Y.T
@@ -72,6 +76,7 @@ batch_size = 100
 # ---- Make Objects ----
 l1_RCNN = RCNN(4,32,32,1,5,tf_tanh,d_tf_tanh)
 l2_RCNN = RCNN(4,32,32,5,7,tf_tanh,d_tf_tanh)
+l3_RCNN = RCNN(4,32,32,7,1,tf_tanh,d_tf_tanh)
 
 # ---- Make Graph -----
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
@@ -82,5 +87,26 @@ l1_1,l1_1w = l1_RCNN.feedforward(tf.expand_dims(x[:,:,:,0],axis=3),time_stamp+0)
 l1_2,l1_2w = l1_RCNN.feedforward(tf.expand_dims(x[:,:,:,1],axis=3),time_stamp+1)
 l1_3,l1_3w = l1_RCNN.feedforward(tf.expand_dims(x[:,:,:,2],axis=3),time_stamp+2)
 
-l1_2,l1_2w = l2_RCNN.feedforward(l1_1,time_stamp+0)
+l2_1,l2_1w = l2_RCNN.feedforward(l1_1,time_stamp+0)
+l2_2,l2_2w = l2_RCNN.feedforward(l1_2,time_stamp+1)
+l2_3,l2_3w = l2_RCNN.feedforward(l1_3,time_stamp+2)
+
+l3_1,l3_1w = l3_RCNN.feedforward(l2_1,time_stamp+0)
+l3_2,l3_2w = l3_RCNN.feedforward(l2_2,time_stamp+1)
+l3_3,l3_3w = l3_RCNN.feedforward(l2_3,time_stamp+2)
+
+print(tf.reshape(l3_3,[batch_size,-1]).shape)
+print(l3_3.shape)
+
+final_softmax = tf_softmax(l3_3)
+cost_dil = tf.reduce_sum( -1 * ( y*tf.log(final_softmax) + (1-y) * tf.log(1-final_softmax ) ) )
+correct_prediction = tf.equal(tf.argmax(final_softmax, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+
+
+# --- train sesion ----
+with tf.Session() as sess:
+
+    sess.run(tf.global_variables_initializer())
 
