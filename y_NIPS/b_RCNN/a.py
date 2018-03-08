@@ -14,7 +14,7 @@ def tf_log(x): return tf.sigmoid(x)
 def d_tf_log(x): return tf_log(x) * (1.0 - tf.log(x))
 
 def tf_tanh(x): return tf.tanh(x)
-def d_tf_tansh(x): return 1.0 - tf.square(tf_tanh(x))
+def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
 
 def gaussian_noise_layer(input_layer, std=1.0):
     noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
@@ -36,13 +36,28 @@ def unpickle(file):
 
 class RCNN():
     
-    def __init__(self,time_seq=None,Height=None,width=None,channel =None):
+    def __init__(self,time_seq=None,Height=None,width=None,channel =None,act=None,d_act=None):
         
         self.w_x = tf.Variable(tf.random_normal([3,3,3,channel]))
         self.w_h = tf.Variable(tf.random_normal([3,3,channel,channel]))
 
-        self.hidden = tf.Variable(tf.zeros([time_seq,Height,width,channel]))
+        self.hidden  = tf.Variable(tf.zeros([time_seq,Height,width,channel]))
+        self.hiddenA = tf.Variable(tf.zeros([time_seq,Height,width,channel]))
 
+        self.act,self.d_act = act,d_act
+
+    def feedforward(self,input=None,timestamp=None):
+        
+        self.layer  = tf.nn.conv2d(input,self.w_x,strides=[1,1,1,1],padding='SAME')  + \
+                      tf.nn.conv2d(
+                          tf.expand_dims(self.hidden[timestamp,:,:,:],axis=0),self.w_h,strides=[1,1,1,1],padding='SAME') 
+        self.layerA = self.act(self.layer)
+
+        assign_hidden = []
+        assign_hidden.append(tf.assign(self.hidden[timestamp+1,:,:,:],self.layer))
+        assign_hidden.append(tf.assign(self.hiddenA[timestamp+1,:,:,:],self.layerA))
+
+        return self.layerA,assign_hidden
 
 # ------- Preprocess Data --------
 X,Y,names = unpickle('../../z_CIFAR_data/cifar10batchespy/data_batch_1')
@@ -50,7 +65,16 @@ Y = Y.T
 X = np.reshape(X,(3,32,32,10000)).transpose([3,1,2,0])
 X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
 
-# ------ 
+# --- Hyper Parameter ----
+batch_size = 100
 
+# ---- Make Objects ----
+l1_RCNN = RCNN(5,32,32,5,tf_tanh,d_tf_tanh)
 
-l1_RCNN = RCNN(5,32,32,5)
+# ---- Make Graph -----
+x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
+y = tf.placeholder(shape=[None,10],dtype=tf.float32)
+time_stamp = tf.constant(0)
+
+l1_1,l1_1w = l1_RCNN.feedforward(x,time_stamp)
+
