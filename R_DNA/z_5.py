@@ -44,8 +44,8 @@ protein_table = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
 num_training_data = 1000
 length_of_protein = 1
 
-save_location = 'plt/'
-proportion_rate = 1600
+save_location = 'plt5/'
+proportion_rate = 2000
 decay_rate = 0.008
 compare_range = 100
 

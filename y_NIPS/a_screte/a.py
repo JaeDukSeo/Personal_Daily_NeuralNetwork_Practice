@@ -14,7 +14,7 @@ def tf_log(x): return tf.sigmoid(x)
 def d_tf_log(x): return tf_log(x) * (1.0 - tf.log(x))
 
 def tf_tanh(x): return tf.tanh(x)
-def d_tf_tansh(x): return 1.0 - tf.square(tf_tanh(x))
+def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
 
 def gaussian_noise_layer(input_layer, std=1.0):
     noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
