@@ -5,8 +5,9 @@ import numpy as np
 from numpy import float32
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
-np.random.seed(678)
-tf.set_random_seed(768)
+
+# np.random.seed(678)
+# tf.set_random_seed(768)
 
 # Activation Functions - however there was no indication in the original paper
 def tf_log(x): 
@@ -43,16 +44,22 @@ protein_table = {"TTT" : "F", "CTT" : "L", "ATT" : "I", "GTT" : "V",
 num_training_data = 1000
 length_of_protein = 1
 
-learning_rate = 0.0005
+learning_rate = 0.0009
+# above safe
+# learning_rate = 0.0001
+
 
 beta_1 ,beta_2= 0.9, 0.999
 adam_e = 0.00000001
 
 num_epoch = 800
 print_size = 50
+batch_size = 100
 
 proportion_rate = 1000
-decay_rate = 0.08
+decay_rate = 0.000001
+
+hidden_layers = 150
 
 # 1. Array to Contain all of the data 
 dna_data = np.array([])
@@ -137,11 +144,13 @@ class FCNN:
 
         return grad_pass,assign
 
+
+
 # 3.Make the Layers
-layer1 = FCNN(12,48,tf_log,d_tf_log)
-layer2 = FCNN(48,75,tf_log,d_tf_log)
-layer3 = FCNN(75,140,tf_log,d_tf_log)
-layer4 = FCNN(140,20,tf_log,d_tf_log)
+layer1 = FCNN(12,hidden_layers,tf_log,d_tf_log)
+layer2 = FCNN(hidden_layers,hidden_layers,tf_log,d_tf_log)
+layer3 = FCNN(hidden_layers,hidden_layers,tf_log,d_tf_log)
+layer4 = FCNN(hidden_layers,20,tf_log,d_tf_log)
 
 l1w,l2w,l3w,l4w = layer1.getw(),layer2.getw(),layer3.getw(),layer4.getw()
 
@@ -166,31 +175,35 @@ auto_train= tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,va
 
 l4g,l4update = layer4.backprop(final_soft - y)
 l3g,l3update = layer3.backprop(l4g)
-l2g,l2update = layer2.backprop(l3g)
-l1g,l1update = layer1.backprop(l2g)
+l2g,l2update = layer2.backprop(l3g+decay_propotoin_rate*l4g)
+l1g,l1update = layer1.backprop(l2g+decay_propotoin_rate*(l4g+l3g))
 weight_updates = l4update + l3update + l2update + l1update
 
 # 5. Train
 with tf.Session() as sess:
 
     sess.run(tf.global_variables_initializer())
+    avg_accuracy  = 0
 
     for iter in range(num_epoch):
         
-        for batch_index in range(0,len(protein_data),100):
+        for batch_index in range(0,len(protein_data),batch_size):
             
-            current_batch = dna_data[batch_index:batch_index+100,:]
-            current_batch_label = protein_data[batch_index:batch_index+100,:]
+            current_batch = dna_data[batch_index:batch_index+batch_size,:]
+            current_batch_label = protein_data[batch_index:batch_index+batch_size,:]
 
-            sess_results = sess.run([accuracy,auto_train],feed_dict={x:current_batch,y:current_batch_label})
-            # sess_results = sess.run([accuracy,cost,weight_updates,correct_prediction],feed_dict={x:current_batch,y:current_batch_label})
+            # sess_results = sess.run([accuracy,cost,auto_train,correct_prediction],feed_dict={x:current_batch,y:current_batch_label})
+            sess_results = sess.run([accuracy,cost,weight_updates,correct_prediction],feed_dict={x:current_batch, y:current_batch_label, iter_variable_dil:iter})
             
             print("Current Iter: ", iter, " Current acuuracy: ", sess_results[0], " current cost: ",sess_results[1], end='\r')
+            avg_accuracy = avg_accuracy + sess_results[0]
 
         if iter %print_size==0:
             print('\n')
+            print("Avg Accuracy for iter: ", iter, " acc: ", avg_accuracy/(len(protein_data)/batch_size))
             
 
+        avg_accuracy = 0
 
 
 
