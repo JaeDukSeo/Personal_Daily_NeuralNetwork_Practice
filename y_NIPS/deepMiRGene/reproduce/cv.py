@@ -1,15 +1,23 @@
 from __future__ import print_function
-import rlcompleter, readline
+import rlcompleter
+
+try:
+  import readline
+except ImportError:
+  import pyreadline as readline
+
 readline.parse_and_bind('tab:complete')
 import numpy as np
 np.random.seed(1337)
 from os.path import exists
 from os import makedirs
 from Bio import SeqIO  ## fasta read
-import RNA ## RNAFold
+# import RNA ## RNAFold
 import re ## reg to find loops
 from sklearn.model_selection import KFold  ## for cv
 from sklearn import metrics ## evaluation
+
+
 
 
 # keras
