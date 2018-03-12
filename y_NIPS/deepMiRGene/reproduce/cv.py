@@ -245,7 +245,9 @@ class ProbabilityTensor(Wrapper):
 
 class SoftAttention(ProbabilityTensor):
  def compute_output_shape(self, input_shape):
-  return [(input_shape[0], input_shape[1] * input_shape[2]), (input_shape[0], input_shape[1])]
+  return [ (input_shape[0], input_shape[1] * input_shape[2]), 
+            (input_shape[0], input_shape[1])
+            ]
  
  def compute_mask(self, x, mask=None):
   if mask is None or mask.ndim==2:

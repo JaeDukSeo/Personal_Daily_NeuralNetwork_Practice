@@ -90,6 +90,9 @@ for iter in range(5):
     print('======== Given Matrix ========')
     print(matrix)
 
+    print('======== Given Starting Coord ========')
+    print("Starting X: ",start_x," Starting Y: ",start_y)
+
     print('======== Given Answers ========')
     print("Solution by DFS: ",DFS_results, " Execution Time : ", DFSend-DFSstart)
     print("Solution by BFS: ",BFS_results, " Execution Time : ", BFSend-BFSstart)
