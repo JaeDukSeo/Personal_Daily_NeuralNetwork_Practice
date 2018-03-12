@@ -97,7 +97,8 @@ auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,v
                                                                                         l9w,l10w])
 
 # Create Session
-with tf.Session() as sess:
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
 
     sess.run(tf.global_variables_initializer())
 

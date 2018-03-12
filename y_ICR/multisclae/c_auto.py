@@ -4,6 +4,7 @@ import sys
 from tensorflow.examples.tutorials.mnist import input_data
 from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
+
 np.random.seed(678)
 tf.set_random_seed(6786)
 
@@ -101,7 +102,7 @@ testing_images = np.reshape(testing_images,  (10000,28,28,1))
 training_images = np.reshape(training_images,(55000,28,28,1))
 
 # Hyper Parameters
-num_epoch = 10
+num_epoch = 20
 batch_size = 100
 learning_rate = 0.0025
 print_size = 5
@@ -161,27 +162,27 @@ correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # Auto Train
-# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=[l1w,l2w,l3w,l4w,l5w,l6w,l7w,l8w,l9w,l10w,l11w])
+auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=[l1w,l2w,l3w,l4w,l5w,l6w,l7w,l8w,l9w,l10w,l11w])
 
 # manual back prop
-grad_11,grad_11_u = layer11.backprop(final_soft-y)
-grad_10,grad_10_u = layer10.backprop(grad_11)
-grad_9,grad_9_u =   layer9.backprop(grad_10)
+# grad_11,grad_11_u = layer11.backprop(final_soft-y)
+# grad_10,grad_10_u = layer10.backprop(grad_11)
+# grad_9,grad_9_u =   layer9.backprop(grad_10)
 
-grad_8_Input = tf.reshape(grad_9,(batch_size,28,28,1))
-grad_8,grad_8_u =   layer8.backprop(grad_8_Input,1)
-grad_7,grad_7_u =   layer7.backprop(grad_8,1)
-grad_6,grad_6_u =   layer6.backprop(grad_7,3)
-grad_5,grad_5_u =   layer5.backprop(grad_6+decay_propotoin_rate*(grad_8+grad_7),3)
+# grad_8_Input = tf.reshape(grad_9,(batch_size,28,28,1))
+# grad_8,grad_8_u =   layer8.backprop(grad_8_Input,1)
+# grad_7,grad_7_u =   layer7.backprop(grad_8,1)
+# grad_6,grad_6_u =   layer6.backprop(grad_7,3)
+# grad_5,grad_5_u =   layer5.backprop(grad_6+decay_propotoin_rate*(grad_8+grad_7),3)
 
-grad_4,grad_4_u =   layer4.backprop(grad_5+decay_propotoin_rate*(grad_7+grad_6),2)
-grad_3,grad_3_u =   layer3.backprop(grad_4+decay_propotoin_rate*(grad_6+grad_5),2)
-grad_2,grad_2_u =   layer2.backprop(grad_3+decay_propotoin_rate*(grad_5+grad_4),1)
-grad_1,grad_1_u =   layer1.backprop(grad_2+decay_propotoin_rate*(grad_4+grad_3),1)
+# grad_4,grad_4_u =   layer4.backprop(grad_5+decay_propotoin_rate*(grad_7+grad_6),2)
+# grad_3,grad_3_u =   layer3.backprop(grad_4+decay_propotoin_rate*(grad_6+grad_5),2)
+# grad_2,grad_2_u =   layer2.backprop(grad_3+decay_propotoin_rate*(grad_5+grad_4),1)
+# grad_1,grad_1_u =   layer1.backprop(grad_2+decay_propotoin_rate*(grad_4+grad_3),1)
 
-grad_update_list = [grad_11_u+grad_10_u+grad_10_u+\
-                    grad_8_u+grad_7_u+grad_6_u+grad_5_u+\
-                    grad_4_u+grad_3_u+grad_2_u+grad_1_u]
+# grad_update_list = [grad_11_u+grad_10_u+grad_10_u+\
+#                     grad_8_u+grad_7_u+grad_6_u+grad_5_u+\
+#                     grad_4_u+grad_3_u+grad_2_u+grad_1_u]
 
 # Create Session
 with tf.Session() as sess:
@@ -205,8 +206,8 @@ with tf.Session() as sess:
             current_batch_label = training_lables[current_batch_index:current_batch_index+batch_size,:]
 
             # Commented out the auto train methods
-            # sess_results = sess.run([cost,accuracy,auto_train],feed_dict={x:current_batch,y:current_batch_label})
-            sess_results = sess.run([cost,accuracy,correct_prediction,grad_update_list],feed_dict={x:current_batch,y:current_batch_label,iter_variable_dil:iter })
+            sess_results = sess.run([cost,accuracy,auto_train],feed_dict={x:current_batch,y:current_batch_label})
+            # sess_results = sess.run([cost,accuracy,correct_prediction,grad_update_list],feed_dict={x:current_batch,y:current_batch_label,iter_variable_dil:iter })
             
             print("Current Iter: ",iter, " Current Batch Index : ", current_batch_index, " Current cost: ", np.sum(sess_results[0])," Current Acc: ",sess_results[1],  end='\r')
             avg_acc = avg_acc + np.sum(sess_results[0])/batch_size
