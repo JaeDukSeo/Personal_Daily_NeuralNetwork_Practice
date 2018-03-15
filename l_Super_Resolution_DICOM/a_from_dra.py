@@ -1,7 +1,9 @@
 import tensorflow as tf
-import numpy as np
-import os
+import numpy as np,os,dicom,sys
 from scipy import misc
+import dicom
+import matplotlib.pyplot as plt
+
 np.random.seed(678)
 tf.set_random_seed(678)
 
@@ -58,28 +60,50 @@ class FCNN():
         return pass_on_grad,grad_update
 
 # 0. Get the list
-PathDicom = "../lung_data_1/"
-lstFilesDCM1 = []  # create an empty list
+PathDicom = "../z_super/sliceTh_0.75_exposure_25/"
+lstFilesDCM_low = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
-        if ".jpg" in filename.lower():  # check whether the file's DICOM
-            lstFilesDCM1.append(os.path.join(dirName,filename))
+        if ".dcm" in filename.lower():  # check whether the file's DICOM
+            lstFilesDCM_low.append(os.path.join(dirName,filename))
+
+PathDicom = "../z_super/sliceTh_0.75_exposure_200/"
+lstFilesDCM_high = []  # create an empty list
+for dirName, subdirList, fileList in os.walk(PathDicom):
+    for filename in fileList:
+        if ".dcm" in filename.lower():  # check whether the file's DICOM
+            lstFilesDCM_high.append(os.path.join(dirName,filename))
+
+
+low_dose  = np.zeros((407,512,512,1))
+high_dose = np.zeros((407,512,512,1))
 
 # 1. Read the data into Numpy
-one = np.zeros((119,512,512,1))
-print(one.sum())
+print(low_dose.sum())
+print(high_dose.sum())
 
 # 1.5 Transfer All of the Data into array
-print('===== READING DATA ========')
-for file_index in range(len(lstFilesDCM1)):
-    one[file_index,:,:]   = np.expand_dims(misc.imread(lstFilesDCM1[file_index],mode='F').astype(np.float32),axis=3)
-print('===== Done READING DATA ========')
+print('===== READING / NORMALIZING DATA ========')
+for file_index in range(len(lstFilesDCM_low)):
+    
+    temp = np.expand_dims(dicom.read_file(lstFilesDCM_low[file_index]).pixel_array.astype(np.float32),axis=3)
+    temp = (temp - temp.min())/(temp.max() - temp.min())
+    low_dose[file_index,:,:,:] = temp
 
-print(one.sum())
+    temp = np.expand_dims(dicom.read_file(lstFilesDCM_high[file_index]).pixel_array.astype(np.float32),axis=3)
+    temp = (temp - temp.min())/(temp.max() - temp.min())
+    high_dose[file_index,:,:,:] = temp
+print('===== READING / NORMALIZING DATA ========')
 
+# For batch
+low_dose = low_dose[:400,:,:,:]
+high_dose = high_dose[:400,:,:,:]
 
+# Hyper param
+learning_rate = 0.000001
+num_epoch = 100
+batch_size = 10 
 
-temp = np.ones((1,156,156,1)).astype(np.float32)
 # Make Layer Object
 l1 = FCNN(7,1,3,tf_ReLU,d_tf_ReLu)
 l2 = FCNN(5,3,5,tf_ReLU,d_tf_ReLu)
@@ -87,24 +111,61 @@ l3 = FCNN(3,5,7,tf_ReLU,d_tf_ReLu)
 l4 = FCNN(2,7,5,tf_ReLU,d_tf_ReLu)
 l5 = FCNN(1,5,1,tf_ReLU,d_tf_ReLu)
 
+l1w,l2w,l3w,l4w,l5w = l1.getw(),l2.getw(),l3.getw(),l4.getw(),l5.getw()
+
 # Make graph
 x = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 y = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 
+layer1 = l1.feedforward(x,1,1,"SAME")
+layer2 = l2.feedforward(layer1,1,1,"SAME")
+layer3 = l3.feedforward(layer2,1,1,"SAME")
+layer4 = l4.feedforward(layer3,1,1,"SAME")
+layer5 = l5.feedforward(layer4,1,1,"SAME")
+
+def log10(x):
+    numerator = tf.log(x)
+    denominator = tf.log(tf.constant(10, dtype=numerator.dtype))
+    return numerator / denominator
+
+psnr_mid = tf.reduce_mean(tf.square(tf.subtract(layer5,y)))
+cost = -10*log10(255.0/tf.sqrt(psnr_mid))
+# cost = tf.square(layer5-y)
+auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=[l1w,l2w,l3w,l4w,l5w])
+
 with tf.Session() as sess:
 
-    layer1 = l1.feedforward(temp,1,1,"SAME")
-    layer2 = l2.feedforward(layer1,1,1,"SAME")
-    layer3 = l3.feedforward(layer2,1,1,"SAME")
-    layer4 = l4.feedforward(layer3,2,2,"SAME")
-    layer5 = l5.feedforward(layer4,1,1,"SAME")
-    
-    print(layer1.shape)
-    print(layer2.shape)
-    print(layer3.shape)
-    print(layer4.shape)
-    print(layer5.shape)
-    
+    sess.run(tf.global_variables_initializer())
+
+    for iter in range(num_epoch):
+        
+        for current_batch_index in range(0,len(low_dose),batch_size):
+            
+            current_batch_low  = low_dose[current_batch_index:current_batch_index+batch_size,:,:,:]
+            current_batch_high = high_dose[current_batch_index:current_batch_index+batch_size,:,:,:]
+
+            sess_result = sess.run([cost,auto_train],feed_dict={x:current_batch_low,y:current_batch_high})
+            print("Current Iter: ", iter, " current batch: ", current_batch_index, " current PSNR : ", np.sum(sess_result[0]),end='\r')
+
+        if iter%20==0:
+            print("=====================")
+            for sample in range(0,100,batch_size):
+                current_batch_low  = low_dose[sample:sample+batch_size,:,:,:]
+                current_batch_high = high_dose[current_batch_index:current_batch_index+batch_size,:,:,:]
+                
+                sess_result = sess.run([layer5,cost],feed_dict={x:current_batch_low,y:current_batch_high})
+
+                for xx in range(len(sess_result[0])):
+                    x = sess_result[0][xx]
+                    plt.figure()
+                    plt.imshow(np.squeeze(x),cmap='gray')
+                    plt.savefig('images/' + str(sample) + "_" + str(xx) + "_"+ str(sess_result[1][xx])+ ".png")
+
+                    plt.figure()
+                    plt.imshow(np.squeeze(current_batch_high[xx]),cmap='gray')
+                    plt.savefig('images/' + str(sample) + "_" + str(xx) + "_"+ str(sess_result[1][xx])+ ".png")
+                
+            print('\n')
 
 
 
