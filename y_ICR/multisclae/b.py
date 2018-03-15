@@ -42,13 +42,14 @@ class contextLayer():
         out_backprop=grad_middle,strides=[1,1,1,1],padding='SAME',
         dilations = [1,dilation_factor,dilation_factor,1]
         )
-        
-        pass_size = list(self.input.shape[1:])
-        pass_on_grad = tf.nn.conv2d_backprop_input(input_sizes=[batch_size]+pass_size,filter=self.w,
-        out_backprop=grad_middle,strides=[1,1,1,1],padding='SAME',
-        dilations = [1,dilation_factor,dilation_factor,1]
-        )
 
+        pass_on_grad = tf.nn.atrous_conv2d_transpose(
+            value=grad_middle,
+            filters=self.w,
+            rate = dilation_factor,padding="SAME",
+            output_shape = [batch_size,self.input.shape[1].value,self.input.shape[2].value,self.input.shape[3].value]
+        )
+        
         grad_update = []
         grad_update.append(tf.assign(self.m,tf.add(beta1*self.m, (1-beta1)*grad)))
         grad_update.append(tf.assign(self.v,tf.add(beta2*self.v, (1-beta2)*grad**2)))
@@ -89,7 +90,6 @@ class FCNN():
         grad_update.append(tf.assign(self.w,tf.subtract(self.w,tf.multiply(adam_middel,m_hat))))
         
         return pass_on_grad,grad_update
-        
 # =============== Create Class =========== 
 
 # Process Data
@@ -101,7 +101,7 @@ testing_images = np.reshape(testing_images,  (10000,28,28,1))
 training_images = np.reshape(training_images,(55000,28,28,1))
 
 # Hyper Parameters
-num_epoch = 10
+num_epoch = 100
 batch_size = 100
 learning_rate = 0.0025
 print_size = 5
@@ -109,8 +109,8 @@ print_size = 5
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
 
-proportion_rate = 1500
-decay_rate = 0.0008
+proportion_rate = 1000
+decay_rate = 0.008
 
 # Declare Models 
 layer1 = contextLayer(3,1,1)
@@ -171,13 +171,12 @@ grad_9,grad_9_u =   layer9.backprop(grad_10)
 grad_8_Input = tf.reshape(grad_9,(batch_size,28,28,1))
 grad_8,grad_8_u =   layer8.backprop(grad_8_Input,1)
 grad_7,grad_7_u =   layer7.backprop(grad_8,1)
-grad_6,grad_6_u =   layer6.backprop(grad_7,3)
-grad_5,grad_5_u =   layer5.backprop(grad_6+decay_propotoin_rate*(grad_8+grad_7),3)
-
-grad_4,grad_4_u =   layer4.backprop(grad_5+decay_propotoin_rate*(grad_7+grad_6),2)
-grad_3,grad_3_u =   layer3.backprop(grad_4+decay_propotoin_rate*(grad_6+grad_5),2)
-grad_2,grad_2_u =   layer2.backprop(grad_3+decay_propotoin_rate*(grad_5+grad_4),1)
-grad_1,grad_1_u =   layer1.backprop(grad_2+decay_propotoin_rate*(grad_4+grad_3),1)
+grad_6,grad_6_u =   layer6.backprop(grad_7,16)
+grad_5,grad_5_u =   layer5.backprop(grad_6+decay_propotoin_rate*(grad_8+grad_7),8)
+grad_4,grad_4_u =   layer4.backprop(grad_5+decay_propotoin_rate*(grad_8+grad_7+grad_6),4)
+grad_3,grad_3_u =   layer3.backprop(grad_4+decay_propotoin_rate*(grad_8+grad_7+grad_6+grad_5),2)
+grad_2,grad_2_u =   layer2.backprop(grad_3+decay_propotoin_rate*(grad_8+grad_7+grad_6+grad_5+grad_4),1)
+grad_1,grad_1_u =   layer1.backprop(grad_2+decay_propotoin_rate*(grad_8+grad_7+grad_6+grad_5+grad_4+grad_3),1)
 
 grad_update_list = [grad_11_u+grad_10_u+grad_10_u+\
                     grad_8_u+grad_7_u+grad_6_u+grad_5_u+\
@@ -224,7 +223,7 @@ with tf.Session() as sess:
 
         # if Print size 
         if iter%print_size==0:
-            print('\n===========================')
+            print('\n=========================== Iter: ',iter)
             print("Current Avg Accuracy for Train Images: ",avg_cost/(len(training_images)/batch_size) )
             print("Current Avg Cost for Train Images: ",avg_acc/(len(training_images)/batch_size))
             print("Current Avg Accuracy for Test Images: ",avg_cost_text/(len(testing_images)/batch_size))
