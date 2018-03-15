@@ -20,85 +20,6 @@ def tf_elu(x): return tf.nn.elu(x)
 def tf_ReLU(x): return tf.nn.relu(x)
 def d_tf_ReLu(x): return tf.cast(tf.greater(x, 0),dtype=tf.float32)
 
-def log10(x):
-    numerator = tf.log(x)
-    denominator = tf.log(tf.constant(10, dtype=numerator.dtype))
-    return numerator / denominator
-
-def tf_small_blur(x): 
-    filter_tf = tf.expand_dims(tf.expand_dims(tf.Variable(tf.constant([
-        [1/4,1/4],
-        [1/4,1/4]
-    ])),axis=2),axis=3)
-    return tf.nn.conv2d(x,filter_tf,strides=[1,1,1,1],padding='SAME')
-
-def tf_blur(x): 
-    filter_tf = tf.expand_dims(tf.expand_dims(tf.Variable(tf.constant([
-        [1/9,1/9,1/9],
-        [1/9,1/9,1/9],
-        [1/9,1/9,1/9]
-    ])),axis=2),axis=3)
-    return tf.nn.conv2d(x,filter_tf,strides=[1,1,1,1],padding='SAME')
-
-def tf_wide_blur(x): 
-    filter_tf = tf.expand_dims(tf.expand_dims(tf.Variable(tf.constant([
-        [1/5,1/5,1/5,1/5,1/5],
-        [1/5,1/5,1/5,1/5,1/5],
-        [1/5,1/5,1/5,1/5,1/5],
-        [1/5,1/5,1/5,1/5,1/5],
-        [1/5,1/5,1/5,1/5,1/5]
-    ])),axis=2),axis=3)
-    return tf.nn.conv2d(x,filter_tf,strides=[1,1,1,1],padding='SAME')
-
-# Make Class
-class FCNN():
-    
-    def __init__(self,kenerl,inc,outc,act,d_act):
-        self.w = tf.Variable(tf.random_normal([kenerl,kenerl,inc,outc]))
-        self.b = tf.Variable(tf.random_normal([1,512,512,1]))
-        self.act,self.d_act = act,d_act
-        self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
-
-    def getw(self): return [self.w,self.b]
-
-    def feedforward(self,input,stride_row,stride_col,padding,og_input= None,x_input=None):
-        self.input  = input
-
-        if og_input==None :
-            self.layer  = tf.nn.conv2d(input,self.w,strides=[1,stride_row,stride_col,1],padding=padding) + self.b 
-        else:
-            self.layer  = tf.nn.conv2d(input*og_input,self.w,strides=[1,stride_row,stride_col,1],padding=padding) + self.b 
-
-        if  x_input==None:
-            self.layerA = self.act(self.layer)
-        else:            
-            self.layerA = (self.act(self.layer)+tf_blur(x_input) ) * tf_small_blur(x_input)
-        return self.layerA
-
-    def backprop(self,gradient=None,og_input=None):
-        # grad_part_1 = tf.multiply(gradient, og_input)
-        grad_part_1 = gradient
-        grad_part_2 = self.d_act(self.layer)
-        grad_part_3 = self.input
-
-        grad_middle = tf.transpose(tf.transpose(tf.multiply(grad_part_1,grad_part_2),[0,2,1,3]),[0,2,1,3])
-
-        grad = tf.nn.conv2d_backprop_filter(input=grad_part_3,filter_sizes=self.w.shape,
-        out_backprop=grad_middle,strides=[1,1,1,1],padding='SAME')
-        pass_size = list(self.input.shape[1:])
-        pass_on_grad = tf.nn.conv2d_backprop_input(input_sizes=[batch_size]+pass_size,filter=self.w,
-        out_backprop=grad_middle,strides=[1,1,1,1],padding='SAME')
-
-        grad_update = []
-        grad_update.append(tf.assign(self.m,tf.add(beta1*self.m, (1-beta1)*grad)))
-        grad_update.append(tf.assign(self.v,tf.add(beta2*self.v, (1-beta2)*grad**2)))
-
-        m_hat = self.m / (1-beta1)
-        v_hat = self.v / (1-beta2)
-        adam_middel = learning_rate/(tf.sqrt(v_hat) + adam_e)
-        grad_update.append(tf.assign(self.w,tf.subtract(self.w,tf.multiply(adam_middel,m_hat))))
-        return pass_on_grad,grad_update
-
 # 0. Get the list
 PathDicom = "../z_super/sliceTh_0.75_exposure_25/"
 lstFilesDCM_low = []  # create an empty list
@@ -131,42 +52,64 @@ for file_index in range(len(lstFilesDCM_low)):
 print('===== READING / NORMALIZING DATA ========')
 
 # Save Location
-save_location = "./images_test/"
+save_location = "./images_compare/"
 if os.path.exists(save_location):
     shutil.rmtree(save_location)
 os.makedirs(save_location)
 
-# Hyper Param
-learning_rate = 0.05 
-num_epoch = 101
-batch_size = 10 
-print_size= 5
+# Make weights
+w1 = tf.get_variable('W1', shape=[3,3,1,3], initializer=tf.contrib.layers.xavier_initializer()) 
+w2 = tf.get_variable('W2', shape=[3,3,3,3], initializer=tf.contrib.layers.xavier_initializer()) 
+w3 = tf.get_variable('W3', shape=[3,3,3,3], initializer=tf.contrib.layers.xavier_initializer()) 
+w4 = tf.get_variable('W4', shape=[3,3,3,3], initializer=tf.contrib.layers.xavier_initializer()) 
+w5 = tf.get_variable('W5', shape=[3,3,3,3], initializer=tf.contrib.layers.xavier_initializer()) 
+w6 = tf.get_variable('W6', shape=[3,3,6,3], initializer=tf.contrib.layers.xavier_initializer()) 
+w7 = tf.get_variable('W7', shape=[3,3,6,1], initializer=tf.contrib.layers.xavier_initializer()) 
 
-# Make Layer Object
-l1 = FCNN(6,1,5,tf_tanh,d_tf_tanh)
-l2 = FCNN(4,5,5,tf_log,d_tf_tanh)
-l3 = FCNN(2,5,5,tf_ReLU,d_tf_tanh)
-l4 = FCNN(1,5,1,tf_log,d_tf_tanh)
-
-l1w,l2w,l3w,l4w  = l1.getw(),l2.getw(),l3.getw(),l4.getw()
-
-# Make graph
+# Make a graph
 x = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 y = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 
-layer1 = l1.feedforward(x,1,1,"SAME",x_input=x)
-layer2 = l2.feedforward(layer1,1,1,"SAME",og_input=x,x_input=x)
-layer3 = l3.feedforward(layer2,1,1,"SAME",og_input=layer1*x,x_input=x)
-layer4 = l4.feedforward(layer3,1,1,"SAME",og_input=layer1*layer2*x,x_input=x)
+layer1 = tf.nn.atrous_conv2d(x,w1,padding="SAME",rate=1)
+layer1A = tf.nn.relu(layer1)
 
-# layer1 = l1.feedforward(x,1,1,"SAME",x_input=x)
-# layer2 = l2.feedforward(layer1,1,1,"SAME",og_input=layer1*x,x_input=x)
-# layer3 = l3.feedforward(layer2,1,1,"SAME",og_input=layer1*layer2*x,x_input=x)
-# layer4 = l4.feedforward(layer3,1,1,"SAME",og_input=layer1*layer2*layer3*x,x_input=x)
-# layer5 = l5.feedforward(layer4,1,1,"SAME",og_input=layer1*layer2*layer3*layer4*x,x_input=x)
+layer2 = tf.nn.atrous_conv2d(layer1A,w2,padding="SAME",rate=2)
+layer2BN = tf.contrib.layers.batch_norm(layer2)
+layer2A = tf.nn.relu(layer2BN)
 
-cost = tf.square(tf.subtract(layer4,y))
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=[l1w+l2w+l3w+l4w])
+layer3 = tf.nn.atrous_conv2d(layer2A,w3,padding="SAME",rate=3)
+layer3BN = tf.contrib.layers.batch_norm(layer3)
+layer3A = tf.nn.relu(layer3BN)
+
+layer4 = tf.nn.atrous_conv2d(layer3A,w4,padding="SAME",rate=4)
+layer4BN = tf.contrib.layers.batch_norm(layer4)
+layer4A = tf.nn.relu(layer4BN)
+
+layer5 = tf.nn.atrous_conv2d(layer4A,w5,padding="SAME",rate=4)
+layer5BN = tf.contrib.layers.batch_norm(layer5)
+layer5A = tf.nn.relu(layer5BN)
+
+layer6_Input = tf.concat((layer5A,layer2A),axis=3)
+layer6 = tf.nn.atrous_conv2d(layer6_Input,w6,padding="SAME",rate=4)
+layer6BN = tf.contrib.layers.batch_norm(layer6)
+layer6A = tf.nn.relu(layer6BN)
+
+layer7_Input = tf.concat((layer6A,layer1A),axis=3)
+layer7 = tf.nn.atrous_conv2d(layer7_Input,w7,padding="SAME",rate=4)
+layer7BN = tf.contrib.layers.batch_norm(layer7)
+layer7A = tf.nn.relu(layer7BN)
+
+final_layer = tf.add(x,layer7A)
+
+cost = tf.reduce_sum(tf.square(final_layer-y))
+
+auto_train  = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(cost,var_list=[w1,w2,w3,w4,w5,w6,w7])
+auto_train_20  = tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.9).minimize(cost,var_list=[w1,w2,w3,w4,w5,w6,w7])
+
+# hyper
+num_epoch = 101
+batch_size = 10 
+print_size= 10
 
 # Run the Session
 with tf.Session() as sess:
@@ -175,8 +118,8 @@ with tf.Session() as sess:
     total_cost = 0
     cost_over_time = []
 
-    low_does_last  = np.expand_dims(low_dose[-1,:,:,:],axis=0)
-    high_does_last = np.expand_dims(high_dose[-1,:,:,:],axis=0)
+    low_does_last = low_dose[-1,:,:,:]
+    high_does_last = high_dose[-1,:,:,:]
     
     low_dose = low_dose[:-1,:,:,:]
     high_dose = high_dose[:-1,:,:,:]
@@ -188,8 +131,8 @@ with tf.Session() as sess:
     high_dose_train_og =high_dose[:327,:,:,:]
 
     # Split the test set 
-    low_dose_test  =  np.vstack((low_dose[327:,:,:,:],low_does_last))
-    high_dose_test = np.vstack((high_dose[327:,:,:,:],high_does_last))
+    low_dose_test=   low_dose[327:,:,:,:]
+    high_dose_test = high_dose[327:,:,:,:]
 
     for iter in range(num_epoch):
         
@@ -203,7 +146,12 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(low_dose_train),batch_size):
             current_batch_low  = low_dose_train[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_high = high_dose_train[current_batch_index:current_batch_index+batch_size,:,:,:]
-            sess_result = sess.run([cost,auto_train],feed_dict={x:current_batch_low,y:current_batch_high})
+
+            if iter <20:    
+                sess_result = sess.run([cost,auto_train],feed_dict={x:current_batch_low,y:current_batch_high})
+            else:
+                sess_result = sess.run([cost,auto_train_20],feed_dict={x:current_batch_low,y:current_batch_high})
+                
             print("Current Iter: ", iter, " current batch: ", current_batch_index, " current Cost : ", sess_result[0].sum(),end='\r')
             total_cost= total_cost + np.sum(sess_result[0])
 
@@ -216,7 +164,7 @@ with tf.Session() as sess:
                 current_batch_low  = np.expand_dims(low_dose_cv[sample,:,:,:],axis=0).astype(np.float32)
                 current_batch_high  = np.expand_dims(high_dose_cv[sample,:,:,:],axis=0).astype(np.float32)
                 
-                sess_result = sess.run([layer4],feed_dict={x:current_batch_low,y:current_batch_high})
+                sess_result = sess.run([final_layer],feed_dict={x:current_batch_low,y:current_batch_high})
                 image=  sess_result[0]
                 real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(image))
                 total_PSNR = total_PSNR + real_PSNR
@@ -228,17 +176,17 @@ with tf.Session() as sess:
                 current_batch_low  = np.expand_dims(low_dose_test[sample,:,:,:],axis=0).astype(np.float32)
                 current_batch_high  = np.expand_dims(high_dose_test[sample,:,:,:],axis=0).astype(np.float32)
                 
-                sess_result = sess.run([layer4],feed_dict={x:current_batch_low,y:current_batch_high})
+                sess_result = sess.run([final_layer],feed_dict={x:current_batch_low,y:current_batch_high})
                 image=  sess_result[0]
                 real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(image))
                 total_PSNR = total_PSNR + real_PSNR
             print("Test Set: Current iter: ", iter, ' Average Peak Noise: ',total_PSNR/len(low_dose_test))
 
             # Print out the image
-            current_batch_low   = low_does_last.astype(np.float32)
-            current_batch_high  = high_does_last.astype(np.float32)  
+            current_batch_low  = np.expand_dims(low_does_last,axis=0).astype(np.float32)
+            current_batch_high  = np.expand_dims(high_does_last,axis=0).astype(np.float32)  
 
-            sess_result = sess.run([layer4],feed_dict={x:current_batch_low,y:current_batch_high})
+            sess_result = sess.run([final_layer],feed_dict={x:current_batch_low,y:current_batch_high})
             image=  sess_result[0]
             real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(image))
             print("Final Image to Compare: ", sample," Real : ",real_PSNR)
@@ -256,6 +204,8 @@ with tf.Session() as sess:
             plt.savefig(save_location + str(iter) +"_"+str(sample) + "_groundt_"+ str(real_PSNR)+ ".png")
             plt.close('all')
             print('=================')
+
+
     
         cost_over_time.append(total_cost)
         total_cost=0
