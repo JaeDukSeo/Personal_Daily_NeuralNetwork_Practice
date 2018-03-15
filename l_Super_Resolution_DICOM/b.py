@@ -69,12 +69,10 @@ class FCNN():
         else:
             self.layer  = tf.nn.conv2d(input*og_input,self.w,strides=[1,stride_row,stride_col,1],padding=padding) + self.b 
 
-        self.layer = tf.nn.dropout(self.layer,0.5)
-
         if  x_input==None:
             self.layerA = self.act(self.layer)
         else:            
-            self.layerA = (self.act(self.layer)*tf_small_blur(x_input) ) + tf_small_blur(x_input)
+            self.layerA = (self.act(self.layer)+tf_blur(x_input) ) * tf_small_blur(x_input)
         return self.layerA
 
     def backprop(self,gradient=None,og_input=None):
@@ -135,14 +133,14 @@ for file_index in range(len(lstFilesDCM_low)):
 print('===== READING / NORMALIZING DATA ========')
 
 
-low_dose_train_og = low_dose[:244+82,:,:,:]
-high_dose_train_og = high_dose[:244+82,:,:,:]
+# low_dose_train_og = low_dose[:244+82,:,:,:]
+# high_dose_train_og = high_dose[:244+82,:,:,:]
 
 # low_dose_cv = low_dose[244:244+82,:,:,:]
 # high_dose_cv = high_dose[244:244+82,:,:,:]
 
-low_dose_test = low_dose[244+82:,:,:,:]
-high_dose_test = high_dose[244+82:,:,:,:]
+# low_dose_test = low_dose[244+82:,:,:,:]
+# high_dose_test = high_dose[244+82:,:,:,:]
 
 # Save Location
 save_location = "./images_test/"
@@ -151,17 +149,17 @@ if os.path.exists(save_location):
 os.makedirs(save_location)
 
 # Hyper Param
-learning_rate = 0.05 
+learning_rate = 0.01 
 num_epoch = 301
 batch_size = 10 
 print_size= 10
 
 # Make Layer Object
-l1 = FCNN(6,1,3,tf_ReLU,d_tf_tanh)
-l2 = FCNN(3,3,3,tf_ReLU,d_tf_tanh)
-l3 = FCNN(2,6,3,tf_ReLU,d_tf_tanh)
-l4 = FCNN(1,6,3,tf_ReLU,d_tf_tanh)
-l5 = FCNN(1,3,1,tf_log,d_tf_tanh)
+l1 = FCNN(5,1,9,tf_tanh,d_tf_tanh)
+l2 = FCNN(4,9,9,tf_ReLU,d_tf_tanh)
+l3 = FCNN(3,9,9,tf_ReLU,d_tf_tanh)
+l4 = FCNN(2,9,9,tf_ReLU,d_tf_tanh)
+l5 = FCNN(1,9,1,tf_log,d_tf_tanh)
 
 l6 = FCNN(2,3,3,tf_ReLU,d_tf_tanh)
 l7 = FCNN(1,3,1,tf_log,d_tf_ReLu)
@@ -175,12 +173,8 @@ y = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 
 layer1 = l1.feedforward(x,1,1,"SAME",x_input=x)
 layer2 = l2.feedforward(layer1,1,1,"SAME",og_input=x,x_input=x)
-
-layer3_Input = tf.concat((layer1,layer2),axis=3)
-layer3 = l3.feedforward(layer3_Input,1,1,"SAME",og_input=None,x_input=x)
-
-layer4_Input = tf.concat((layer2,layer3),axis=3)
-layer4 = l4.feedforward(layer4_Input,1,1,"SAME",og_input=None,x_input=x)
+layer3 = l3.feedforward(layer2,1,1,"SAME",og_input=layer1*x,x_input=x)
+layer4 = l4.feedforward(layer3,1,1,"SAME",og_input=layer1*layer2*x,x_input=x)
 layer5 = l5.feedforward(layer4,1,1,"SAME",og_input=layer1*layer2*layer3*x,x_input=x)
 # layer6 = l6.feedforward(layer5,1,1,"SAME",layer1*layer2*layer3*layer4,x)
 # layer7 = l7.feedforward(layer6,1,1,"SAME",layer1*layer2*layer3*layer4*layer5,x)
@@ -194,6 +188,20 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     total_cost = 0
     cost_over_time = []
+
+    low_does_last = low_dose[-1,:,:,:]
+    high_does_last = high_dose[-1,:,:,:]
+    
+    low_dose = low_dose[:-1,:,:,:]
+    high_dose = high_dose[:-1,:,:,:]
+
+    low_dose,high_dose = shuffle(low_dose,high_dose)
+
+    low_dose_train_og =low_dose[:327,:,:,:]
+    high_dose_train_og =high_dose[:327,:,:,:]
+
+    low_dose_test=   low_dose[327:,:,:,:]
+    high_dose_test = high_dose[327:,:,:,:]
 
     for iter in range(num_epoch):
         
@@ -240,8 +248,8 @@ with tf.Session() as sess:
             print('=================')
 
             # Print out the image
-            current_batch_low  = np.expand_dims(low_dose_test[-1,:,:,:],axis=0).astype(np.float32)
-            current_batch_high  = np.expand_dims(high_dose_test[-1,:,:,:],axis=0).astype(np.float32)  
+            current_batch_low  = np.expand_dims(low_does_last,axis=0).astype(np.float32)
+            current_batch_high  = np.expand_dims(high_does_last,axis=0).astype(np.float32)  
 
             sess_result = sess.run([layer5,cost_PSNR],feed_dict={x:current_batch_low,y:current_batch_high})
             image=  sess_result[0]
