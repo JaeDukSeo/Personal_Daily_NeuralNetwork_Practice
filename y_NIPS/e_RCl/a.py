@@ -82,31 +82,59 @@ class RCNN():
         self.w_h = tf.Variable(tf.random_normal([h_kernel,h_kernel,x_out,x_out]))
         self.act,self.d_act = act,d_act
 
-        self.hidden  = tf.Variable(tf.zeros([timestamp,batch_size,width_height,width_height,x_out]))
-        self.hiddenA = tf.Variable(tf.zeros([timestamp,batch_size,width_height,width_height,x_out]))
+        self.input = tf.Variable(tf.zeros([timestamp,batch_size,width_height+4,width_height+4,x_in]))
+
+        self.hidden  = tf.Variable(tf.zeros([timestamp+1,batch_size,width_height,width_height,x_out]))
+        self.hiddenA = tf.Variable(tf.zeros([timestamp+1,batch_size,width_height,width_height,x_out]))
 
         self.m_x,self.v_x = tf.Variable(tf.zeros_like(self.w_x)),tf.Variable(tf.zeros_like(self.w_x))
         self.m_h,self.v_h = tf.Variable(tf.zeros_like(self.w_h)),tf.Variable(tf.zeros_like(self.w_h))
     
     def feedforward(self,input=None,timestamp=None):
+        
+        hidden_assign = []
+        hidden_assign.append( tf.assign(self.input[timestamp,:,:,:,:],input) )
+
         self.layer_x = tf.nn.conv2d(input,self.w_x,strides=[1,1,1,1],padding="VALID")
         self.layer_h = tf.nn.conv2d(self.hiddenA[timestamp-1,:,:,:,:],self.w_h,strides=[1,1,1,1],padding="SAME")
 
-        hidden_assign = []
-        hidden_assign.append( tf.assign( self.hidden[timestamp,:,:,:,:],  self.layer_x+self.layer_h))
-        hidden_assign.append( tf.assign(self.hiddenA[timestamp,:,:,:,:], self.act(self.hidden[timestamp,:,:,:,:]) ))
+        hidden_assign.append( tf.assign( self.hidden[timestamp+1,:,:,:,:], self.layer_x+self.layer_h))
+        hidden_assign.append( tf.assign(self.hiddenA[timestamp+1,:,:,:,:], self.act(self.hidden[timestamp+1,:,:,:,:]) ))
         
-        return self.hiddenA[timestamp,:,:,:,:],hidden_assign
+        return self.hiddenA[timestamp+1,:,:,:,:],hidden_assign
+
+    def backprop(self,gradient,timestamp):
         
+        grad_part_1 = gradient
+        grad_part_2 = self.d_act(self.hidden[timestamp,:,:,:,:])
+        grad_part_x =   self.input[timestamp,:,:,:,:]
+        grad_part_h = self.hiddenA[timestamp-1,:,:,:,:]
 
+        grad_middle = tf.multiply(grad_part_1,grad_part_2)
+        grad_x = tf.nn.conv2d_backprop_filter(
+            input=grad_part_x,
+            filter_sizes=self.w_x.shape,
+            out_backprop=grad_middle,strides=[1,1,1,1],padding="VALID")
 
+        grad_h = tf.nn.conv2d_backprop_filter(
+            input=grad_part_h,
+            filter_sizes=self.w_h.shape,
+            out_backprop=grad_middle,strides=[1,1,1,1],padding="SAME")
+
+        grad_pass = tf.nn.conv2d_backprop_input(
+            input_sizes = self.hiddenA[timestamp,:,:,:,:].shape,
+            filter = self.w_h,
+            out_backprop = grad_middle,
+            strides = [1,1,1,1],padding='SAME'
+        )
+        
+        return grad_pass,grad_middle
+        
 # read the data
 mnist = input_data.read_data_sets('../../MNIST_data', one_hot=True)
-
 train_images = np.vstack((mnist.train.images,mnist.validation.images))
 train_images = np.reshape(train_images,(len(train_images),28,28,1)).astype(np.float32)
 train_label  = np.vstack((mnist.train.labels,mnist.validation.labels)).astype(np.float32)
-
 test_images = np.reshape(mnist.test.images,(len(mnist.test.images),28,28,1)).astype(np.float32)
 test_label  = mnist.test.labels.astype(np.float32)
 
@@ -119,11 +147,11 @@ beta_1,beta_2 = 0.9,0.999
 adam_e = 0.00000001
 
 # Make class
-l1 = RCNN(timestamp=5,x_in=1,x_out=3,
+l1 = RCNN(timestamp=4,x_in=1,x_out=3,
         x_kernel = 5,h_kernel=3,width_height=24,
         act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
 
-l2 = RCNN(timestamp=5,x_in=3,x_out=1,
+l2 = RCNN(timestamp=4,x_in=3,x_out=1,
         x_kernel=5,h_kernel=3,width_height=20,
         act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
     
@@ -142,16 +170,16 @@ x4 = gamma_layer(x)
 
 layer_assign,backprop_assign = [],[]
 
-layer1_1,l1_1a = l1.feedforward(x1,1)
-layer1_2,l1_2a = l1.feedforward(x2,2)
-layer1_3,l1_3a = l1.feedforward(x3,3)
-layer1_4,l1_4a = l1.feedforward(x4,4)
+layer1_1,l1_1a = l1.feedforward(x1,0)
+layer1_2,l1_2a = l1.feedforward(x2,1)
+layer1_3,l1_3a = l1.feedforward(x3,2)
+layer1_4,l1_4a = l1.feedforward(x4,3)
 layer_assign.append(l1_1a+l1_2a+l1_3a+l1_4a)
 
-layer2_1,l2_1a = l2.feedforward(layer1_1,1)
-layer2_2,l2_2a = l2.feedforward(layer1_2,2)
-layer2_3,l2_3a = l2.feedforward(layer1_3,3)
-layer2_4,l2_4a = l2.feedforward(layer1_4,4)
+layer2_1,l2_1a = l2.feedforward(layer1_1,0)
+layer2_2,l2_2a = l2.feedforward(layer1_2,1)
+layer2_3,l2_3a = l2.feedforward(layer1_3,2)
+layer2_4,l2_4a = l2.feedforward(layer1_4,3)
 layer_assign.append(l2_1a+l2_2a+l2_3a+l2_4a)
 
 layer3_Input = tf.reshape(layer2_4,[batch_size,-1])
@@ -168,9 +196,12 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # auto train 
 auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
-grad_5,grad5w = l5.backprop(final_layer-y)
-grad_4,grad4w = l4.backprop(grad_5)
-grad_3,grad3w = l3.backprop(grad_4)
+grad_5,grad5w   = l5.backprop(final_layer-y)
+grad_4,grad4w   = l4.backprop(grad_5)
+grad_3,grad3w   = l3.backprop(grad_4)
+
+grad_2_Input = tf.reshape(grad_3,[batch_size,20,20,1])
+grad2_4,grad2_4w = l2.backprop(grad_2_Input,3)
 
 backprop_assign.append(grad5w+grad4w+grad3w)
 
@@ -188,10 +219,10 @@ with tf.Session() as sess:
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_label[current_batch_index:current_batch_index+batch_size,:]
 
-            sess_results = sess.run([grad_5,layer_assign,backprop_assign],feed_dict={x:current_batch,y:current_batch_label})
+            sess_results = sess.run([grad2_4,layer_assign,backprop_assign],feed_dict={x:current_batch,y:current_batch_label})
 
             print(sess_results[0].shape)
-            print(sess_results[1].shape)
+            print(len(sess_results[1]))
             
 
             sys.exit()
