@@ -22,19 +22,19 @@ def tf_softmax(x): return tf.nn.softmax(x)
 # Different noises
 def gaussian_noise_layer(input_layer):
     noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=1.0, dtype=tf.float32) 
-    return input_layer + noise
+    return input_layer + 0.1*noise
 
 def possin_layer(layer):
-    noise = tf.random_poisson(lam=0.0,shape=tf.shape(layer),dtype=tf.float32)
-    return noise + layer
+    noise = tf.random_poisson(lam=1.0,shape=tf.shape(layer),dtype=tf.float32)
+    return 0.1*noise + layer
 
 def uniform_layer(input_layer):
-    noise = tf.random_uniform(shape=tf.shape(input_layer),dtype=tf.float32)
-    return noise + input_layer
+    noise = tf.random_uniform(shape=tf.shape(input_layer),minval=0.5,dtype=tf.float32)
+    return 0.6*noise + input_layer
 
 def gamma_layer(input_layer):
-    noise = tf.random_gamma(shape=tf.shape(input_layer),alpha=0.0,dtype=tf.float32)
-    return noise + input_layer
+    noise = tf.random_gamma(shape=tf.shape(input_layer),alpha=1.0,dtype=tf.float32)
+    return 0.1*noise + input_layer
 
 # Make Class
 class FNN():
@@ -82,7 +82,7 @@ class RCNN():
         self.w_h = tf.Variable(tf.random_normal([h_kernel,h_kernel,x_out,x_out]))
         self.act,self.d_act = act,d_act
 
-        self.input = tf.Variable(tf.zeros([timestamp,batch_size,width_height+4,width_height+4,x_in]))
+        self.input = tf.Variable(tf.zeros([timestamp,batch_size,width_height+2,width_height+2,x_in]))
 
         self.hidden  = tf.Variable(tf.zeros([timestamp+1,batch_size,width_height,width_height,x_out]))
         self.hiddenA = tf.Variable(tf.zeros([timestamp+1,batch_size,width_height,width_height,x_out]))
@@ -168,22 +168,22 @@ test_label  = mnist.test.labels.astype(np.float32)
 
 # Hyper Param
 num_epoch = 100
-batch_size = 1000
-learning_rate = 0.0001
+batch_size = 100
+learning_rate = 0.01
 
 beta_1,beta_2 = 0.9,0.999
 adam_e = 0.00000001
 
 # Make class
-l1 = RCNN(timestamp=8,x_in=1,x_out=3,
-        x_kernel = 5,h_kernel=3,width_height=24,
-        act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
+l1 = RCNN(timestamp=4,x_in=1,x_out=5,
+        x_kernel = 3,h_kernel=3,width_height=26,
+        act=tf_log,d_act=d_tf_ReLU,batch_size=batch_size)
 
-l2 = RCNN(timestamp=8,x_in=3,x_out=5,
-        x_kernel=5,h_kernel=3,width_height=20,
-        act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
+l2 = RCNN(timestamp=4,x_in=5,x_out=7,
+        x_kernel=3,h_kernel=3,width_height=24,
+        act=tf_log,d_act=d_tf_ReLU,batch_size=batch_size)
     
-l3 = FNN(20*20*5,2024,tf_log,d_tf_log)
+l3 = FNN(24*24*7,2024,tf_log,d_tf_log)
 l4 = FNN(2024,1024,tf_log,d_tf_log)
 l5 = FNN(1024,10,tf_log,d_tf_log)
 
@@ -201,19 +201,15 @@ x4 = gamma_layer(x)
 layer_assign,backprop_assign = [],[]
 
 layer1_1,l1_1a = l1.feedforward(x1,0)
-layer1_2,l1_2a = l1.feedforward(x1,1)
-layer1_3,l1_3a = l1.feedforward(x2,2)
-layer1_4,l1_4a = l1.feedforward(x2,3)
-layer1_5,l1_5a = l1.feedforward(x3,4)
-layer1_6,l1_6a = l1.feedforward(x3,5)
-layer1_7,l1_7a = l1.feedforward(x4,6)
-layer1_8,l1_8a = l1.feedforward(x4,7)
-layer_assign = layer_assign + l1_1a+l1_2a+l1_3a+l1_4a+l1_5a+l1_6a+l1_7a
+layer1_2,l1_2a = l1.feedforward(x2,1)
+layer1_3,l1_3a = l1.feedforward(x3,2)
+layer1_4,l1_4a = l1.feedforward(x4,3)
+layer_assign = layer_assign + l1_1a+l1_2a+l1_3a+l1_4a
 
-layer2_1,l2_1a = l2.feedforward(layer1_2,0)
-layer2_2,l2_2a = l2.feedforward(layer1_4,1)
-layer2_3,l2_3a = l2.feedforward(layer1_6,2)
-layer2_4,l2_4a = l2.feedforward(layer1_8,3)
+layer2_1,l2_1a = l2.feedforward(layer1_1,0)
+layer2_2,l2_2a = l2.feedforward(layer1_2,1)
+layer2_3,l2_3a = l2.feedforward(layer1_3,2)
+layer2_4,l2_4a = l2.feedforward(layer1_4,3)
 layer_assign = layer_assign + l2_1a+l2_2a+l2_3a+l2_4a
 
 layer3_Input = tf.reshape(layer2_4,[batch_size,-1])
@@ -227,26 +223,27 @@ correct_prediction = tf.equal(tf.argmax(final_layer, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # auto train 
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=l1w+l2w+l3w+l4w+l5w)
+# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=l1w+l2w+l3w+l4w+l5w)
+# auto_train = tf.train.RMSPropOptimizer(learning_rate=learning_rate).minimize(cost,var_list=l1w+l2w+l3w+l4w+l5w)
 
-# grad_5,grad5w   = l5.backprop(final_layer-y)
-# grad_4,grad4w   = l4.backprop(grad_5)
-# grad_3,grad3w   = l3.backprop(grad_4)
+grad_5,grad5w   = l5.backprop(final_layer-y)
+grad_4,grad4w   = l4.backprop(grad_5)
+grad_3,grad3w   = l3.backprop(grad_4)
 
-# grad_2_Input = tf.reshape(grad_3,[batch_size,20,20,5])
-# grad2_4_x,grad2_4_h,grad2_4w = l2.backprop(grad_2_Input,3)
-# grad2_3_x,grad2_3_h,grad2_3w = l2.backprop(grad2_4_h,2)
-# grad2_2_x,grad2_2_h,grad2_2w = l2.backprop(grad2_3_h,1)
-# grad2_1_x,grad2_1_h,grad2_1w = l2.backprop(grad2_2_h,0)
+grad_2_Input = tf.reshape(grad_3,[batch_size,20,20,5])
+grad2_4_x,grad2_4_h,grad2_4w = l2.backprop(grad_2_Input,3)
+grad2_3_x,grad2_3_h,grad2_3w = l2.backprop(grad2_4_h,2)
+grad2_2_x,grad2_2_h,grad2_2w = l2.backprop(grad2_3_h,1)
+grad2_1_x,grad2_1_h,grad2_1w = l2.backprop(grad2_2_h,0)
 
-# grad1_4_x,grad1_4_h,grad1_4w = l1.backprop(grad2_4_x,3)
-# grad1_3_x,grad1_3_h,grad1_3w = l1.backprop(grad1_4_h+grad2_3_x,2)
-# grad1_2_x,grad1_2_h,grad1_2w = l1.backprop(grad1_3_h+grad2_2_x,1)
-# grad1_1_x,grad1_1_h,grad1_1w = l1.backprop(grad1_2_h+grad2_1_x,0)
+grad1_4_x,grad1_4_h,grad1_4w = l1.backprop(grad2_4_x,3)
+grad1_3_x,grad1_3_h,grad1_3w = l1.backprop(grad1_4_h+grad2_3_x,2)
+grad1_2_x,grad1_2_h,grad1_2w = l1.backprop(grad1_3_h+grad2_2_x,1)
+grad1_1_x,grad1_1_h,grad1_1w = l1.backprop(grad1_2_h+grad2_1_x,0)
 
-# backprop_assign.append(grad5w+grad4w+grad3w)
-# backprop_assign.append(grad2_4w+grad2_3w+grad2_2w+grad2_1w)
-# backprop_assign.append(grad1_4w+grad1_3w+grad1_2w+grad1_1w)
+backprop_assign.append(grad5w+grad4w+grad3w)
+backprop_assign.append(grad2_4w+grad2_3w+grad2_2w+grad2_1w)
+backprop_assign.append(grad1_4w+grad1_3w+grad1_2w+grad1_1w)
 
 # Make session
 with tf.Session() as sess:
@@ -263,6 +260,16 @@ with tf.Session() as sess:
             # sess_results = sess.run([cost,accuracy,correct_prediction,layer_assign,backprop_assign],feed_dict={x:current_batch,y:current_batch_label})
             sess_results = sess.run([cost,accuracy,correct_prediction,layer_assign,auto_train],feed_dict={x:current_batch,y:current_batch_label})
             
+            # sess_results = sess.run([x1,x2,x3,x4,accuracy,correct_prediction,layer_assign,auto_train],feed_dict={x:current_batch,y:current_batch_label})
+            # plt.imshow(np.squeeze(sess_results[0][0,:,:,:]),cmap='gray')
+            # plt.show()
+            # plt.imshow(np.squeeze(sess_results[1][0,:,:,:]),cmap='gray')
+            # plt.show()
+            # plt.imshow(np.squeeze(sess_results[2][0,:,:,:]),cmap='gray')
+            # plt.show()
+            # plt.imshow(np.squeeze(sess_results[3][0,:,:,:]),cmap='gray')
+            # plt.show()
+
             print("Current Iter: ",iter, " Current Cost: ",sess_results[0].sum(), " current Accuracy: ",sess_results[1],end='\r' )
             
         if iter % 5==0: print('\n\n')
