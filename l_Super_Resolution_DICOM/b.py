@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from skimage.measure import compare_psnr
 from sklearn.utils import shuffle
 import shutil
+from skimage.measure import compare_ssim as ssim
+
 np.random.seed(2)
 tf.set_random_seed(2)
 
@@ -72,7 +74,7 @@ class FCNN():
         if  x_input==None:
             self.layerA = self.act(self.layer)
         else:            
-            self.layerA = (self.act(self.layer)+tf_blur(x_input) ) * tf_small_blur(x_input)
+            self.layerA = (self.act(self.layer)+0.9*(x_input) ) * tf_small_blur(x_input)
         return self.layerA
 
     def backprop(self,gradient=None,og_input=None):
@@ -137,18 +139,23 @@ if os.path.exists(save_location):
 os.makedirs(save_location)
 
 # Hyper Param
-learning_rate = 0.05 
-num_epoch = 101
+learning_rate = 0.05
+num_epoch = 801
 batch_size = 10 
 print_size= 5
 
 # Make Layer Object
-l1 = FCNN(6,1,5,tf_tanh,d_tf_tanh)
-l2 = FCNN(4,5,5,tf_log,d_tf_tanh)
-l3 = FCNN(2,5,5,tf_ReLU,d_tf_tanh)
-l4 = FCNN(1,5,1,tf_log,d_tf_tanh)
+l1 = FCNN(5,1,9,tf_tanh,d_tf_tanh)
+l2 = FCNN(4,9,9,tf_ReLU,d_tf_tanh)
+l3 = FCNN(3,9,9,tf_ReLU,d_tf_tanh)
+l4 = FCNN(1,9,1,tf_log,d_tf_tanh)
+
+l5 = FCNN(2,3,3,tf_tanh,d_tf_tanh)
+l6 = FCNN(2,3,3,tf_ReLU,d_tf_tanh)
+l7 = FCNN(1,3,1,tf_log,d_tf_ReLu)
 
 l1w,l2w,l3w,l4w  = l1.getw(),l2.getw(),l3.getw(),l4.getw()
+l5w,l6w,l7w = l5.getw(),l6.getw(),l7.getw()
 
 # Make graph
 x = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
@@ -158,12 +165,6 @@ layer1 = l1.feedforward(x,1,1,"SAME",x_input=x)
 layer2 = l2.feedforward(layer1,1,1,"SAME",og_input=x,x_input=x)
 layer3 = l3.feedforward(layer2,1,1,"SAME",og_input=layer1*x,x_input=x)
 layer4 = l4.feedforward(layer3,1,1,"SAME",og_input=layer1*layer2*x,x_input=x)
-
-# layer1 = l1.feedforward(x,1,1,"SAME",x_input=x)
-# layer2 = l2.feedforward(layer1,1,1,"SAME",og_input=layer1*x,x_input=x)
-# layer3 = l3.feedforward(layer2,1,1,"SAME",og_input=layer1*layer2*x,x_input=x)
-# layer4 = l4.feedforward(layer3,1,1,"SAME",og_input=layer1*layer2*layer3*x,x_input=x)
-# layer5 = l5.feedforward(layer4,1,1,"SAME",og_input=layer1*layer2*layer3*layer4*x,x_input=x)
 
 cost = tf.square(tf.subtract(layer4,y))
 auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=[l1w+l2w+l3w+l4w])
@@ -212,18 +213,22 @@ with tf.Session() as sess:
             print('\n=================')
             # CV SET Average PSNR
             total_PSNR = 0
+            total_SSIM = 0
             for sample in range(len(low_dose_cv)):
                 current_batch_low  = np.expand_dims(low_dose_cv[sample,:,:,:],axis=0).astype(np.float32)
                 current_batch_high  = np.expand_dims(high_dose_cv[sample,:,:,:],axis=0).astype(np.float32)
                 
                 sess_result = sess.run([layer4],feed_dict={x:current_batch_low,y:current_batch_high})
                 image=  sess_result[0]
-                real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(image))
+                real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(current_batch_high))
+                real_SSIM = ssim(np.squeeze(current_batch_high),np.squeeze(current_batch_high))
                 total_PSNR = total_PSNR + real_PSNR
-            print("CV Set: Current iter: ", iter, ' Average Peak Noise: ',total_PSNR/len(low_dose_cv))
+                total_SSIM = total_SSIM + real_SSIM
+            print("CV Set: Current iter: ", iter, ' Average Peak Noise: ',total_PSNR/len(low_dose_cv), ' Average SSIM: ',total_SSIM/len(low_dose_cv))
 
             # Test SET Average PSNR
             total_PSNR = 0
+            total_SSIM = 0
             for sample in range(len(low_dose_test)):
                 current_batch_low  = np.expand_dims(low_dose_test[sample,:,:,:],axis=0).astype(np.float32)
                 current_batch_high  = np.expand_dims(high_dose_test[sample,:,:,:],axis=0).astype(np.float32)
@@ -231,8 +236,10 @@ with tf.Session() as sess:
                 sess_result = sess.run([layer4],feed_dict={x:current_batch_low,y:current_batch_high})
                 image=  sess_result[0]
                 real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(image))
+                real_SSIM = ssim(np.squeeze(current_batch_high),np.squeeze(image))
                 total_PSNR = total_PSNR + real_PSNR
-            print("Test Set: Current iter: ", iter, ' Average Peak Noise: ',total_PSNR/len(low_dose_test))
+                total_SSIM = total_SSIM + real_SSIM
+            print("Test Set: Current iter: ", iter, ' Average Peak Noise: ',total_PSNR/len(low_dose_test), ' Average SSIM: ',total_SSIM/len(low_dose_test))
 
             # Print out the image
             current_batch_low   = low_does_last.astype(np.float32)
@@ -241,7 +248,8 @@ with tf.Session() as sess:
             sess_result = sess.run([layer4],feed_dict={x:current_batch_low,y:current_batch_high})
             image=  sess_result[0]
             real_PSNR = compare_psnr(np.squeeze(current_batch_high),np.squeeze(image))
-            print("Final Image to Compare: ", sample," Real : ",real_PSNR)
+            real_SSIM = ssim(np.squeeze(current_batch_high),np.squeeze(image))
+            print("Final Image to Compare: ", sample," Real : ",real_PSNR, " SSIM : ",real_SSIM)
 
             plt.figure()
             plt.imshow(np.squeeze(image),cmap='gray')
