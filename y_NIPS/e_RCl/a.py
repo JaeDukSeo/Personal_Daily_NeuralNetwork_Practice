@@ -8,7 +8,7 @@ np.random.seed(678)
 tf.set_random_seed(5678)
 
 # activation
-def tf_log(x): return tf.Sigmoid(x)
+def tf_log(x): return tf.sigmoid(x)
 def d_tf_log(x): return tf_log(x) * ( 1.0 - tf_log(x))
 
 def tf_ReLU(x): return tf.nn.relu(x)
@@ -37,31 +37,57 @@ def gamma_layer(input_layer):
     return noise + input_layer
 
 # Make Class
+class FNN():
+    
+    def __init__(self,input,output,act,d_act):
+        self.w = tf.Variable(tf.random_normal([input,output]))
+        self.act,self.d_act = act,d_act
+        self.m,self.h = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
+
+    def feedforward(self,input):
+        self.input = input
+        self.layer  = tf.matmul(input,self.w)
+        self.layerA = self.act(self.layer)
+        return self.layerA
+
+    def backprop(self,gradient):
+        grad_part_1 = gradient 
+        grad_part_2 = self.d_act(self.layer)
+        grad_part_3 = self.input
+
+        grad = tf.matmul(tf.transpose(grad_part_3),tf.multiply(grad_part_1,grad_part_2))
+        grad_pass = tf.matmul(tf.multiply(grad_part_1,grad_part_2),tf.transpose(self.w))
+
+
+
+        return grad_pass,3
+        
+
 class RCNN():
     
     def __init__(self,timestamp,
                 x_in,x_out,
                 x_kernel,h_kernel,width_height,
-                act,d_act):
+                act,d_act,batch_size):
         
         self.w_x = tf.Variable(tf.random_normal([x_kernel,x_kernel,x_in,x_out]))
         self.w_h = tf.Variable(tf.random_normal([h_kernel,h_kernel,x_out,x_out]))
         self.act,self.d_act = act,d_act
-        self.hidden  = tf.Variable(tf.zeros([timestamp,width_height,width_height,x_in]))
-        self.hiddenA = tf.Variable(tf.zeros([timestamp,width_height,width_height,x_out]))
+        self.hidden  = tf.Variable(tf.zeros([timestamp,batch_size,width_height,width_height,x_in]))
+        self.hiddenA = tf.Variable(tf.zeros([timestamp,batch_size,width_height,width_height,x_out]))
 
         self.m_x,self.h_x = tf.Variable(tf.zeros_like(self.w_x)),tf.Variable(tf.zeros_like(self.w_x))
         self.m_h,self.h_h = tf.Variable(tf.zeros_like(self.w_h)),tf.Variable(tf.zeros_like(self.w_h))
     
     def feedforward(self,input=None,timestamp=None):
         self.layer_x = tf.nn.conv2d(input,self.w_x,strides=[1,1,1,1],padding="VALID")
-        self.layer_h = tf.nn.conv2d(tf.expand_dims(self.hiddenA[timestamp-1,:,:,:],axis=0),self.w_h,strides=[1,1,1,1],padding="SAME")
+        self.layer_h = tf.nn.conv2d(self.hiddenA[timestamp-1,:,:,:,:],self.w_h,strides=[1,1,1,1],padding="SAME")
 
         hidden_assign = []
-        hidden_assign.append(tf.assign(self.hidden[timestamp,:,:,:],tf.squeeze(self.layer_x+self.layer_h)))
-        hidden_assign.append(tf.assign(self.hiddenA[timestamp,:,:,:],self.act(self.hidden[timestamp,:,:,:]) ))
+        hidden_assign.append(tf.assign(self.hidden[timestamp,:,:,:,:],self.layer_x+self.layer_h))
+        hidden_assign.append(tf.assign(self.hiddenA[timestamp,:,:,:,:],self.act(self.hidden[timestamp,:,:,:,:]) ))
         
-        return self.hiddenA[timestamp,:,:,:],hidden_assign
+        return self.hiddenA[timestamp,:,:,:,:],hidden_assign
         
 
 
@@ -75,11 +101,23 @@ train_label  = np.vstack((mnist.train.labels,mnist.validation.labels)).astype(np
 test_images = np.reshape(mnist.test.images,(len(mnist.test.images),28,28,1)).astype(np.float32)
 test_label  = mnist.test.labels.astype(np.float32)
 
+# Hyper Param
+num_epoch = 1
+batch_size = 1000
+learning_rate = 0.0001
+
 # Make class
 l1 = RCNN(timestamp=5,x_in=1,x_out=3,
-        x_kernel = 3,h_kernel=5,width_height=26,
-        act=tf_arctan,d_act=d_tf_acrtan)
+        x_kernel = 5,h_kernel=3,width_height=24,
+        act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
 
+l2 = RCNN(timestamp=5,x_in=3,x_out=1,
+        x_kernel=5,h_kernel=3,width_height=20,
+        act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
+    
+l3 = FNN(400,1024,tf_arctan,d_tf_acrtan)
+l4 = FNN(1024,2048,tf_arctan,d_tf_acrtan)
+l5 = FNN(2048,10,tf_log,d_tf_log)
 
 # Make Graphs
 x = tf.placeholder(shape=[None,28,28,1],dtype=tf.float32)
@@ -90,14 +128,33 @@ x2 = possin_layer(x)
 x3 = uniform_layer(x)
 x4 = gamma_layer(x)
 
-# layer1_1 = l1.feedforward(x,1)
-# layer1_1 = l1.feedforward(x,1)
-# layer1_1 = l1.feedforward(x,1)
-# layer1_1 = l1.feedforward(x,1)
+layer_assign,backprop_assin = [],[]
 
-# Hyper Param
-num_epoch = 1
-batch_size = 1000
+layer1_1,l1_1a = l1.feedforward(x1,1)
+layer1_2,l1_2a = l1.feedforward(x2,2)
+layer1_3,l1_3a = l1.feedforward(x3,3)
+layer1_4,l1_4a = l1.feedforward(x4,4)
+
+layer2_1,l2_1a = l2.feedforward(layer1_1,1)
+layer2_2,l2_2a = l2.feedforward(layer1_2,2)
+layer2_3,l2_3a = l2.feedforward(layer1_3,3)
+layer2_4,l2_4a = l2.feedforward(layer1_4,4)
+
+layer3_Input = tf.reshape(layer2_4,[batch_size,-1])
+layer3 = l3.feedforward(layer3_Input)
+layer4 = l4.feedforward(layer3)
+layer5 = l5.feedforward(layer4)
+
+final_layer = tf_softmax(layer5)
+
+cost = -1.0 * (y*tf.log(final_layer) + (1-y) * tf.log(1-y))
+correct_prediction = tf.equal(tf.argmax(final_layer, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+# auto train 
+auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+
+grad_5,grad5w = l5.backprop(final_layer-y)
 
 # Make session
 with tf.Session() as sess:
@@ -113,7 +170,7 @@ with tf.Session() as sess:
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_label[current_batch_index:current_batch_index+batch_size,:]
 
-            sess_results = sess.run([x1,x2,x3,x4],feed_dict={x:current_batch,y:current_batch_label})
+            sess_results = sess.run([grad_5,x2,x3,x4],feed_dict={x:current_batch,y:current_batch_label})
 
             print(sess_results[0].shape)
             print(sess_results[1].shape)
