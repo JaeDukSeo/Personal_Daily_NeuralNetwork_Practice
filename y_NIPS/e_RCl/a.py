@@ -175,11 +175,11 @@ beta_1,beta_2 = 0.9,0.999
 adam_e = 0.00000001
 
 # Make class
-l1 = RCNN(timestamp=4,x_in=1,x_out=3,
+l1 = RCNN(timestamp=8,x_in=1,x_out=3,
         x_kernel = 5,h_kernel=3,width_height=24,
         act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
 
-l2 = RCNN(timestamp=4,x_in=3,x_out=5,
+l2 = RCNN(timestamp=8,x_in=3,x_out=5,
         x_kernel=5,h_kernel=3,width_height=20,
         act=tf_ReLU,d_act=d_tf_ReLU,batch_size=batch_size)
     
@@ -201,15 +201,19 @@ x4 = gamma_layer(x)
 layer_assign,backprop_assign = [],[]
 
 layer1_1,l1_1a = l1.feedforward(x1,0)
-layer1_2,l1_2a = l1.feedforward(x2,1)
-layer1_3,l1_3a = l1.feedforward(x3,2)
-layer1_4,l1_4a = l1.feedforward(x4,3)
-layer_assign = layer_assign + l1_1a+l1_2a+l1_3a+l1_4a
+layer1_2,l1_2a = l1.feedforward(x1,1)
+layer1_3,l1_3a = l1.feedforward(x2,2)
+layer1_4,l1_4a = l1.feedforward(x2,3)
+layer1_5,l1_5a = l1.feedforward(x3,4)
+layer1_6,l1_6a = l1.feedforward(x3,5)
+layer1_7,l1_7a = l1.feedforward(x4,6)
+layer1_8,l1_8a = l1.feedforward(x4,7)
+layer_assign = layer_assign + l1_1a+l1_2a+l1_3a+l1_4a+l1_5a+l1_6a+l1_7a
 
-layer2_1,l2_1a = l2.feedforward(layer1_1,0)
-layer2_2,l2_2a = l2.feedforward(layer1_2,1)
-layer2_3,l2_3a = l2.feedforward(layer1_3,2)
-layer2_4,l2_4a = l2.feedforward(layer1_4,3)
+layer2_1,l2_1a = l2.feedforward(layer1_2,0)
+layer2_2,l2_2a = l2.feedforward(layer1_4,1)
+layer2_3,l2_3a = l2.feedforward(layer1_6,2)
+layer2_4,l2_4a = l2.feedforward(layer1_8,3)
 layer_assign = layer_assign + l2_1a+l2_2a+l2_3a+l2_4a
 
 layer3_Input = tf.reshape(layer2_4,[batch_size,-1])
