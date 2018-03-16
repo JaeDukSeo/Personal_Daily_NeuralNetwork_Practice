@@ -19,6 +19,23 @@ def d_tf_acrtan(x): return 1/(1 + tf.square(x))
 
 def tf_softmax(x): return tf.nn.softmax(x)
 
+# Different noises
+def gaussian_noise_layer(input_layer):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=1.0, dtype=tf.float32) 
+    return input_layer + noise
+
+def possin_layer(layer):
+    noise = tf.random_poisson(lam=0.0,shape=tf.shape(layer),dtype=tf.float32)
+    return noise + layer
+
+def uniform_layer(input_layer):
+    noise = tf.random_uniform(shape=tf.shape(input_layer),dtype=tf.float32)
+    return noise + input_layer
+
+def gamma_layer(input_layer):
+    noise = tf.random_gamma(shape=tf.shape(input_layer),alpha=0.0,dtype=tf.float32)
+    return noise + input_layer
+
 # Make Class
 class RCNN():
     
@@ -68,15 +85,15 @@ l1 = RCNN(timestamp=5,x_in=1,x_out=3,
 x = tf.placeholder(shape=[None,28,28,1],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 
-s = tf.contrib.image.rotate(x,90)
+x1 = gaussian_noise_layer(x)
+x2 = possin_layer(x)
+x3 = uniform_layer(x)
+x4 = gamma_layer(x)
 
 # layer1_1 = l1.feedforward(x,1)
 # layer1_1 = l1.feedforward(x,1)
 # layer1_1 = l1.feedforward(x,1)
 # layer1_1 = l1.feedforward(x,1)
-
-
-
 
 # Hyper Param
 num_epoch = 1
@@ -96,11 +113,11 @@ with tf.Session() as sess:
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_label[current_batch_index:current_batch_index+batch_size,:]
 
-            print(current_batch.shape)
-            print(current_batch_label.shape)
+            sess_results = sess.run([x1,x2,x3,x4],feed_dict={x:current_batch,y:current_batch_label})
+
+            print(sess_results[0].shape)
+            print(sess_results[1].shape)
             
-            sess_results = sess.run([s],feed_dict={x:current_batch,y:current_batch_label})
-            sssss = input()
 
             sys.exit()
             
