@@ -18,7 +18,6 @@ for dirName, subdirList, fileList in os.walk(PathDicom):
         if not ".html" in filename.lower() and not  ".meta" in filename.lower():  # check whether the file's DICOM
             lstFilesDCM.append(os.path.join(dirName,filename))
 
-print(lstFilesDCM)
 temp = unpickle(lstFilesDCM[0])
 
 print(len(temp[b'batch_label']))
@@ -33,7 +32,7 @@ data = temp[b'data']
 filenames = temp[b'filenames']
 
 
-for i in range(10):
+for i in range(0):
 
     print("batch Label : ",batch_label[i])
     print("Label : ",labels[i])    
