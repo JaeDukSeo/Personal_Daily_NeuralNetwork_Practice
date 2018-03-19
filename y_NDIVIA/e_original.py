@@ -92,7 +92,7 @@ l3 = CNNLayer(5,36,48)
 l4 = CNNLayer(3,48,64)
 l5 = CNNLayer(3,64,64)
 
-l6 = FCCLayer(1024,1164)
+l6 = FCCLayer(256,1164)
 l7 = FCCLayer(1164,100)
 l8 = FCCLayer(100,50)
 l9 = FCCLayer(50,10)
@@ -116,12 +116,12 @@ adam_e = 0.00000001
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 
-layer1 = l1.feedforward(x)
+layer1 = l1.feedforward(x,stride_num=2)
 layer2 = l2.feedforward(layer1)
 layer3 = l3.feedforward(layer2)
 
-layer4 = l4.feedforward(layer3,stride_num=2)
-layer5 = l5.feedforward(layer4,stride_num=2)
+layer4 = l4.feedforward(layer3)
+layer5 = l5.feedforward(layer4)
 
 layer6_Input = tf.reshape(layer5,[batch_size,-1])
 layer6 = l6.feedforward(layer6_Input)
