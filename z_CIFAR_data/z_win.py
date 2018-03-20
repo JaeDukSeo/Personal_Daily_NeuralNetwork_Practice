@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
 
 np.random.seed(6789)
 tf.set_random_seed(678)
