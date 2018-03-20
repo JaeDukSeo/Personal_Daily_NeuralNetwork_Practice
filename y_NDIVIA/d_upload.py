@@ -145,8 +145,8 @@ class FCCLayer():
 # Hyper Param
 learning_rate = 0.001
 batch_size = 200
-num_epoch = 1000
-print_size = 50
+num_epoch = 10
+print_size = 5
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -507,7 +507,34 @@ def case2_Dilated2():
             
     return train_cost_overtime,train_acc_overtime,test_cost_overtime,test_acc_overtime
 
+# results
+train_cost_overtime0,train_acc_overtime0,test_cost_overtime0,test_acc_overtime0 = case0_Dilated()
+train_cost_overtime1,train_acc_overtime1,test_cost_overtime1,test_acc_overtime1 = case1_Dilated()
+train_cost_overtime2,train_acc_overtime2,test_cost_overtime2,test_acc_overtime2 = case2_Dilated2()
 
-train_cost_overtime,train_acc_overtime,test_cost_overtime,test_acc_overtime = case2_Dilated2()
+# plot and save
+plt.figure()
+ptl.plot(range(len(train_cost_overtime0)),train_cost_overtime0,color='r')
+ptl.plot(range(len(train_cost_overtime0)),train_cost_overtime1,color='g')
+ptl.plot(range(len(train_cost_overtime0)),train_cost_overtime2,color='b')
+plt.savefig('Train Cost over time')
+
+plt.figure()
+ptl.plot(range(len(train_acc_overtime0)),train_acc_overtime0,color='r')
+ptl.plot(range(len(train_acc_overtime0)),train_acc_overtime1,color='g')
+ptl.plot(range(len(train_acc_overtime0)),train_acc_overtime2,color='b')
+plt.savefig('Train Acc over time')
+
+plt.figure()
+ptl.plot(range(len(test_cost_overtime0)),test_cost_overtime0,color='r')
+ptl.plot(range(len(test_cost_overtime0)),test_cost_overtime1,color='g')
+ptl.plot(range(len(test_cost_overtime0)),test_cost_overtime2,color='b')
+plt.savefig('Test Cost over time')
+
+plt.figure()
+ptl.plot(range(len(test_acc_overtime0)),test_acc_overtime0,color='r')
+ptl.plot(range(len(test_acc_overtime0)),test_acc_overtime1,color='g')
+ptl.plot(range(len(test_acc_overtime0)),test_acc_overtime2,color='b')
+plt.savefig('Test Acc over time')
 
 # --- end code --
