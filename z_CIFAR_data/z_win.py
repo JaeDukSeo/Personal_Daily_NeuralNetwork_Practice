@@ -15,6 +15,12 @@ def unpickle(file):
 def tf_Relu(x): return tf.nn.relu(x)
 def d_tf_Relu(x): return tf.cast(tf.greater(x,0),dtype=tf.float32)
 
+def tf_acrtan(x): return tf.atan(x)
+def d_tf_arctan(x): return 1/(1+tf.square(x))
+
+def tf_tanh(x): return tf.tanh(x)
+def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
+
 # make class
 class CNNLayer():
     
@@ -66,10 +72,6 @@ test_batch = np.reshape(test_batch,(len(test_batch),3,32,32))
 train_batch = np.rot90(np.rot90(train_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
 test_batch = np.rot90(np.rot90(test_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
 
-for iter in range(10):
-    
-    plt.imshow(train_batch[iter,:,:,:])
-    plt.show()
 
 
 # -- end code --
