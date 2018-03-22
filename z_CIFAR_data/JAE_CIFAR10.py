@@ -1,5 +1,3 @@
-__author__ = 'mangate'
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,8 +6,27 @@ import tensorflow as tf
 from six.moves import cPickle as pickle
 from read_10_data import get_data
 
+np.random.seed(789)
+tf.set_random_seed(789)
+
+def tf_elu(x): return tf.nn.elu(x)
+def d_tf_elu(x): return tf_elu(x) + 1.0 
+
+# get data
 NUM_CLASSES = 10
 train_images, train_labels, test_images,test_labels = get_data()
+
+# make layer class
+class CNNLayer():
+      
+  def __init__(self,kernel,in_c,out_c):
+    self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=0.05,mean=0.0))
+    self.b = tf.Variable(tf.constant(value=0.1,shape=[out_c]))
+      
+  def feedforward(self,input):
+    return 4
+  def backprop(self,gradient):
+    return 3.0
 
 def _variable_on_cpu(name, shape, initializer=tf.constant_initializer(0.1)):
   """Helper to create a Variable stored on CPU memory.
@@ -111,7 +128,7 @@ def model(input_data):
     stack1_dropped=tf.nn.dropout(stack1,stack1_prob_input)
 
     #pooling
-    pool1 = tf.nn.max_pool(stack1_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+    pool1 = tf.nn.avg_pool(stack1_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
     #Stack2
     #========
@@ -125,7 +142,7 @@ def model(input_data):
     stack2_dropped=tf.nn.dropout(stack2_2,stack2_prob_input)
 
     #pooling
-    pool2 = tf.nn.max_pool(stack2_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
+    pool2 = tf.nn.avg_pool(stack2_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
 
     #Stack3
     #========
@@ -140,7 +157,7 @@ def model(input_data):
     stack3_dropped=tf.nn.dropout(stack3_2,stack3_prob_input)
 
     #pooling
-    pool3 = tf.nn.max_pool(stack3_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+    pool3 = tf.nn.avg_pool(stack3_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
     #Stack4
     #========
@@ -154,7 +171,7 @@ def model(input_data):
     stack4_dropped=tf.nn.dropout(stack4_2,stack4_prob_input)
 
     #pooling
-    pool4 = tf.nn.max_pool(stack4_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+    pool4 = tf.nn.avg_pool(stack4_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
     #Stack5
     #========
@@ -168,7 +185,7 @@ def model(input_data):
     stack5_dropped=tf.nn.dropout(stack5_2,stack5_prob_input)
 
     #pooling
-    pool5 = tf.nn.max_pool(stack5_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
+    pool5 = tf.nn.avg_pool(stack5_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
 
     #Stack6
     #========
