@@ -61,6 +61,11 @@ test_batch = np.reshape(test_batch,(len(test_batch),3,32,32))
 train_batch = np.rot90(np.rot90(train_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
 test_batch = np.rot90(np.rot90(test_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
 
+print(train_batch.shape)
+print(test_batch.shape)
+sys.exit()
+
+
 # cnn
 class CNNLayer():
     

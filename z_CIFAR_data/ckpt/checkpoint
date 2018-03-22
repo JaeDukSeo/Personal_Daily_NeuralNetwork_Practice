@@ -1,0 +1,2 @@
+model_checkpoint_path: "elu_model.ckpt-80000"
+all_model_checkpoint_paths: "elu_model.ckpt-80000"
