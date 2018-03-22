@@ -6,10 +6,9 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import tensorflow as tf
 from six.moves import cPickle as pickle
-from open_cifar100_data import get_data
+from read_10_data import get_data
 
-
-NUM_CLASSES = 100
+NUM_CLASSES = 10
 train_images, train_labels, test_images,test_labels = get_data()
 
 def save_data_to_file(filename,data):
@@ -67,8 +66,7 @@ def _variable_with_weight_decay(name, shape, stddev=0.05, wd=0.0005):
 
 #Accuracy measurment for the results
 def accuracy(predictions, labels):
-  return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
-          / predictions.shape[0])
+  return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / predictions.shape[0])
 
 graph = tf.Graph()
 with graph.as_default():
@@ -120,19 +118,16 @@ with graph.as_default():
     def model(input_data):
         #Stack 1
         #========
-
         conv1_stack1 = tf.nn.conv2d(input_data, w1_stack1, [1, 1, 1, 1], padding='SAME')
         bias1 = tf.nn.bias_add(conv1_stack1, b1_stack1)
         stack1 = tf.nn.elu(bias1)
         stack1_dropped=tf.nn.dropout(stack1,stack1_prob_input)
 
         #pooling
-        pool1 = tf.nn.max_pool(stack1_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                             padding='SAME', name='pool1')
+        pool1 = tf.nn.max_pool(stack1_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
         #Stack2
         #========
-
         conv1_stack2 = tf.nn.conv2d(pool1, w1_stack2, [1, 1, 1, 1], padding='SAME')
         bias1_stack2 = tf.nn.bias_add(conv1_stack2, b1_stack2)
         stack2_1 = tf.nn.elu(bias1_stack2)
@@ -143,13 +138,10 @@ with graph.as_default():
         stack2_dropped=tf.nn.dropout(stack2_2,stack2_prob_input)
 
         #pooling
-        pool2 = tf.nn.max_pool(stack2_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                             padding='SAME', name='pool1')
-
+        pool2 = tf.nn.max_pool(stack2_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
 
         #Stack3
         #========
-
         conv1_stack3 = tf.nn.conv2d(pool2, w1_stack3, [1, 1, 1, 1], padding='SAME')
         bias1_stack3 = tf.nn.bias_add(conv1_stack3, b1_stack3)
         stack3_1 = tf.nn.elu(bias1_stack3)
@@ -161,14 +153,10 @@ with graph.as_default():
         stack3_dropped=tf.nn.dropout(stack3_2,stack3_prob_input)
 
         #pooling
-        pool3 = tf.nn.max_pool(stack3_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                             padding='SAME', name='pool1')
-
-
+        pool3 = tf.nn.max_pool(stack3_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
         #Stack4
         #========
-
         conv1_stack4 = tf.nn.conv2d(pool3, w1_stack4, [1, 1, 1, 1], padding='SAME')
         bias1_stack4 = tf.nn.bias_add(conv1_stack4, b1_stack4)
         stack4_1 = tf.nn.elu(bias1_stack4)
@@ -183,7 +171,6 @@ with graph.as_default():
 
         #Stack5
         #========
-
         conv1_stack5 = tf.nn.conv2d(pool4, w1_stack5, [1, 1, 1, 1], padding='SAME')
         bias1_stack5 = tf.nn.bias_add(conv1_stack5, b1_stack5)
         stack5_1 = tf.nn.elu(bias1_stack5)
@@ -194,12 +181,10 @@ with graph.as_default():
         stack5_dropped=tf.nn.dropout(stack5_2,stack5_prob_input)
 
         #pooling
-        pool5 = tf.nn.max_pool(stack5_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                             padding='SAME', name='pool1')
+        pool5 = tf.nn.max_pool(stack5_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
 
         #Stack6
         #========
-
         conv1_stack6 = tf.nn.conv2d(pool5, w1_stack6, [1, 1, 1, 1], padding='SAME')
         bias1_stack6 = tf.nn.bias_add(conv1_stack6, b1_stack6)
         stack6_1 = tf.nn.elu(bias1_stack6)
@@ -207,12 +192,10 @@ with graph.as_default():
         stack6_dropped=tf.nn.dropout(stack6_1,stack6_prob_input)
 
         #pooling
-        #pool6 = tf.nn.max_pool(stack6_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-        #                     padding='SAME', name='pool1')
+        #pool6 = tf.nn.max_pool(stack6_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
         #Stack7
         #========
-
         conv1_stack7 = tf.nn.conv2d(stack6_dropped, w1_stack7, [1, 1, 1, 1], padding='SAME')
         bias1_stack7 = tf.nn.bias_add(conv1_stack7, b1_stack7)
         stack7_1 = tf.nn.elu(bias1_stack7)
@@ -220,12 +203,10 @@ with graph.as_default():
         stack7_dropped=tf.nn.dropout(stack7_1,stack7_prob_input)
 
         #pooling
-        #pool7 = tf.nn.max_pool(stack7_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-        #                     padding='SAME', name='pool1')
+        #pool7 = tf.nn.max_pool(stack7_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
         #Softmax layer
         y_conv_reshaped=tf.reshape(stack7_dropped,(-1,NUM_CLASSES))
-
         return y_conv_reshaped
 
     #Loss

@@ -15,7 +15,7 @@ def unpickle(file):
         dict = pickle.load(fo, encoding='bytes')
     return dict
 
-def tf_Relu(x): return tf.nn.relu(x)
+def tf_Relu(x): return tf.nn.elu(x)
 def d_tf_Relu(x): return tf.cast(tf.greater(x,0),dtype=tf.float32)
 
 def tf_acrtan(x): return tf.atan(x)
@@ -52,6 +52,7 @@ class CNNLayer():
         self.layer  = tf.nn.conv2d(input,self.w,strides=[1,1,1,1],padding=padding)
         self.layerA = self.act(self.layer)
         self.layerA_mean = tf.nn.avg_pool(input,ksize=[1,2,2,1],strides=[1,2,2,1],padding="SAME")
+        # self.layerA_mean = tf.nn.max_pool(input,ksize=[1,2,2,1],strides=[1,2,2,1],padding="SAME")
         return self.layerA_mean
 
     def backprop(self,gradient,padding):
@@ -127,7 +128,7 @@ train_data, train_label, test_data,test_label = get_data()
 
 # hyper parameter
 num_epoch = 101 
-learning_rate = 0.001
+learning_rate = 0.00008
 batch_size = 100
 print_size = 10
 
@@ -144,9 +145,9 @@ l2 = CNNLayer(5,50,50,tf_Relu,d_tf_Relu)
 l3 = CNNLayer(5,50,150,tf_Relu,d_tf_Relu)
 l4 = CNNLayer(5,150,150,tf_Relu,d_tf_Relu)
 
-l5 = FNNLayer(8*8*150,2048,tf_log,d_tf_log)
-l6 = FNNLayer(2048,2048,tf_log,d_tf_log)
-l7 = FNNLayer(2048,10,tf_log,d_tf_log)
+l5 = FNNLayer(8*8*150,512,tf_log,d_tf_log)
+l6 = FNNLayer(512,512,tf_log,d_tf_log)
+l7 = FNNLayer(512,10,tf_log,d_tf_log)
 
 weight_list = l1.getw()+l2.getw()+l3.getw()+l4.getw()+l5.getw()+l6.getw()+l7.getw()
 
@@ -174,7 +175,8 @@ correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # auto train
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=weight_list)
+# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=weight_list)
+auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9).minimize(cost,var_list=weight_list)
 
 # make session
 # config = tf.ConfigProto(device_count = {'GPU': 0})
