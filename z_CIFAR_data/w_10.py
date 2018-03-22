@@ -4,6 +4,8 @@ from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import OneHotEncoder
 import os
+from read_10_data import get_data
+
 np.random.seed(6789)
 tf.set_random_seed(678)
 
@@ -25,6 +27,8 @@ def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
 def tf_log(x): return tf.sigmoid(x)
 def d_tf_log(x): return tf_log(x) * (1.0 - tf_log(x))
 
+def tf_elu(x): return tf.nn.elu(x)
+
 def tf_softmax(x): return tf.nn.softmax(x)
 
 # make class
@@ -35,29 +39,20 @@ class CNNLayer():
             self.w = tf.Variable(tf.random_normal([kernel,kernel,in_c,out_c]))
             self.act,self.d_act = act,d_act
             self.m,self.v = tf.Variable(tf.zeros_like(self.w)), tf.Variable(tf.zeros_like(self.w))
-    def getw(self): return self.w
-    def feedforward(self,input,padding,resinput=None):
-        
+    def getw(self): return [self.w]
+
+    def feedforward(self,input,padding):
         self.input  = input 
         self.layer  = tf.nn.conv2d(input,self.w,strides=[1,1,1,1],padding=padding)
         self.layerA = self.act(self.layer)
-
-        if resinput==None:
-            self.layerA = self.act(self.layer)
-        else: 
-            self.layerA = self.act(self.layer)+resinput
-            
         return self.layerA
 
-    def feedforward2(self,input,padding,resinput=None):
+    def feedforward_mean(self,input,padding):
         self.input  = input 
         self.layer  = tf.nn.conv2d(input,self.w,strides=[1,1,1,1],padding=padding)
-        if resinput==None:
-            self.layerA = self.act(self.layer)
-        else: 
-            self.layerA = self.act(self.layer)+resinput
-            
-        return self.layerA
+        self.layerA = self.act(self.layer)
+        self.layerA_mean = tf.nn.avg_pool(input,ksize=[1,2,2,1],strides=[1,2,2,1],padding="SAME")
+        return self.layerA_mean
 
     def backprop(self,gradient,padding):
         
@@ -93,7 +88,6 @@ class CNNLayer():
 
         return pass_on_grad,grad_update             
 
-
 class FNNLayer():
     
     def __init__(self,in_c,out_c,act,d_act):
@@ -101,23 +95,12 @@ class FNNLayer():
             self.w = tf.Variable(tf.random_normal([in_c,out_c]))
             self.act,self.d_act = act,d_act
             self.m,self.v = tf.Variable(tf.zeros_like(self.w)), tf.Variable(tf.zeros_like(self.w))
-    def getw(self): return self.w
-    def feedforward(self,input,resinput=None):
+    def getw(self): return [self.w]
+    def feedforward(self,input):
         self.input  = input 
         self.layer  = tf.matmul(input,self.w)
         self.layerA = self.act(self.layer)
-        if resinput==None:
-            self.layerA = self.act(self.layer)
-        else: 
-            self.layerA = self.act(self.layer)+resinput
-            
         return self.layerA
-    
-    def feedforward2(self,input):
-        self.input  = input 
-        self.layer  = tf.matmul(input,self.w)
-        self.layerA = self.act(self.layer)
-        return self.layerA     
 
     def backprop(self,gradient):
         
@@ -139,82 +122,33 @@ class FNNLayer():
 
         return pass_on_grad,grad_update    
 
-PathDicom = "./cifar10batchespy/"
-lstFilesDCM = []  # create an empty list
-for dirName, subdirList, fileList in os.walk(PathDicom):
-    for filename in fileList:
-        if not ".html" in filename.lower() and not  ".meta" in filename.lower():  # check whether the file's DICOM
-            lstFilesDCM.append(os.path.join(dirName,filename))
-
 # Read the data traind and Test
-batch0 = unpickle(lstFilesDCM[0])
-batch1 = unpickle(lstFilesDCM[1])
-batch2 = unpickle(lstFilesDCM[2])
-batch3 = unpickle(lstFilesDCM[3])
-batch4 = unpickle(lstFilesDCM[4])
-
-onehot_encoder = OneHotEncoder(sparse=True)
-
-train_batch = np.vstack((batch0[b'data'],batch1[b'data'],batch2[b'data'],batch3[b'data'],batch4[b'data']))
-train_label = np.expand_dims(np.hstack((batch0[b'labels'],batch1[b'labels'],batch2[b'labels'],batch3[b'labels'],batch4[b'labels'])).T,axis=1).astype(np.float32)
-train_label = onehot_encoder.fit_transform(train_label).toarray().astype(np.float32)
-
-test_batch = unpickle(lstFilesDCM[5])[b'data']
-test_label = np.expand_dims(np.array(unpickle(lstFilesDCM[5])[b'labels']),axis=0).T.astype(np.float32)
-test_label = onehot_encoder.fit_transform(test_label).toarray().astype(np.float32)
-
-# Normalize data from 0 to 1
-train_batch = (train_batch - train_batch.min(axis=0))/(train_batch.max(axis=0)-train_batch.min(axis=0))
-test_batch = (test_batch - test_batch.min(axis=0))/(test_batch.max(axis=0)-test_batch.min(axis=0))
-
-# reshape data
-train_batch = np.reshape(train_batch,(len(train_batch),3,32,32))
-test_batch = np.reshape(test_batch,(len(test_batch),3,32,32))
-
-# rotate data
-train_data = np.rot90(np.rot90(train_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
-test_data = np.rot90(np.rot90(test_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
+train_data, train_label, test_data,test_label = get_data()
 
 # hyper parameter
-num_epoch = 501 
+num_epoch = 101 
 learning_rate = 0.001
 batch_size = 100
-print_size = 3
-
-print(train_data.shape)
-print(train_label.shape)
-print(test_data.shape)
-print(test_label.shape)
+print_size = 10
 
 proportion_rate = 1000
 decay_rate = 0.08
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
-change_channel = 10
-change_size = 32
-fully_connected_neuron = 512
 
-# make class 
-Cl1 = CNNLayer(11,3,change_channel,tf_Relu,d_tf_Relu)
-Cl2 = CNNLayer(9, change_channel,change_channel,tf_Relu,d_tf_Relu)
-Cl3 = CNNLayer(7, change_channel,change_channel,tf_Relu,d_tf_Relu)
-Cl4 = CNNLayer(5, change_channel,change_channel,tf_Relu,d_tf_Relu)
-Cl5 = CNNLayer(3, change_channel,change_channel,tf_Relu,d_tf_Relu)
-Cl6 = CNNLayer(1, change_channel,change_channel,tf_Relu,d_tf_Relu)
+# make layers
+l1 = CNNLayer(7,3,50,tf_Relu,d_tf_Relu)
+l2 = CNNLayer(5,50,50,tf_Relu,d_tf_Relu)
 
-Fl1 = FNNLayer(change_size*change_size*
-               change_channel,fully_connected_neuron,tf_log,d_tf_log)
-Fl2 = FNNLayer(fully_connected_neuron,fully_connected_neuron,tf_log,d_tf_log)
-Fl3 = FNNLayer(fully_connected_neuron,fully_connected_neuron,tf_log,d_tf_log)
-Fl4 = FNNLayer(fully_connected_neuron,10,tf_log,d_tf_log)
+l3 = CNNLayer(5,50,150,tf_Relu,d_tf_Relu)
+l4 = CNNLayer(5,150,150,tf_Relu,d_tf_Relu)
 
-weights = [
-        Cl1.getw(),Cl2.getw(),
-        Cl3.getw(),Cl4.getw(),
-        Cl5.getw(),Cl6.getw(),
-        Fl1.getw(),Fl2.getw(),
-        Fl3.getw(),Fl4.getw()]
+l5 = FNNLayer(8*8*150,2048,tf_log,d_tf_log)
+l6 = FNNLayer(2048,2048,tf_log,d_tf_log)
+l7 = FNNLayer(2048,10,tf_log,d_tf_log)
+
+weight_list = l1.getw()+l2.getw()+l3.getw()+l4.getw()+l5.getw()+l6.getw()+l7.getw()
 
 # make graph
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
@@ -223,42 +157,28 @@ y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 iter_variable_dil = tf.placeholder(tf.float32, shape=())
 decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
-layer1 = Cl1.feedforward(x,'SAME')
-layer2 = Cl2.feedforward(layer1,'SAME',layer1)
-layer3 = Cl3.feedforward(layer2,'SAME',layer2 )
-layer4 = Cl4.feedforward(layer3,'SAME',layer3 )
+layer1 = l1.feedforward(x,'SAME')
+layer2 = l2.feedforward_mean(layer1,'SAME')
 
-layer5 = Cl5.feedforward(layer4,'SAME',layer4 )
-layer6 = Cl6.feedforward(layer5,'SAME' )
+layer3 = l3.feedforward(layer2,'SAME')
+layer4 = l4.feedforward_mean(layer3,'SAME')
 
-Flayer5_Input = tf.reshape(layer6,[batch_size,-1])
-Flayer5 = Fl1.feedforward(Flayer5_Input)
-Flayer6 = Fl2.feedforward(Flayer5,Flayer5)
-Flayer7 = Fl3.feedforward(Flayer6,Flayer6)
-Flayer8 = Fl4.feedforward(Flayer7)
+layer5_Input = tf.reshape(layer4,[batch_size,-1])
+layer5 = l5.feedforward(layer5_Input)
+layer6 = l6.feedforward(layer5)
+layer7 = l7.feedforward(layer6)
 
-final_soft = tf_softmax(Flayer8)
+final_soft = tf_softmax(layer7)
 cost = tf.reduce_sum(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # auto train
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=weights)
-
-# back propagation
-grad_8,grad_8w = Fl4.backprop(final_soft-y)
-grad_7,grad_7w = Fl3.backprop(grad_8+decay_propotoin_rate*(grad_8))
-grad_6,grad_6w = Fl2.backprop(grad_7+decay_propotoin_rate*(grad_8+grad_7))
-grad_5,grad_5w = Fl1.backprop(grad_6+decay_propotoin_rate*(grad_8+grad_7+grad_6))
-
-grad_4_Input = tf.reshape(grad_5,[batch_size,change_size,change_size,change_channel])
-grad_4,grad_4w = Cl4.backprop(grad_4_Input+decay_propotoin_rate*(grad_4_Input),'SAME')
-grad_3,grad_3w = Cl3.backprop(grad_4+decay_propotoin_rate*(grad_4_Input+grad_4),'SAME')
-grad_2,grad_2w = Cl2.backprop(grad_3+decay_propotoin_rate*(grad_4_Input+grad_4+grad_3),'SAME')
-grad_1,grad_1w = Cl1.backprop(grad_2+decay_propotoin_rate*(grad_4_Input+grad_4+grad_3+grad_2),'SAME')
-grad_update = grad_8w+grad_7w+grad_6w+grad_5w+grad_4w+grad_3w+grad_2w+grad_1w
+auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=weight_list)
 
 # make session
+# config = tf.ConfigProto(device_count = {'GPU': 0})
+# with tf.Session(config=config) as sess: 
 with tf.Session() as sess: 
 
     sess.run(tf.global_variables_initializer())
@@ -270,23 +190,22 @@ with tf.Session() as sess:
     test_cost_overtime,test_acc_overtime = [],[]
 
     for iter in range(num_epoch):
-        
-        # train_data,train_label = shuffle(train_data,train_label)
+        train_data,train_label = shuffle(train_data,train_label)
 
-        # train
+        # Train Set
         for current_batch_index in range(0,len(train_data),batch_size):
             
             current_batch = train_data[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_label[current_batch_index:current_batch_index+batch_size,:]
 
-            # sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_batch,y:current_batch_label})
-            sess_results = sess.run([cost,accuracy,correct_prediction,grad_update],feed_dict={x:current_batch,y:current_batch_label,iter_variable_dil:iter})
+            sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_batch,y:current_batch_label})
+            # sess_results = sess.run([cost,accuracy,correct_prediction,grad_update],feed_dict={x:current_batch,y:current_batch_label,iter_variable_dil:iter})
             
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
 
-        # Test batch
+        # Test Set
         for current_batch_index in range(0,len(test_data),batch_size):
 
             current_batch = test_data[current_batch_index:current_batch_index+batch_size,:,:,:]
@@ -298,11 +217,11 @@ with tf.Session() as sess:
             test_total_acc = test_total_acc + sess_results[1]
 
         # store
-        train_cost_overtime.append(train_total_cost/(len(train_batch)/batch_size ) )
-        train_acc_overtime.append(train_total_acc/(len(train_batch)/batch_size ) )
+        train_cost_overtime.append(train_total_cost/(len(train_data)/batch_size ) )
+        train_acc_overtime.append(train_total_acc/(len(train_data)/batch_size ) )
 
-        test_cost_overtime.append(test_total_cost/(len(test_batch)/batch_size ) )
-        test_acc_overtime.append(test_total_acc/(len(test_batch)/batch_size ) )
+        test_cost_overtime.append(test_total_cost/(len(test_data)/batch_size ) )
+        test_acc_overtime.append(test_total_acc/(len(test_data)/batch_size ) )
         
         # print
         if iter%print_size == 0:
@@ -318,22 +237,22 @@ with tf.Session() as sess:
     # plot and save
     plt.figure()
     plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r')
-    # plt.savefig('Train Cost over time')
+    plt.title('Train Cost over time')
     plt.show()
 
     plt.figure()
     plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='b')
-    # plt.savefig('Train Acc over time')
+    plt.title('Train Acc over time')
     plt.show()
 
     plt.figure()
     plt.plot(range(len(test_cost_overtime)),test_cost_overtime,color='y')
-    # plt.savefig('Test Cost over time')
+    plt.title('Test Cost over time')
     plt.show()
 
     plt.figure()
     plt.plot(range(len(test_acc_overtime)),test_acc_overtime,color='g')
-    # plt.savefig('Test Acc over time')
+    plt.title('Test Acc over time')
     plt.show()
 
 # -- end code --

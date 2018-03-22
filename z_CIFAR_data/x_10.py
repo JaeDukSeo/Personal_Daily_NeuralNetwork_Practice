@@ -3,7 +3,9 @@ import numpy as np,sys
 from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import OneHotEncoder
-import os,numpy
+import os
+from read_10_data import get_data
+
 np.random.seed(6789)
 tf.set_random_seed(678)
 
@@ -26,78 +28,6 @@ def tf_log(x): return tf.sigmoid(x)
 def d_tf_log(x): return tf_log(x) * (1.0 - tf_log(x))
 
 def tf_softmax(x): return tf.nn.softmax(x)
-
-def global_contrast_normalize(X, scale=1., subtract_mean=True, use_std=False,
-                              sqrt_bias=0., min_divisor=1e-8):
-    """
-    Global contrast normalizes by (optionally) subtracting the mean
-    across features and then normalizes by either the vector norm
-    or the standard deviation (across features, for each example).
-    Parameters
-    ----------
-    X : ndarray, 2-dimensional
-        Design matrix with examples indexed on the first axis and \
-        features indexed on the second.
-    scale : float, optional
-        Multiply features by this const.
-    subtract_mean : bool, optional
-        Remove the mean across features/pixels before normalizing. \
-        Defaults to `True`.
-    use_std : bool, optional
-        Normalize by the per-example standard deviation across features \
-        instead of the vector norm. Defaults to `False`.
-    sqrt_bias : float, optional
-        Fudge factor added inside the square root. Defaults to 0.
-    min_divisor : float, optional
-        If the divisor for an example is less than this value, \
-        do not apply it. Defaults to `1e-8`.
-    Returns
-    -------
-    Xp : ndarray, 2-dimensional
-        The contrast-normalized features.
-    Notes
-    -----
-    `sqrt_bias` = 10 and `use_std = True` (and defaults for all other
-    parameters) corresponds to the preprocessing used in [1].
-    References
-    ----------
-    .. [1] A. Coates, H. Lee and A. Ng. "An Analysis of Single-Layer
-       Networks in Unsupervised Feature Learning". AISTATS 14, 2011.
-       http://www.stanford.edu/~acoates/papers/coatesleeng_aistats_2011.pdf
-    """
-    assert X.ndim == 2, "X.ndim must be 2"
-    scale = float(scale)
-    assert scale >= min_divisor
-
-    # Note: this is per-example mean across pixels, not the
-    # per-pixel mean across examples. So it is perfectly fine
-    # to subtract this without worrying about whether the current
-    # object is the train, valid, or test set.
-    mean = X.mean(axis=1)
-    if subtract_mean:
-        X = X - mean[:, numpy.newaxis]  # Makes a copy.
-    else:
-        X = X.copy()
-
-    if use_std:
-        # ddof=1 simulates MATLAB's var() behaviour, which is what Adam
-        # Coates' code does.
-        ddof = 1
-
-        # If we don't do this, X.var will return nan.
-        if X.shape[1] == 1:
-            ddof = 0
-
-        normalizers = numpy.sqrt(sqrt_bias + X.var(axis=1, ddof=ddof)) / scale
-    else:
-        normalizers = numpy.sqrt(sqrt_bias + (X ** 2).sum(axis=1)) / scale
-
-    # Don't normalize by anything too small.
-    normalizers[normalizers < min_divisor] = 1.
-
-    X /= normalizers[:, numpy.newaxis]  # Does not make a copy.
-    return X
-
 
 # make class
 class CNNLayer():
@@ -165,7 +95,6 @@ class CNNLayer():
 
         return pass_on_grad,grad_update             
 
-
 class FNNLayer():
     
     def __init__(self,in_c,out_c,act,d_act):
@@ -211,83 +140,23 @@ class FNNLayer():
 
         return pass_on_grad,grad_update    
 
-PathDicom = "./cifar10batchespy/"
-lstFilesDCM = []  # create an empty list
-for dirName, subdirList, fileList in os.walk(PathDicom):
-    for filename in fileList:
-        if not ".html" in filename.lower() and not  ".meta" in filename.lower():  # check whether the file's DICOM
-            lstFilesDCM.append(os.path.join(dirName,filename))
-
 # Read the data traind and Test
-batch0 = unpickle(lstFilesDCM[0])
-batch1 = unpickle(lstFilesDCM[1])
-batch2 = unpickle(lstFilesDCM[2])
-batch3 = unpickle(lstFilesDCM[3])
-batch4 = unpickle(lstFilesDCM[4])
-
-onehot_encoder = OneHotEncoder(sparse=True)
-
-train_batch = np.vstack((batch0[b'data'],batch1[b'data'],batch2[b'data'],batch3[b'data'],batch4[b'data']))
-train_label = np.expand_dims(np.hstack((batch0[b'labels'],batch1[b'labels'],batch2[b'labels'],batch3[b'labels'],batch4[b'labels'])).T,axis=1).astype(np.float32)
-train_label = onehot_encoder.fit_transform(train_label).toarray().astype(np.float32)
-
-test_batch = unpickle(lstFilesDCM[5])[b'data']
-test_label = np.expand_dims(np.array(unpickle(lstFilesDCM[5])[b'labels']),axis=0).T.astype(np.float32)
-test_label = onehot_encoder.fit_transform(test_label).toarray().astype(np.float32)
-
-# Normalize data from 0 to 1
-train_batch = (train_batch - train_batch.min(axis=0))/(train_batch.max(axis=0)-train_batch.min(axis=0))
-test_batch = (test_batch - test_batch.min(axis=0))/(test_batch.max(axis=0)-test_batch.min(axis=0))
-
-# reshape data
-train_batch = np.reshape(train_batch,(len(train_batch),3,32,32))
-test_batch = np.reshape(test_batch,(len(test_batch),3,32,32))
-
-# rotate data
-train_data = np.rot90(np.rot90(train_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
-test_data = np.rot90(np.rot90(test_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np.float32)
-
-# for x in range(len(test_data)):
-#     train_data[x,:,:,0] = global_contrast_normalize(train_data[x,:,:,0] )
-#     train_data[x,:,:,1] = global_contrast_normalize(train_data[x,:,:,1] )
-#     train_data[x,:,:,2] = global_contrast_normalize(train_data[x,:,:,2] )
-
-# for x in range(len(test_data)):
-#     test_data[x,:,:,0] = global_contrast_normalize(test_data[x,:,:,0] )
-#     test_data[x,:,:,1] = global_contrast_normalize(test_data[x,:,:,1] )
-#     test_data[x,:,:,2] = global_contrast_normalize(test_data[x,:,:,2] )
-
-
-global ZCAMatrix
-
-def zca_whitening(inputs):
-    global ZCAMatrix
-    sigma = np.dot(inputs, inputs.T)/inputs.shape[1] #Correlation matrix
-    U,S,V = np.linalg.svd(sigma) #Singular Value Decomposition
-    epsilon = 0.1                #Whitening constant, it prevents division by zero
-    ZCAMatrix = np.dot(np.dot(U, np.diag(1.0/np.sqrt(np.diag(S) + epsilon))), U.T)                     #ZCA Whitening matrix
-    return np.dot(ZCAMatrix, inputs)   #Data whitening
-
+train_data, train_label, test_data,test_label = get_data()
 
 # hyper parameter
-num_epoch = 801 
+num_epoch = 101 
 learning_rate = 0.001
 batch_size = 100
 print_size = 3
-
-print(train_data.shape)
-print(train_label.shape)
-print(test_data.shape)
-print(test_label.shape)
 
 proportion_rate = 1000
 decay_rate = 0.08
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
-change_channel = 64
-change_size = 30
-fully_connected_neuron = 1024
+change_channel = 10
+change_size = 32
+fully_connected_neuron = 512
 
 # make class 
 Cl1 = CNNLayer(11,3,change_channel,tf_Relu,d_tf_Relu)
@@ -317,18 +186,13 @@ y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 iter_variable_dil = tf.placeholder(tf.float32, shape=())
 decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
-# layer1 = Cl1.feedforward(x,'SAME',decay_propotoin_rate*(x) )
-# layer2 = Cl2.feedforward(layer1,'SAME',decay_propotoin_rate*(x*layer1) )
-# layer3 = Cl3.feedforward(layer2,'SAME',decay_propotoin_rate*(x*layer1*layer2) )
-# layer4 = Cl4.feedforward(layer3,'SAME',decay_propotoin_rate*(x*layer1*layer2*layer3) )
-
 layer1 = Cl1.feedforward(x,'SAME')
 layer2 = Cl2.feedforward(layer1,'SAME',layer1)
 layer3 = Cl3.feedforward(layer2,'SAME',layer2 )
 layer4 = Cl4.feedforward(layer3,'SAME',layer3 )
 
-layer5 = Cl5.feedforward(layer4,'VALID' )
-layer6 = Cl6.feedforward(layer5,'VALID' )
+layer5 = Cl5.feedforward(layer4,'SAME',layer4 )
+layer6 = Cl6.feedforward(layer5,'SAME' )
 
 Flayer5_Input = tf.reshape(layer6,[batch_size,-1])
 Flayer5 = Fl1.feedforward(Flayer5_Input)
@@ -342,7 +206,7 @@ correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # auto train
-# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=weights)
+auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost,var_list=weights)
 
 # back propagation
 grad_8,grad_8w = Fl4.backprop(final_soft-y)
@@ -350,9 +214,9 @@ grad_7,grad_7w = Fl3.backprop(grad_8+decay_propotoin_rate*(grad_8))
 grad_6,grad_6w = Fl2.backprop(grad_7+decay_propotoin_rate*(grad_8+grad_7))
 grad_5,grad_5w = Fl1.backprop(grad_6+decay_propotoin_rate*(grad_8+grad_7+grad_6))
 
-grad_4_Input = tf.reshape(grad_5,[batch_size,32,32,change_channel])
-grad_4,grad_4w = Cl4.backprop(grad_4_Input,'VALID')
-grad_3,grad_3w = Cl3.backprop(grad_4,'VALID')
+grad_4_Input = tf.reshape(grad_5,[batch_size,change_size,change_size,change_channel])
+grad_4,grad_4w = Cl4.backprop(grad_4_Input+decay_propotoin_rate*(grad_4_Input),'SAME')
+grad_3,grad_3w = Cl3.backprop(grad_4+decay_propotoin_rate*(grad_4_Input+grad_4),'SAME')
 grad_2,grad_2w = Cl2.backprop(grad_3+decay_propotoin_rate*(grad_4_Input+grad_4+grad_3),'SAME')
 grad_1,grad_1w = Cl1.backprop(grad_2+decay_propotoin_rate*(grad_4_Input+grad_4+grad_3+grad_2),'SAME')
 grad_update = grad_8w+grad_7w+grad_6w+grad_5w+grad_4w+grad_3w+grad_2w+grad_1w
@@ -370,7 +234,7 @@ with tf.Session() as sess:
 
     for iter in range(num_epoch):
         
-        train_data,train_label = shuffle(train_data,train_label)
+        # train_data,train_label = shuffle(train_data,train_label)
 
         # train
         for current_batch_index in range(0,len(train_data),batch_size):
@@ -397,11 +261,11 @@ with tf.Session() as sess:
             test_total_acc = test_total_acc + sess_results[1]
 
         # store
-        train_cost_overtime.append(train_total_cost/(len(train_batch)/batch_size ) )
-        train_acc_overtime.append(train_total_acc/(len(train_batch)/batch_size ) )
+        train_cost_overtime.append(train_total_cost/(len(train_data)/batch_size ) )
+        train_acc_overtime.append(train_total_acc/(len(train_data)/batch_size ) )
 
-        test_cost_overtime.append(test_total_cost/(len(test_batch)/batch_size ) )
-        test_acc_overtime.append(test_total_acc/(len(test_batch)/batch_size ) )
+        test_cost_overtime.append(test_total_cost/(len(test_data)/batch_size ) )
+        test_acc_overtime.append(test_total_acc/(len(test_data)/batch_size ) )
         
         # print
         if iter%print_size == 0:

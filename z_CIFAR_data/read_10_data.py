@@ -17,7 +17,7 @@ This file also re-arragne the data so it can enter a nueral net properly
 
 image_size = 32
 num_channels = 3
-num_classes = 100
+num_classes = 10
 pixel_depth = 255.0
 
 def unpickle(file):
@@ -63,31 +63,7 @@ def get_data():
     print('Test Date shape is',test_images.shape, 'and labels is',test_labels.shape)
     return  train_images, train_labels, test_images,test_labels
 
-train_images, train_labels, test_images,test_labels = get_data()
 
-print(train_images.max())
-print(train_images.min())
-
-print(test_images.max())
-print(test_images.min())
-
-train_images = (train_images-train_images.min(axis=0))/(train_images.max(axis=0)-train_images.min(axis=0))
-test_images = (test_images-test_images.min(axis=0))/(test_images.max(axis=0)-test_images.min(axis=0))
-
-print(train_images.max())
-print(train_images.min())
-
-print(test_images.max())
-print(test_images.min())
-
-
-for x in range(10):
-    plt.imshow(train_images[x,:,:,:])
-    plt.show()
-
-for x in range(10):
-    plt.imshow(test_images[x,:,:,:])
-    plt.show()
 
 
 # --end code--

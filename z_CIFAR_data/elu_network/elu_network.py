@@ -289,8 +289,7 @@ with tf.Session(graph=graph) as sess:
             for i in range(20):
                 offset = i*500
                 feed_dict = {x: test_images[offset:(offset+500)], y_ : test_labels[offset:(offset+500)], stack1_prob_input: 1.0,
-                                    stack2_prob_input: 1.0, stack3_prob_input: 1.0, stack4_prob_input: 1.0, stack5_prob_input: 1.0,
-                                    stack6_prob_input: 1.0, stack7_prob_input: 1.0}
+                                    stack2_prob_input: 1.0, stack3_prob_input: 1.0, stack4_prob_input: 1.0, stack5_prob_input: 1.0,stack6_prob_input: 1.0, stack7_prob_input: 1.0}
                 test_predictions[offset:(offset+500)] = sess.run(tf_prediction, feed_dict = feed_dict)
                 accuracy_final+=accuracy(test_predictions[offset:(offset+500)], test_labels[offset:(offset+500)])
             print('elu network 80000 steps')
