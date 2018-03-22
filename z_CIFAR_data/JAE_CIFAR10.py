@@ -12,6 +12,8 @@ tf.set_random_seed(789)
 def tf_elu(x): return tf.nn.elu(x)
 def d_tf_elu(x): return tf_elu(x) + 1.0 
 
+def tf_softmax(x): return tf.nn.softmax(x)
+
 # get data
 NUM_CLASSES = 10
 train_images, train_labels, test_images,test_labels = get_data()
@@ -23,8 +25,22 @@ class CNNLayer():
     self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=0.05,mean=0.0))
     self.b = tf.Variable(tf.constant(value=0.1,shape=[out_c]))
       
+  def feedforward_drop_avg(self,input,drop=1.0):
+    self.input = input
+    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
+    self.layerb = self.layer + self.b
+    self.layerA = tf_elu(self.layerb)
+    self.layerDrop = tf.nn.dropout(self.layerA,drop)
+    self.layerMean = tf.nn.avg_pool(self.layerDrop, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    return self.layerMean
+
   def feedforward(self,input):
-    return 4
+    self.input = input
+    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
+    self.layerb = self.layer + self.b
+    self.layerA = tf_elu(self.layerb)
+    return self.layerA
+
   def backprop(self,gradient):
     return 3.0
 
@@ -86,37 +102,37 @@ stack5_prob_input = tf.placeholder(tf.float32)
 stack6_prob_input = tf.placeholder(tf.float32)
 stack7_prob_input = tf.placeholder(tf.float32)
 
-w1_stack1 = _variable_with_weight_decay('w1_stack1',shape=[5,5,3,192])
-b1_stack1 = _variable_on_cpu('b1_stack1',shape=[192])
+w1_stack1 = _variable_with_weight_decay('w1_stack1',shape=[5,5,3,256])
+b1_stack1 = _variable_on_cpu('b1_stack1',shape=[256])
 
-w1_stack2 = _variable_with_weight_decay('w1_stack2',shape=[1,1,192,192])
-b1_stack2 = _variable_on_cpu('b1_stack2',shape=[192])
+w1_stack2 = _variable_with_weight_decay('w1_stack2',shape=[1,1,256,256])
+b1_stack2 = _variable_on_cpu('b1_stack2',shape=[256])
 
-w2_stack2 = _variable_with_weight_decay('w2_stack2',shape=[3,3,192,200])
-b2_stack2 = _variable_on_cpu('b2_stack2',shape=[200])
+w2_stack2 = _variable_with_weight_decay('w2_stack2',shape=[3,3,256,256])
+b2_stack2 = _variable_on_cpu('b2_stack2',shape=[256])
 
-w1_stack3 = _variable_with_weight_decay('w1_stack3',shape=[1,1,200,200])
-b1_stack3 = _variable_on_cpu('b1_stack3',shape=[200])
+w1_stack3 = _variable_with_weight_decay('w1_stack3',shape=[1,1,256,256])
+b1_stack3 = _variable_on_cpu('b1_stack3',shape=[256])
 
-w2_stack3 = _variable_with_weight_decay('w2_stack3',shape=[2,2,200,240])
-b2_stack3 = _variable_on_cpu('b2_stack3',shape=[240])
+w2_stack3 = _variable_with_weight_decay('w2_stack3',shape=[2,2,256,256])
+b2_stack3 = _variable_on_cpu('b2_stack3',shape=[256])
 
-w1_stack4 = _variable_with_weight_decay('w1_stack4',shape=[1,1,240,240])
-b1_stack4 = _variable_on_cpu('b1_stack4',shape=[240], initializer=tf.constant_initializer(0.1))
+w1_stack4 = _variable_with_weight_decay('w1_stack4',shape=[1,1,256,256])
+b1_stack4 = _variable_on_cpu('b1_stack4',shape=[256])
 
-w2_stack4 = _variable_with_weight_decay('w2_stack4',shape=[2,2,240,260])
-b2_stack4 = _variable_on_cpu('b2_stack4',shape=[260])
+w2_stack4 = _variable_with_weight_decay('w2_stack4',shape=[2,2,256,256])
+b2_stack4 = _variable_on_cpu('b2_stack4',shape=[256])
 
-w1_stack5 = _variable_with_weight_decay('w1_stack5',shape=[1,1,260,260])
-b1_stack5 = _variable_on_cpu('b1_stack5',shape=[260])
+w1_stack5 = _variable_with_weight_decay('w1_stack5',shape=[1,1,256,256])
+b1_stack5 = _variable_on_cpu('b1_stack5',shape=[256])
 
-w2_stack5 = _variable_with_weight_decay('w2_stack5',shape=[2,2,260,280])
-b2_stack5 = _variable_on_cpu('b2_stack5',shape=[280])
+w2_stack5 = _variable_with_weight_decay('w2_stack5',shape=[2,2,256,256])
+b2_stack5 = _variable_on_cpu('b2_stack5',shape=[256])
 
-w1_stack6 = _variable_with_weight_decay('w1_stack6',shape=[1,1,280,280])
-b1_stack6 = _variable_on_cpu('b1_stack6',shape=[280])
+w1_stack6 = _variable_with_weight_decay('w1_stack6',shape=[1,1,256,256])
+b1_stack6 = _variable_on_cpu('b1_stack6',shape=[256])
 
-w1_stack7 = _variable_with_weight_decay('w1_stack7',shape=[1,1,280,10])
+w1_stack7 = _variable_with_weight_decay('w1_stack7',shape=[1,1,256,10])
 b1_stack7 = _variable_on_cpu('b1_stack7',shape=[10])
 
 def model(input_data):
@@ -149,7 +165,6 @@ def model(input_data):
     conv1_stack3 = tf.nn.conv2d(pool2, w1_stack3, [1, 1, 1, 1], padding='SAME')
     bias1_stack3 = tf.nn.bias_add(conv1_stack3, b1_stack3)
     stack3_1 = tf.nn.elu(bias1_stack3)
-
 
     conv2_stack3 = tf.nn.conv2d(stack3_1, w2_stack3, [1, 1, 1, 1], padding='SAME')
     bias2_stack3 = tf.nn.bias_add(conv2_stack3, b2_stack3)
@@ -217,6 +232,14 @@ def model(input_data):
 #======
 #labels = tf.cast(y_, tf.int64)
 results = model(x)
+
+# ====== my total cost =====
+# final_soft = tf_softmax(layer7)
+# cost = tf.reduce_sum(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
+# correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
+# accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+# ====== my total cost =====
+
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y_, name='cross_entropy_per_example')
 cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
 tf.add_to_collection('losses', cross_entropy_mean)
@@ -233,10 +256,9 @@ optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=
 #Predictions
 tf_prediction = tf.nn.softmax(results)
 
-# hyper para
-num_epoch = 80001
+# hyper para 18100
+num_epoch =  20001 
 print_size = 100
-
 
 #Training
 with tf.Session() as sess:
@@ -283,7 +305,6 @@ with tf.Session() as sess:
                 offset = i*500
                 feed_dict = {x: test_images[offset:(offset+500)], y_ : test_labels[offset:(offset+500)], 
                 stack1_prob_input: 1.0,stack2_prob_input: 1.0, stack3_prob_input: 1.0, stack4_prob_input: 1.0, stack5_prob_input: 1.0,stack6_prob_input: 1.0, stack7_prob_input: 1.0}
-
                 test_predictions[offset:(offset+500)] = sess.run(tf_prediction, feed_dict = feed_dict)
                 accuracy_final+=accuracy(test_predictions[offset:(offset+500)], test_labels[offset:(offset+500)])
             print('elu network 80000 steps')
