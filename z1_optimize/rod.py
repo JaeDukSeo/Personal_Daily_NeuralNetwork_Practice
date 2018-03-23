@@ -1,30 +1,87 @@
 import numpy as np
 import sys
 
-price = np.array([1,5,8,9,10,17,17,20])
-print(price.shape)
+price = np.array([4,15,29,9,10,127,17,70])
+
+def bestprice(n):
+    if n<=0: return 0   
+
+    # result_array is an array with length n and initialized with all 0 values 
+    result_array = [0] * (n)
+
+    # Outer Loop to Calculate the best value at n
+    for i in range(0,n):
+        Best_price_until_current_position  = 0
+
+        # Inner Loop to Calcaulte the best value until n
+        for j in range(i+1):
+            Best_price_until_current_position  = \
+                    max(Best_price_until_current_position , \
+                        price[j]+result_array[i-j-1])
+
+        # Store the best value until n 
+        result_array[i] = Best_price_until_current_position 
+
+    # Since we are assuming that array index starts from 0 return element 
+    # at n-1
+    return result_array[n-1]
+
+
+print("Max Price at length 0: ",bestprice(0))
+print("Max Price at length 1: ",bestprice(1))
+print("Max Price at length 2: ",bestprice(2))
+print("Max Price at length 3: ",bestprice(3))
+print("Max Price at length 4: ",bestprice(4))
+print("Max Price at length 5: ",bestprice(5))
+print("Max Price at length 6: ",bestprice(6))
+print("Max Price at length 7: ",bestprice(7))
+print("Max Price at length 8: ",bestprice(8))
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sys.exit()
 INT_MIN = -9999999999999
 # Returns the best obtainable price for a rod of length n and
 # price[] as prices of different pieces
 def cutRod(price, n):
     val = [0 for x in range(n+1)]
     val[0] = 0
-    print(val)
- 
-    # Build the table val[] in bottom up manner and return
-    # the last entry from the table
+
+    # Build the table val[] in bottom up manner and return the last entry from the table
+
+    # For N Time - 1 2 3 
     for i in range(1, n+1):
         max_val = INT_MIN
+
+        # The triangle approach to the problem
         for j in range(i):
-             max_val = max(max_val, price[j] + val[i-j-1])
+            max_val = max(max_val, price[j] + val[i-j-1])
+
+        # Max Price Until i approach
         val[i] = max_val
-        print(val)
  
     return val[n]
 

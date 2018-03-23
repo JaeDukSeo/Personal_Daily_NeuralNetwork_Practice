@@ -30,14 +30,6 @@ class CNNLayer():
     self.b = tf.Variable(tf.constant(value=0.1,shape=[out_c]))
     self.m_w,self.m_b = tf.Variable(tf.zeros_like(self.w)) ,tf.Variable(tf.zeros_like(self.b)) 
 
-  def feedforward_drop(self,input,drop=1.0):
-    self.input = input
-    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerb = self.layer + self.b
-    self.layerA = tf_elu(self.layerb)
-    self.layerDrop = tf.nn.dropout(self.layerA,drop)
-    return self.layerDrop      
-
   def feedforward_drop_avg(self,input,drop=1.0):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
@@ -47,6 +39,14 @@ class CNNLayer():
     self.layerMean = tf.nn.avg_pool(self.layerDrop, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
     return self.layerMean
 
+  def feedforward_drop(self,input,drop=1.0):
+    self.input = input
+    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
+    self.layerb = self.layer + self.b
+    self.layerA = tf_elu(self.layerb)
+    self.layerDrop = tf.nn.dropout(self.layerA,drop)
+    return self.layerDrop      
+
   def feedforward(self,input):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
@@ -54,14 +54,22 @@ class CNNLayer():
     self.layerA = tf_elu(self.layerb)
     return self.layerA
 
-  def backprop_drop(self,gradient):
-    return 3.0
-
   def backprop_drop_avg(self,gradient):
-    return 3.0
+    grad_part_1 = gradient
+    grad_part_2 = d_tf_elu(self.layerb)
+    grad_part_w = self.input
+    grad_part_b = tf.ones_like(self.b)
+
+    
+    
+
+    return 3.0,70
+
+  def backprop_drop(self,gradient):
+    return 3.0,70
 
   def backprop(self,gradient):
-    return 3.0
+    return 3.0,70
 
 # =========== Make Class  ===========
 l1 = CNNLayer(kernel=7,in_c=3,out_c=256)
@@ -86,7 +94,6 @@ l11 = CNNLayer(kernel=1,in_c=256,out_c=10)
 num_epoch =  165000 
 num_epoch =  10001 
 print_size = 100
-
 
 
 
@@ -145,7 +152,7 @@ optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=
 tf_prediction = tf_softmax(results)
 
 # === Back Propagation === 
-
+grad_10,grad_10w = l10.backprop_drop_avg(tf_prediction-y)
 
 
 

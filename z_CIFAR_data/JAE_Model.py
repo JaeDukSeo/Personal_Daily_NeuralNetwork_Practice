@@ -57,21 +57,21 @@ class CNNLayer():
     return 3.0
 
 # =========== Make Class  ===========
-l1 = CNNLayer(kernel=7,in_c=3,out_c=256)
+l1 = CNNLayer(kernel=7,in_c=3,out_c=128)
 
-l2 = CNNLayer(kernel=1,in_c=256,out_c=256)
-l3 = CNNLayer(kernel=5,in_c=256,out_c=256)
+l2 = CNNLayer(kernel=1,in_c=128,out_c=128)
+l3 = CNNLayer(kernel=5,in_c=128,out_c=256)
 
 l4 = CNNLayer(kernel=1,in_c=256,out_c=256)
-l5 = CNNLayer(kernel=3,in_c=256,out_c=256)
+l5 = CNNLayer(kernel=3,in_c=256,out_c=512)
 
-l6 = CNNLayer(kernel=1,in_c=256,out_c=256)
-l7 = CNNLayer(kernel=2,in_c=256,out_c=256)
+l6 = CNNLayer(kernel=1,in_c=512,out_c=512)
+l7 = CNNLayer(kernel=2,in_c=512,out_c=1024)
 
-l8 = CNNLayer(kernel=1,in_c=256,out_c=256)
-l9 = CNNLayer(kernel=2,in_c=256,out_c=256)
+l8 = CNNLayer(kernel=1,in_c=1024,out_c=1024)
+l9 = CNNLayer(kernel=2,in_c=1024,out_c=2048)
 
-l10 = CNNLayer(kernel=1,in_c=256,out_c=10)
+l10 = CNNLayer(kernel=1,in_c=2048,out_c=10)
 
 l11 = CNNLayer(kernel=1,in_c=256,out_c=10)
 
@@ -160,6 +160,7 @@ with tf.Session() as sess:
                 train_images = train_images[shuffle_indices]
                 train_labels = train_labels[shuffle_indices]
                 # indices_list = create_indices(train_labels,NUM_CLASSES)
+
         if step == 9000: learning_rate = 0.001
         if step == 12000: learning_rate = 0.0003
         if step == 19000: learning_rate = 0.00005
