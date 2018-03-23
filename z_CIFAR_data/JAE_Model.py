@@ -112,33 +112,29 @@ layer10 = l10.feedforward_drop(layer9,stack6_prob_input)
 results = tf.reshape(layer10,(-1,NUM_CLASSES))
 
 # ====== my total cost =====
-final_soft = tf_softmax(results)
-cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
-tf.add_to_collection('losses', cost)
-
+# final_soft = tf_softmax(results)
+# cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
+# tf.add_to_collection('losses', cost)
 # cost = tf.reduce_sum(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
 # correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # ====== my total cost =====
-# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y_, name='cross_entropy_per_example')
-# cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
-# tf.add_to_collection('losses', cross_entropy_mean)
 
-#Total loss
+# ===== Auto Train ====
+cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y, name='cross_entropy_per_example')
+cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+tf.add_to_collection('losses', cross_entropy_mean)
 total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
-
-#optimizer
-#==========
 tf_learning_rate = tf.placeholder(tf.float32)
 optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=0.9).minimize(total_loss)
-# optimizer = tf.train.AdamOptimizer(learning_rate=tf_learning_rate).minimize(total_loss)
+# ===== Auto Train ====
 
 #Predictions
 tf_prediction = tf_softmax(results)
 
 # hyper para 165000
-num_epoch =  20001 
 num_epoch =  165000 
+num_epoch =  10001 
 print_size = 100
 
 
@@ -175,7 +171,7 @@ with tf.Session() as sess:
 
         #Training
         feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate,
-                    stack1_prob_input: 0.9, stack2_prob_input: 0.9, stack3_prob_input: 0.9,
+                    stack1_prob_input: 1.0, stack2_prob_input: 0.9, stack3_prob_input: 0.8,
                     stack4_prob_input: 0.7, stack5_prob_input: 0.6, stack6_prob_input: 0.5, stack7_prob_input: 1.0}
         _, loss_out, predictions = sess.run([optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
         

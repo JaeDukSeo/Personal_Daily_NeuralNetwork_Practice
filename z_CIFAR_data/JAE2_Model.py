@@ -28,6 +28,7 @@ class CNNLayer():
   def __init__(self,kernel,in_c,out_c):
     self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=0.05,mean=0.0))
     self.b = tf.Variable(tf.constant(value=0.1,shape=[out_c]))
+    self.m_w,self.m_b = tf.Variable(tf.zeros_like(self.w)) ,tf.Variable(tf.zeros_like(self.b)) 
 
   def feedforward_drop(self,input,drop=1.0):
     self.input = input
@@ -53,6 +54,12 @@ class CNNLayer():
     self.layerA = tf_elu(self.layerb)
     return self.layerA
 
+  def backprop_drop(self,gradient):
+    return 3.0
+
+  def backprop_drop_avg(self,gradient):
+    return 3.0
+
   def backprop(self,gradient):
     return 3.0
 
@@ -74,6 +81,12 @@ l9 = CNNLayer(kernel=2,in_c=256,out_c=256)
 l10 = CNNLayer(kernel=1,in_c=256,out_c=10)
 
 l11 = CNNLayer(kernel=1,in_c=256,out_c=10)
+
+# === Hyper Param ===
+num_epoch =  165000 
+num_epoch =  10001 
+print_size = 100
+
 
 
 
@@ -111,34 +124,28 @@ layer10 = l10.feedforward_drop_avg(layer9,stack6_prob_input)
 results = tf.reshape(layer10,(-1,NUM_CLASSES))
 
 # ====== my total cost =====
-final_soft = tf_softmax(results)
-cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
-tf.add_to_collection('losses', cost)
-
+# final_soft = tf_softmax(results)
+# cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
 # cost = tf.reduce_sum(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
+# tf.add_to_collection('losses', cost)
 # correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # ====== my total cost =====
-# cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y_, name='cross_entropy_per_example')
-# cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
-# tf.add_to_collection('losses', cross_entropy_mean)
 
-#Total loss
+# ===== Auto Train ====
+cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y, name='cross_entropy_per_example')
+cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+tf.add_to_collection('losses', cross_entropy_mean)
 total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
-
-#optimizer
-#==========
 tf_learning_rate = tf.placeholder(tf.float32)
 optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=0.9).minimize(total_loss)
-# optimizer = tf.train.AdamOptimizer(learning_rate=tf_learning_rate).minimize(total_loss)
+# ===== Auto Train ====
 
 #Predictions
 tf_prediction = tf_softmax(results)
 
-# hyper para 165000
-num_epoch =  20001 
-num_epoch =  165000 
-print_size = 100
+# === Back Propagation === 
+
 
 
 
@@ -174,7 +181,7 @@ with tf.Session() as sess:
 
         #Training
         feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate,
-                    stack1_prob_input: 0.9, stack2_prob_input: 0.9, stack3_prob_input: 0.9,
+                    stack1_prob_input: 1.0, stack2_prob_input: 0.9, stack3_prob_input: 0.8,
                     stack4_prob_input: 0.7, stack5_prob_input: 0.6, stack6_prob_input: 0.5, stack7_prob_input: 1.0}
         _, loss_out, predictions = sess.run([optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
         
