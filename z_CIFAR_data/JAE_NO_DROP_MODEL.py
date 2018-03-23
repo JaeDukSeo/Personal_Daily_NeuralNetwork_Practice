@@ -82,7 +82,7 @@ class CNNLayer():
       out_backprop = grad_middle,
       strides = [1,1,1,1],padding='SAME'
     )
-    
+
     pass_size = list(self.input.shape[1:])
     grad_pass = tf.nn.conv2d_backprop_input(
       input_sizes =[batch_size]+pass_size,
@@ -124,11 +124,18 @@ print_size = 100
 
 batch_size = 100
 
+proportion_rate = 1000
+decay_rate = 0.08
 
 
 # =========== Make Graph  ===========
 x  = tf.placeholder(tf.float32, [None, 32, 32, 3],name="x-input")
 y = tf.placeholder(tf.float32, [None, NUM_CLASSES],name="y-input")
+
+tf_learning_rate = tf.placeholder(tf.float32)
+
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 layer1 = l1.feedforward(x)
 layer2 = l2.feedforward_avg(layer1)
@@ -143,10 +150,10 @@ layer7 = l7.feedforward(layer6)
 layer8 = l8.feedforward_avg(layer7)
 
 layer9 = l9.feedforward(layer8)
-print(layer9.shape,'===============')
 layer10 = l10.feedforward_avg(layer9)
 
 results = tf.reshape(layer10,(-1,NUM_CLASSES))
+tf_prediction = tf_softmax(results)
 
 # ====== my total cost =====
 # final_soft = tf_softmax(results)
@@ -162,28 +169,24 @@ cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y
 cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
 tf.add_to_collection('losses', cross_entropy_mean)
 total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
-tf_learning_rate = tf.placeholder(tf.float32)
 optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=0.9).minimize(total_loss)
 # ===== Auto Train ====
 
-#Predictions
-tf_prediction = tf_softmax(results)
-
 # === Back Propagation === 
-grad_10,grad_10w = l10.backprop_avg(tf.reshape(tf_prediction-y,[batch_size,1,1,NUM_CLASSES]))
-grad_9, grad_9w  = l9.backprop(grad_10)
+grad_10,grad_10w = l10.backprop_avg(tf.reshape(tf_prediction-y,[batch_size,1,1,NUM_CLASSES])+decay_propotoin_rate*(tf.reshape(tf_prediction-y,[batch_size,1,1,NUM_CLASSES])) )
+grad_9, grad_9w  = l9.backprop(grad_10+decay_propotoin_rate*(grad_10))
 
-grad_8, grad_8w  = l8.backprop_avg(grad_9)
-grad_7, grad_7w  = l7.backprop(grad_8)
+grad_8, grad_8w  = l8.backprop_avg(grad_9+decay_propotoin_rate*(grad_10+grad_9))
+grad_7, grad_7w  = l7.backprop(grad_8+decay_propotoin_rate*(grad_8))
 
-grad_6, grad_6w  = l6.backprop_avg(grad_7)
-grad_5, grad_5w  = l5.backprop(grad_6)
+grad_6, grad_6w  = l6.backprop_avg(grad_7+decay_propotoin_rate*(grad_8+grad_7))
+grad_5, grad_5w  = l5.backprop(grad_6+decay_propotoin_rate*(grad_6))
 
-grad_4, grad_4w  = l4.backprop_avg(grad_5)
-grad_3, grad_3w  = l3.backprop(grad_4)
+grad_4, grad_4w  = l4.backprop_avg(grad_5+decay_propotoin_rate*(grad_6+grad_5))
+grad_3, grad_3w  = l3.backprop(grad_4+decay_propotoin_rate*(grad_4))
 
-grad_2, grad_2w  = l2.backprop_avg(grad_3)
-grad_1, grad_1w  = l1.backprop(grad_2)
+grad_2, grad_2w  = l2.backprop_avg(grad_3+decay_propotoin_rate*(grad_4+grad_3))
+grad_1, grad_1w  = l1.backprop(grad_2+decay_propotoin_rate*(grad_2))
 
 weight_update = grad_10w+grad_9w+ \
                 grad_8w+grad_7w+ \
@@ -219,9 +222,10 @@ with sess:
         batch_labels = train_labels[offset:(offset + batch_size), :]
 
         #Training
-        feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate}
+        # feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate}
         # _, loss_out, predictions = sess.run([optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
-        sess_result = sess.run([weight_update,optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
+        sess_result = sess.run([weight_update,optimizer, total_loss, tf_prediction], 
+                                feed_dict={x: batch_data, y : batch_labels, tf_learning_rate: learning_rate,iter_variable_dil:step})
 
         print(sess_result[0].shape)
         sys.exit()
