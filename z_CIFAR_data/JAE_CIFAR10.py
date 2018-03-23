@@ -136,7 +136,8 @@ w1_stack7 = _variable_with_weight_decay('w1_stack7',shape=[1,1,256,10])
 b1_stack7 = _variable_on_cpu('b1_stack7',shape=[10])
 
 def model(input_data):
-    #Stack 1
+      
+    #Stack 1 - 32*32
     #========
     conv1_stack1 = tf.nn.conv2d(input_data, w1_stack1, [1, 1, 1, 1], padding='SAME')
     bias1 = tf.nn.bias_add(conv1_stack1, b1_stack1)
@@ -146,7 +147,7 @@ def model(input_data):
     #pooling
     pool1 = tf.nn.avg_pool(stack1_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
-    #Stack2
+    #Stack2 - 16*16
     #========
     conv1_stack2 = tf.nn.conv2d(pool1, w1_stack2, [1, 1, 1, 1], padding='SAME')
     bias1_stack2 = tf.nn.bias_add(conv1_stack2, b1_stack2)
@@ -160,7 +161,7 @@ def model(input_data):
     #pooling
     pool2 = tf.nn.avg_pool(stack2_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
 
-    #Stack3
+    #Stack3 - 8*8
     #========
     conv1_stack3 = tf.nn.conv2d(pool2, w1_stack3, [1, 1, 1, 1], padding='SAME')
     bias1_stack3 = tf.nn.bias_add(conv1_stack3, b1_stack3)
@@ -174,7 +175,7 @@ def model(input_data):
     #pooling
     pool3 = tf.nn.avg_pool(stack3_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
-    #Stack4
+    #Stack4 - 4*4
     #========
     conv1_stack4 = tf.nn.conv2d(pool3, w1_stack4, [1, 1, 1, 1], padding='SAME')
     bias1_stack4 = tf.nn.bias_add(conv1_stack4, b1_stack4)
@@ -188,7 +189,7 @@ def model(input_data):
     #pooling
     pool4 = tf.nn.avg_pool(stack4_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
-    #Stack5
+    #Stack5 - 2*2
     #========
     conv1_stack5 = tf.nn.conv2d(pool4, w1_stack5, [1, 1, 1, 1], padding='SAME')
     bias1_stack5 = tf.nn.bias_add(conv1_stack5, b1_stack5)
@@ -202,7 +203,7 @@ def model(input_data):
     #pooling
     pool5 = tf.nn.avg_pool(stack5_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],padding='SAME', name='pool1')
 
-    #Stack6
+    #Stack6 - 1*1
     #========
     conv1_stack6 = tf.nn.conv2d(pool5, w1_stack6, [1, 1, 1, 1], padding='SAME')
     bias1_stack6 = tf.nn.bias_add(conv1_stack6, b1_stack6)
@@ -213,7 +214,7 @@ def model(input_data):
     #pooling
     #pool6 = tf.nn.max_pool(stack6_dropped, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
-    #Stack7
+    #Stack7 - 1*1
     #========
     conv1_stack7 = tf.nn.conv2d(stack6_dropped, w1_stack7, [1, 1, 1, 1], padding='SAME')
     bias1_stack7 = tf.nn.bias_add(conv1_stack7, b1_stack7)
