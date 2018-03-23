@@ -92,11 +92,9 @@ class CNNLayer():
     )
 
     update_w = []
-    tf.assign(self.m, 0.7*self.m + learning_rate*grad)    
+    tf.assign(self.m, 0.9*self.m + learning_rate*grad)    
     tf.assign(self.w,self.w - self.m)
     return grad_pass,update_w
-
-
 
 
 
@@ -119,7 +117,7 @@ l10 = CNNLayer(kernel=1,in_c=256,out_c=10)
 # === Hyper Param ===
 num_epoch =  165000 
 num_epoch =  10001 
-learning_rate = 0.005
+learning_rate = 0.001
 print_size = 100
 
 batch_size = 100
@@ -169,7 +167,7 @@ cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=y
 cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
 tf.add_to_collection('losses', cross_entropy_mean)
 total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
-optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=0.9).minimize(total_loss)
+# optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=0.9).minimize(total_loss)
 # ===== Auto Train ====
 
 # === Back Propagation === 
@@ -224,13 +222,10 @@ with sess:
         #Training
         # feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate}
         # _, loss_out, predictions = sess.run([optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
-        sess_result = sess.run([weight_update,optimizer, total_loss, tf_prediction], 
+        sess_result = sess.run([weight_update, total_loss, tf_prediction], 
                                 feed_dict={x: batch_data, y : batch_labels, tf_learning_rate: learning_rate,iter_variable_dil:step})
-
-        print(sess_result[0].shape)
-        sys.exit()
-        
-        
+        loss_out = sess_result[1]
+        predictions = sess_result[2]
         #Accuracy
         if (step % print_size == 0):
             print('\n===================')
