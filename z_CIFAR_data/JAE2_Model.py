@@ -91,21 +91,20 @@ stack6_prob_input = tf.placeholder(tf.float32)
 stack7_prob_input = tf.placeholder(tf.float32)
 #Dropout rates
 
-layer1 = l1.feedforward_drop_avg(x,stack1_prob_input)
+layer1 = l1.feedforward(x)
+layer2 = l2.feedforward_drop_avg(layer1,stack1_prob_input)
 
-layer2 = l2.feedforward(layer1)
-layer3 = l3.feedforward_drop_avg(layer2,stack2_prob_input)
+layer3 = l3.feedforward(layer2)
+layer4 = l4.feedforward_drop_avg(layer3,stack2_prob_input)
 
-layer4 = l4.feedforward(layer3)
-layer5 = l5.feedforward_drop_avg(layer4,stack3_prob_input)
+layer5 = l5.feedforward(layer4)
+layer6 = l6.feedforward_drop_avg(layer5,stack3_prob_input)
 
-layer6 = l6.feedforward(layer5)
-layer7 = l7.feedforward_drop_avg(layer6,stack4_prob_input)
+layer7 = l7.feedforward(layer6)
+layer8 = l8.feedforward_drop_avg(layer7,stack4_prob_input)
 
-layer8 = l8.feedforward(layer7)
-layer9 = l9.feedforward_drop_avg(layer8,stack5_prob_input)
-
-layer10 = l10.feedforward_drop(layer9,stack6_prob_input)
+layer9 = l9.feedforward_drop(layer8,stack5_prob_input)
+layer10 = l10.feedforward_drop_avg(layer9,stack6_prob_input)
 
 # layer11 = l11.feedforward_drop(layer10,stack7_prob_input)
 
