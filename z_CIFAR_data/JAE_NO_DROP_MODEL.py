@@ -30,33 +30,18 @@ class CNNLayer():
     self.b = tf.Variable(tf.constant(value=0.1,shape=[out_c]))
     self.m_w,self.m_b = tf.Variable(tf.zeros_like(self.w)) ,tf.Variable(tf.zeros_like(self.b)) 
 
-  def feedforward_drop_avg(self,input,drop=1.0):
-    self.input = input
-    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerb = self.layer + self.b
-    self.layerA = tf_elu(self.layerb)
-    self.layerDrop = tf.nn.dropout(self.layerA,drop)
-    self.layerMean = tf.nn.avg_pool(self.layerDrop, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-    return self.layerMean
-
-  def feedforward_drop(self,input,drop=1.0):
-    self.input = input
-    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerA = tf_elu(self.layer + self.b)
-    self.layerDrop = tf.nn.dropout(self.layerA,drop)
-    return self.layerDrop      
-
   def feedforward(self,input):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
     self.layerA = tf_elu(self.layer + self.b)
     return self.layerA
 
-  def backprop_drop_avg(self,gradient):
-    return 3.0,70
-
-  def backprop_drop(self,gradient):
-    return 3.0,70
+  def feedforward_avg(self,input):
+    self.input = input
+    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
+    self.layerA = tf_elu(self.layer + self.b)
+    self.layerMean = tf.nn.avg_pool(self.layerA, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    return self.layerMean
 
   def backprop(self,gradient):
     grad_part_1 = gradient 
@@ -75,6 +60,13 @@ class CNNLayer():
 
     return grad_pass,update_w
 
+  def backprop_avg(self,gradient):
+    return tf.random_normal([3,3]),tf.random_normal([3,3])
+
+
+
+
+
 # =========== Make Class  ===========
 l1 = CNNLayer(kernel=7,in_c=3,out_c=256)
 
@@ -92,8 +84,6 @@ l9 = CNNLayer(kernel=2,in_c=256,out_c=256)
 
 l10 = CNNLayer(kernel=1,in_c=256,out_c=10)
 
-l11 = CNNLayer(kernel=1,in_c=256,out_c=10)
-
 # === Hyper Param ===
 num_epoch =  165000 
 num_epoch =  10001 
@@ -105,32 +95,20 @@ print_size = 100
 x  = tf.placeholder(tf.float32, [None, 32, 32, 3],name="x-input")
 y = tf.placeholder(tf.float32, [None, NUM_CLASSES],name="y-input")
 
-#Dropout rates
-stack1_prob_input = tf.placeholder(tf.float32)
-stack2_prob_input = tf.placeholder(tf.float32)
-stack3_prob_input = tf.placeholder(tf.float32)
-stack4_prob_input = tf.placeholder(tf.float32)
-stack5_prob_input = tf.placeholder(tf.float32)
-stack6_prob_input = tf.placeholder(tf.float32)
-stack7_prob_input = tf.placeholder(tf.float32)
-#Dropout rates
-
 layer1 = l1.feedforward(x)
-layer2 = l2.feedforward_drop_avg(layer1,stack1_prob_input)
+layer2 = l2.feedforward_avg(layer1)
 
 layer3 = l3.feedforward(layer2)
-layer4 = l4.feedforward_drop_avg(layer3,stack2_prob_input)
+layer4 = l4.feedforward_avg(layer3)
 
 layer5 = l5.feedforward(layer4)
-layer6 = l6.feedforward_drop_avg(layer5,stack3_prob_input)
+layer6 = l6.feedforward_avg(layer5)
 
 layer7 = l7.feedforward(layer6)
-layer8 = l8.feedforward_drop_avg(layer7,stack4_prob_input)
+layer8 = l8.feedforward_avg(layer7)
 
-layer9 = l9.feedforward_drop(layer8,stack5_prob_input)
-layer10 = l10.feedforward_drop_avg(layer9,stack6_prob_input)
-
-# layer11 = l11.feedforward_drop(layer10,stack7_prob_input)
+layer9 = l9.feedforward_avg(layer8)
+layer10 = l10.feedforward_avg(layer9)
 
 results = tf.reshape(layer10,(-1,NUM_CLASSES))
 
@@ -156,15 +134,12 @@ optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=
 tf_prediction = tf_softmax(results)
 
 # === Back Propagation === 
-grad_10,grad_10w = l10.backprop_drop_avg(tf_prediction-y)
-
-
-
+grad_10,grad_10w = l10.backprop_avg(tf_prediction-y)
 
 
 
 # =========== Session ===========
-config = tf.ConfigProto(device_count = {'GPU': 0})
+config = tf.ConfigProto(device_count = {'GPU': 1})
 sess = tf.Session(config=config)
 with sess:
     sess.run(tf.global_variables_initializer())
@@ -193,13 +168,11 @@ with sess:
         batch_labels = train_labels[offset:(offset + batch_size), :]
 
         #Training
-        feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate,
-                    stack1_prob_input: 1.0, stack2_prob_input: 0.9, stack3_prob_input: 0.8,
-                    stack4_prob_input: 0.7, stack5_prob_input: 0.6, stack6_prob_input: 0.5, stack7_prob_input: 1.0}
+        feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate}
         # _, loss_out, predictions = sess.run([optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
-        sess_result = sess.run(grad_10, feed_dict=feed_dict)
+        sess_result = sess.run([grad_10,optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
 
-        print(sess_result.shape)
+        print(sess_result[0].shape)
         sys.exit()
         
         
@@ -213,8 +186,7 @@ with sess:
 
             for i in range(20):
                 offset = i*500
-                feed_dict = {x: test_images[offset:(offset+500)], y : test_labels[offset:(offset+500)], 
-                stack1_prob_input: 1.0,stack2_prob_input: 1.0, stack3_prob_input: 1.0, stack4_prob_input: 1.0, stack5_prob_input: 1.0,stack6_prob_input: 1.0, stack7_prob_input: 1.0}
+                feed_dict = {x: test_images[offset:(offset+500)], y : test_labels[offset:(offset+500)]}
                 test_predictions[offset:(offset+500)] = sess.run(tf_prediction, feed_dict = feed_dict)
                 accuracy_final+=accuracy(test_predictions[offset:(offset+500)], test_labels[offset:(offset+500)])
             print('elu network 80000 steps')
