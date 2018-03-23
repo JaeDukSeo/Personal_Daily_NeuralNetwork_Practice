@@ -4,23 +4,37 @@ import sys
 price = np.array([1,5,8,9,10,17,17,20])
 print(price.shape)
 
+global howmans
+howmans= 0 
 def bestprice(n):
-    if n==0: return 0
-    result = price[n]
-    for length in range(0,n):
-        ttry = price[length] + bestprice(n-1-length)
+    global howmans
+    
+    if n<=0: return 0   
+
+    result = price[n-1]
+    howmans = howmans + 1
+    print("executed :",howmans)
+    
+    for length in range(0,n-1):
+        ttry = price[length] 
+        howmans = howmans + 1
+        print("executed :",howmans)
+        ttry = ttry + bestprice(n-length-1)
         if ttry > result:
             result = ttry
     return result
 
-print(bestprice(0))
-print(bestprice(1))
-print(bestprice(2))
-print(bestprice(3))
-print(bestprice(4))
-print(bestprice(5))
-print(bestprice(6))
+# print(bestprice(0))
+# print(bestprice(1))
+# print(bestprice(2))
+# print(bestprice(3))
+# print(bestprice(4))
+# print(bestprice(5))
+# print(bestprice(6))
 print(bestprice(7))
+# print(bestprice(8))
+
+sys.exit()
 
 # A Naive recursive solution 
 # for Rod cutting problem

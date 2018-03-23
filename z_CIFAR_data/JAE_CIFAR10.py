@@ -59,11 +59,11 @@ def _variable_on_cpu(name, shape, initializer=tf.constant_initializer(0.1)):
     var = tf.get_variable(name, shape, initializer=initializer)
   return var
 
-def _variable_with_weight_decay(name,shape):
+def _variable_with_weight_decay_mod(name,shape):
   var = _variable_on_cpu(name, shape,tf.truncated_normal_initializer(stddev=0.05))
   return var
 
-def _variable_with_weight_decay_og(name, shape, stddev=0.05, wd=0.0005):
+def _variable_with_weight_decay(name, shape, stddev=0.05, wd=0.0005):
   """Helper to create an initialized Variable with weight decay.
 
   Note that the Variable is initialized with a truncated normal distribution.
@@ -102,19 +102,19 @@ stack5_prob_input = tf.placeholder(tf.float32)
 stack6_prob_input = tf.placeholder(tf.float32)
 stack7_prob_input = tf.placeholder(tf.float32)
 
-w1_stack1 = _variable_with_weight_decay('w1_stack1',shape=[5,5,3,256])
+w1_stack1 = _variable_with_weight_decay('w1_stack1',shape=[7,7,3,256])
 b1_stack1 = _variable_on_cpu('b1_stack1',shape=[256])
 
 w1_stack2 = _variable_with_weight_decay('w1_stack2',shape=[1,1,256,256])
 b1_stack2 = _variable_on_cpu('b1_stack2',shape=[256])
 
-w2_stack2 = _variable_with_weight_decay('w2_stack2',shape=[3,3,256,256])
+w2_stack2 = _variable_with_weight_decay('w2_stack2',shape=[5,5,256,256])
 b2_stack2 = _variable_on_cpu('b2_stack2',shape=[256])
 
 w1_stack3 = _variable_with_weight_decay('w1_stack3',shape=[1,1,256,256])
 b1_stack3 = _variable_on_cpu('b1_stack3',shape=[256])
 
-w2_stack3 = _variable_with_weight_decay('w2_stack3',shape=[2,2,256,256])
+w2_stack3 = _variable_with_weight_decay('w2_stack3',shape=[3,3,256,256])
 b2_stack3 = _variable_on_cpu('b2_stack3',shape=[256])
 
 w1_stack4 = _variable_with_weight_decay('w1_stack4',shape=[1,1,256,256])
@@ -256,8 +256,9 @@ optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=
 #Predictions
 tf_prediction = tf.nn.softmax(results)
 
-# hyper para 18100
+# hyper para 165000
 num_epoch =  20001 
+num_epoch =  165000 
 print_size = 100
 
 #Training
@@ -265,7 +266,7 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # learning_rate = 0.01
-    learning_rate = 0.008
+    learning_rate = 0.005
     
     batch_size = 100
     step_per_epoch = int(len(train_labels)/batch_size)
@@ -278,9 +279,9 @@ with tf.Session() as sess:
                 train_images = train_images[shuffle_indices]
                 train_labels = train_labels[shuffle_indices]
                 # indices_list = create_indices(train_labels,NUM_CLASSES)
-        if step == 35000: learning_rate = 0.005
-        if step == 85000: learning_rate = 0.0005
-        if step == 135000: learning_rate = 0.00005
+        if step == 9000: learning_rate = 0.001
+        if step == 12000: learning_rate = 0.0003
+        if step == 19000: learning_rate = 0.00005
 
         #Creating batch data
         offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
