@@ -27,41 +27,74 @@ class CNNLayer():
       
   def __init__(self,kernel,in_c,out_c):
     self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=0.05,mean=0.0))
-    self.b = tf.Variable(tf.constant(value=0.1,shape=[out_c]))
-    self.m_w,self.m_b = tf.Variable(tf.zeros_like(self.w)) ,tf.Variable(tf.zeros_like(self.b)) 
+    self.m = tf.Variable(tf.zeros_like(self.w)) 
 
   def feedforward(self,input):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerA = tf_elu(self.layer + self.b)
+    self.layerA = tf_elu(self.layer)
     return self.layerA
 
   def feedforward_avg(self,input):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerA = tf_elu(self.layer + self.b)
+    self.layerA = tf_elu(self.layer)
     self.layerMean = tf.nn.avg_pool(self.layerA, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
     return self.layerMean
 
   def backprop(self,gradient):
-    grad_part_1 = gradient 
-    grad_part_2 = d_tf_elu(self.layerb)    
-    grad_part_w = self.input
-    grad_part_b = tf.ones_like(self.b)   
+    grad_part_1 = gradient
+    grad_part_2 = d_tf_elu(self.layer)
+    grad_part_3 = self.input
 
     grad_middle = tf.multiply(grad_part_1,grad_part_2)
 
-    grad_w = 9
-    grad_b = 8
+    grad = tf.nn.conv2d_backprop_filter(
+      input = grad_part_3,
+      filter_sizes = self.w.shape,
+      out_backprop = grad_middle,
+      strides = [1,1,1,1],padding='SAME'
+    )
 
-    grad_pass = 67 
+    pass_size = list(self.input.shape[1:])
+    grad_pass = tf.nn.conv2d_backprop_input(
+      input_sizes =[batch_size]+pass_size,
+      filter = self.w,
+      out_backprop = grad_middle,
+      strides = [1,1,1,1],padding='SAME'
+    )
 
     update_w = []
-
+    tf.assign(self.m, 0.7*self.m + learning_rate*grad)    
+    tf.assign(self.w,self.w - self.m)
     return grad_pass,update_w
 
   def backprop_avg(self,gradient):
-    return tf.random_normal([3,3]),tf.random_normal([3,3])
+    grad_part_1 = tf.tile(gradient, [1,2,2,1])
+    grad_part_2 = d_tf_elu(self.layer)
+    grad_part_3 = self.input
+
+    grad_middle = tf.multiply(grad_part_1,grad_part_2)
+
+    grad = tf.nn.conv2d_backprop_filter(
+      input = grad_part_3,
+      filter_sizes = self.w.shape,
+      out_backprop = grad_middle,
+      strides = [1,1,1,1],padding='SAME'
+    )
+    
+    pass_size = list(self.input.shape[1:])
+    grad_pass = tf.nn.conv2d_backprop_input(
+      input_sizes =[batch_size]+pass_size,
+      filter = self.w,
+      out_backprop = grad_middle,
+      strides = [1,1,1,1],padding='SAME'
+    )
+
+    update_w = []
+    tf.assign(self.m, 0.7*self.m + learning_rate*grad)    
+    tf.assign(self.w,self.w - self.m)
+    return grad_pass,update_w
 
 
 
@@ -69,25 +102,27 @@ class CNNLayer():
 
 # =========== Make Class  ===========
 l1 = CNNLayer(kernel=7,in_c=3,out_c=256)
-
 l2 = CNNLayer(kernel=1,in_c=256,out_c=256)
+
 l3 = CNNLayer(kernel=5,in_c=256,out_c=256)
-
 l4 = CNNLayer(kernel=1,in_c=256,out_c=256)
+
 l5 = CNNLayer(kernel=3,in_c=256,out_c=256)
-
 l6 = CNNLayer(kernel=1,in_c=256,out_c=256)
+
 l7 = CNNLayer(kernel=2,in_c=256,out_c=256)
-
 l8 = CNNLayer(kernel=1,in_c=256,out_c=256)
-l9 = CNNLayer(kernel=2,in_c=256,out_c=256)
 
+l9 = CNNLayer(kernel=2,in_c=256,out_c=256)
 l10 = CNNLayer(kernel=1,in_c=256,out_c=10)
 
 # === Hyper Param ===
 num_epoch =  165000 
 num_epoch =  10001 
+learning_rate = 0.005
 print_size = 100
+
+batch_size = 100
 
 
 
@@ -107,7 +142,8 @@ layer6 = l6.feedforward_avg(layer5)
 layer7 = l7.feedforward(layer6)
 layer8 = l8.feedforward_avg(layer7)
 
-layer9 = l9.feedforward_avg(layer8)
+layer9 = l9.feedforward(layer8)
+print(layer9.shape,'===============')
 layer10 = l10.feedforward_avg(layer9)
 
 results = tf.reshape(layer10,(-1,NUM_CLASSES))
@@ -134,7 +170,26 @@ optimizer = tf.train.MomentumOptimizer(learning_rate=tf_learning_rate, momentum=
 tf_prediction = tf_softmax(results)
 
 # === Back Propagation === 
-grad_10,grad_10w = l10.backprop_avg(tf_prediction-y)
+grad_10,grad_10w = l10.backprop_avg(tf.reshape(tf_prediction-y,[batch_size,1,1,NUM_CLASSES]))
+grad_9, grad_9w  = l9.backprop(grad_10)
+
+grad_8, grad_8w  = l8.backprop_avg(grad_9)
+grad_7, grad_7w  = l7.backprop(grad_8)
+
+grad_6, grad_6w  = l6.backprop_avg(grad_7)
+grad_5, grad_5w  = l5.backprop(grad_6)
+
+grad_4, grad_4w  = l4.backprop_avg(grad_5)
+grad_3, grad_3w  = l3.backprop(grad_4)
+
+grad_2, grad_2w  = l2.backprop_avg(grad_3)
+grad_1, grad_1w  = l1.backprop(grad_2)
+
+weight_update = grad_10w+grad_9w+ \
+                grad_8w+grad_7w+ \
+                grad_6w+grad_5w+ \
+                grad_4w+grad_3w+ \
+                grad_2w+grad_1w
 
 
 
@@ -144,10 +199,6 @@ sess = tf.Session(config=config)
 with sess:
     sess.run(tf.global_variables_initializer())
 
-    # learning_rate = 0.01
-    learning_rate = 0.005
-    
-    batch_size = 100
     step_per_epoch = int(len(train_labels)/batch_size)
 
     for step in range(num_epoch):
@@ -170,7 +221,7 @@ with sess:
         #Training
         feed_dict = {x: batch_data, y : batch_labels, tf_learning_rate: learning_rate}
         # _, loss_out, predictions = sess.run([optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
-        sess_result = sess.run([grad_10,optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
+        sess_result = sess.run([weight_update,optimizer, total_loss, tf_prediction], feed_dict=feed_dict)
 
         print(sess_result[0].shape)
         sys.exit()
