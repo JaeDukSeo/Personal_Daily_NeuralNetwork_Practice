@@ -214,9 +214,6 @@ cost = tf.reduce_sum(-1.0 * (y*tf.log(final_soft) + (1.0-y)*tf.log(1.0-final_sof
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-# --- auto train ---
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
-
 # --- back prop ---
 grad3_3,grad3_3_w = l3_3.backprop(final_soft-y)
 grad3_2,grad3_2_w = l3_2.backprop(grad3_3+decay_propotoin_rate*(grad3_3))
@@ -264,7 +261,7 @@ with sess:
         for current_batch_index in range(0,len(train_images),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_batch,y:current_batch_label,iter_variable_dil:iter})
+            sess_results = sess.run([cost,accuracy,correct_prediction,grad_update],feed_dict={x:current_batch,y:current_batch_label,iter_variable_dil:iter})
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]

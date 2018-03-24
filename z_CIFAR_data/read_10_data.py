@@ -59,8 +59,8 @@ def get_data():
     #
     # train_images, train_labels = process_data(ROOT_FOLDER+'train')
     # test_images,test_labels = process_data(ROOT_FOLDER+'test')
-    print('Train Date shape is',train_images.shape, 'and labels is',train_labels.shape)
-    print('Test Date shape is',test_images.shape, 'and labels is',test_labels.shape)
+    # print('Train Date shape is',train_images.shape, 'and labels is',train_labels.shape)
+    # print('Test Date shape is',test_images.shape, 'and labels is',test_labels.shape)
     return  train_images, train_labels, test_images,test_labels
 
 
