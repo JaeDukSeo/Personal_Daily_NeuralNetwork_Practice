@@ -33,7 +33,7 @@ def d_tf_atan(x): return 1.0 / (1 + tf.square(x))
 train_images, train_labels, test_images,test_labels = get_data()
 
 # === Hyper ===
-num_epoch =  20
+num_epoch =  10
 batch_size = 100
 print_size = 2
 shuffle_size = 10
@@ -134,15 +134,11 @@ cost = tf.reduce_sum(-1.0 * (y*tf.log(final_soft) + (1.0-y)*tf.log(1.0-final_sof
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-
 # --- auto train ---
 auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0 )
-gpu_options.allow_growth=True
-config = tf.ConfigProto(gpu_options=gpu_options)
-sess = tf.Session(config=config)
-with sess: 
+# --- start the session ----
+with tf.Session() as sess:
 
   sess.run(tf.global_variables_initializer())
 
@@ -159,11 +155,11 @@ with sess:
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
 
             if iter >= 15  : 
-              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.00001}
+              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.000001}
             elif iter >= 13 :
-              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.00005}
-            elif iter > 9 :
-              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.0006}
+              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.000001}
+            elif iter > 1 :
+              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.00001}
             else: 
               feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.001}
 
@@ -176,7 +172,7 @@ with sess:
         for current_batch_index in range(0,len(test_images),batch_size):
           current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
           current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-          sess_results = sess.run( [cost,accuracy,correct_prediction], feed_dict= {x:current_batch,y:current_batch_label,droprate1:1.0,droprate2:1.0,droprate3:1.0,droprate4:1.0})
+          sess_results = sess.run( [cost,accuracy,correct_prediction], feed_dict= {x:current_batch,y:current_batch_label})
           print("\t\t\tTest Image Current iter:", iter,' Current batach : ',current_batch_index, " current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
           test_total_cost = test_total_cost + sess_results[0]
           test_total_acc = test_total_acc + sess_results[1]
