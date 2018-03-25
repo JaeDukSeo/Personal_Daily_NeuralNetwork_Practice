@@ -43,7 +43,7 @@ proportion_rate = 1000
 decay_rate = 0.08
 # decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
-learning_rate = 0.0006
+learning_rate = 0.001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -173,24 +173,22 @@ class FNNLayer():
         return grad_pass,grad_update   
 
 # === Make Layers ===
-l0_1 = CNNLayer(7,3,256,tf_elu,d_tf_elu)
-l0_2 = CNNLayer(1,256,256,tf_elu,d_tf_elu)
-l0_3 = CNNLayer(5,256,256,tf_elu,d_tf_elu)
-l0_4 = CNNLayer(1,256,256,tf_elu,d_tf_elu)
+l0_1 = CNNLayer(7,3,128,tf_elu,d_tf_elu)
+l0_2 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
+l0_3 = CNNLayer(5,128,128,tf_elu,d_tf_elu)
+l0_4 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
 
-l1_1 = CNNLayer(3,256,256,tf_elu,d_tf_elu)
-l1_2 = CNNLayer(1,256,256,tf_elu,d_tf_elu)
-l1_3 = CNNLayer(2,256,256,tf_elu,d_tf_elu)
-l1_4 = CNNLayer(1,256,256,tf_elu,d_tf_elu)
+l1_1 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
+l1_2 = CNNLayer(3,128,128,tf_elu,d_tf_elu)
+l1_3 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
 
-l2_1 = CNNLayer(2,256,256,tf_elu,d_tf_elu)
-l2_2 = CNNLayer(1,256,256,tf_elu,d_tf_elu)
-l2_3 = CNNLayer(1,256,256,tf_elu,d_tf_elu)
-l2_4 = CNNLayer(1,256,512,tf_elu,d_tf_elu)
+l2_1 = CNNLayer(2,128,128,tf_elu,d_tf_elu)
+l2_2 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
+l2_3 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
 
-l3_1 = FNNLayer(4*4*512,2024,tf_tanh,d_tf_tanh)
-l3_2 = FNNLayer(2024,2024,tf_atan,d_tf_atan)
-l3_3 = FNNLayer(2024,10,tf_log,d_tf_log)
+l3_1 = FNNLayer(4*4*128,512,tf_tanh,d_tf_tanh)
+l3_2 = FNNLayer(512,512,tf_atan,d_tf_atan)
+l3_3 = FNNLayer(512,10,tf_log,d_tf_log)
 
 # === Make Graph ===
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
@@ -211,15 +209,13 @@ layer0_4 = l0_4.feedforward_avg(layer0_3,droprate1)
 
 layer1_1 = l1_1.feedforward(layer0_4,droprate2)
 layer1_2 = l1_2.feedforward(layer1_1,droprate2)
-layer1_3 = l1_3.feedforward(layer1_2,droprate2)
-layer1_4 = l1_4.feedforward_avg(layer1_3,droprate2)
+layer1_3 = l1_3.feedforward_avg(layer1_2,droprate2)
 
-layer2_1 = l2_1.feedforward(layer1_4,droprate3)
+layer2_1 = l2_1.feedforward(layer1_3,droprate3)
 layer2_2 = l2_2.feedforward(layer2_1,droprate3)
-layer2_3 = l2_3.feedforward(layer2_2,droprate3)
-layer2_4 = l2_4.feedforward_avg(layer2_3,droprate3)
+layer2_3 = l2_3.feedforward_avg(layer2_2,droprate3)
 
-layer3_Input = tf.reshape(layer2_4,[batch_size,-1])
+layer3_Input = tf.reshape(layer2_3,[batch_size,-1])
 layer3_1 = l3_1.feedforward(layer3_Input,droprate4)
 layer3_2 = l3_2.feedforward(layer3_1,droprate4)
 layer3_3 = l3_3.feedforward(layer3_2,droprate4)
@@ -230,35 +226,36 @@ correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 regularizers = l0_1.reg()+l0_2.reg()+l0_3.reg()+l0_4.reg()+\
-               l1_1.reg()+l1_2.reg()+l1_3.reg()+l1_4.reg()+\
-               l2_1.reg()+l2_2.reg()+l2_3.reg()+l2_4.reg()+\
+               l1_1.reg()+l1_2.reg()+l1_3.reg()+\
+               l2_1.reg()+l2_2.reg()+l2_3.reg()+\
                l3_1.reg()+l3_2.reg()+l3_3.reg()
 # --- auto train ---
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost+0.008*regularizers)
+# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost+0.005*regularizers)
+auto_train = tf.train.ExponentialMovingAverage(learning_rate=learning_rate,decay=0.998).minimize(cost+0.005*regularizers)
 
 # --- back prop ---
-# grad3_3,grad3_3_w = l3_3.backprop(final_soft-y)
-# grad3_2,grad3_2_w = l3_2.backprop(grad3_3)
-# grad3_1,grad3_1_w = l3_1.backprop(grad3_2+decay_propotoin_rate*(grad3_3))
+grad3_3,grad3_3_w = l3_3.backprop(final_soft-y)
+grad3_2,grad3_2_w = l3_2.backprop(grad3_3)
+grad3_1,grad3_1_w = l3_1.backprop(grad3_2+decay_propotoin_rate*(grad3_3))
 
-# grad2_Input = tf.reshape(grad3_1,[batch_size,4,4,512])
-# grad2_3,grad2_3_w = l2_3.backprop_avg(grad2_Input)
-# grad2_2,grad2_2_w = l2_2.backprop(grad2_3)
-# grad2_1,grad2_1_w = l2_1.backprop(grad2_2+decay_propotoin_rate*(grad2_3))
+grad2_Input = tf.reshape(grad3_1,[batch_size,4,4,128])
+grad2_3,grad2_3_w = l2_3.backprop_avg(grad2_Input)
+grad2_2,grad2_2_w = l2_2.backprop(grad2_3)
+grad2_1,grad2_1_w = l2_1.backprop(grad2_2+decay_propotoin_rate*(grad2_3))
 
-# grad1_3,grad1_3_w = l1_3.backprop_avg(grad2_1+decay_propotoin_rate*(grad2_3+grad2_2))
-# grad1_2,grad1_2_w = l1_2.backprop(grad1_3 )
-# grad1_1,grad1_1_w = l1_1.backprop(grad1_2+decay_propotoin_rate*(grad1_3))
+grad1_3,grad1_3_w = l1_3.backprop_avg(grad2_1+decay_propotoin_rate*(grad2_3+grad2_2))
+grad1_2,grad1_2_w = l1_2.backprop(grad1_3 )
+grad1_1,grad1_1_w = l1_1.backprop(grad1_2+decay_propotoin_rate*(grad1_3))
 
-# grad0_4,grad0_4_w = l0_4.backprop_avg(grad1_1)
-# grad0_3,grad0_3_w = l0_3.backprop(grad0_4+decay_propotoin_rate*(grad0_4))
-# grad0_2,grad0_2_w = l0_2.backprop(grad0_3)
-# grad0_1,grad0_1_w = l0_1.backprop(grad0_2+decay_propotoin_rate*(grad0_3))
+grad0_4,grad0_4_w = l0_4.backprop_avg(grad1_1)
+grad0_3,grad0_3_w = l0_3.backprop(grad0_4+decay_propotoin_rate*(grad0_4))
+grad0_2,grad0_2_w = l0_2.backprop(grad0_3)
+grad0_1,grad0_1_w = l0_1.backprop(grad0_2+decay_propotoin_rate*(grad0_3))
 
-# grad_update = grad3_3_w+grad3_2_w+grad3_1_w+\
-#               grad2_3_w+grad2_2_w+grad2_1_w+\
-#               grad1_3_w+grad1_2_w+grad1_1_w+\
-#               grad0_4_w+grad0_3_w+grad0_2_w+grad0_1_w
+grad_update = grad3_3_w+grad3_2_w+grad3_1_w+\
+              grad2_3_w+grad2_2_w+grad2_1_w+\
+              grad1_3_w+grad1_2_w+grad1_1_w+\
+              grad0_4_w+grad0_3_w+grad0_2_w+grad0_1_w
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5 )
 gpu_options.allow_growth=True
@@ -288,7 +285,7 @@ with sess:
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_batch,
-            y:current_batch_label,iter_variable_dil:iter,droprate1:0.9,droprate2:0.8,droprate3:0.9,droprate4:0.9})
+            y:current_batch_label,iter_variable_dil:iter,droprate1:1.0,droprate2:0.8,droprate3:0.9,droprate4:0.9})
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
