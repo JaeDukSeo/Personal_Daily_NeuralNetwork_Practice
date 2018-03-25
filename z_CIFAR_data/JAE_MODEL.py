@@ -56,7 +56,7 @@ class CNNLayer():
       self.m,self.v = tf.Variable(tf.zeros_like(self.w)), tf.Variable(tf.zeros_like(self.w))
   def getw(self): return [self.w]
   def reg(self): return tf.nn.l2_loss(self.w)
-  def feedforward(self,input,droprate,resinput=None):
+  def feedforward(self,input,droprate,resinput=None,strids=None):
     self.input = input
     self.layer = tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
     if not resinput==None:
