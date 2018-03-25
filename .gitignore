@@ -14,4 +14,5 @@ z_CIFAR_data/elu_network/ckpt
 z_CIFAR_data/cifar10_preprocessed
 z_CIFAR_data/cifar100python/
 z_CIFAR_data/micro-projects/
-
+z_CIFAR_data/All-Conv-Keras/
+z_CIFAR_data/cifar10_pkl
