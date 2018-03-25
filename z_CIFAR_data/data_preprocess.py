@@ -6,7 +6,7 @@ import textwrap
 import sys
 
 # load data and GCN them
-train = CIFAR10(which_set='train', gcn=55.)
+train = CIFAR10(which_set='train')
 
 # apply zca
 # preprocessor = preprocessing.ZCA()
@@ -17,7 +17,7 @@ train.use_design_loc('./cifar10_pkl/train.npy')
 serial.save('./cifar10_pkl/train.pkl', train)
 
 # load test
-test = CIFAR10(which_set='test', gcn=55.)
+test = CIFAR10(which_set='test')
 
 # apply zca
 # test.apply_preprocessor(preprocessor=preprocessor, can_fit=False)
