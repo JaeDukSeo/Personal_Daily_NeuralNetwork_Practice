@@ -13,4 +13,5 @@ z_CIFAR_data/elu_network/cifar100
 z_CIFAR_data/elu_network/ckpt
 z_CIFAR_data/cifar10_preprocessed
 z_CIFAR_data/cifar100python/
+z_CIFAR_data/micro-projects/
 

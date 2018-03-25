@@ -33,17 +33,15 @@ def d_tf_atan(x): return 1.0 / (1 + tf.square(x))
 train_images, train_labels, test_images,test_labels = get_data()
 
 # === Hyper ===
-num_epoch =  300
+num_epoch =  12
 batch_size = 100
 print_size = 2
 shuffle_size = 10
-divide_size = 1
+divide_size = 2
 
 proportion_rate = 1000
 decay_rate = 0.08
 # decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
-
-learning_rate = 0.001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -58,16 +56,22 @@ class CNNLayer():
       self.m,self.v = tf.Variable(tf.zeros_like(self.w)), tf.Variable(tf.zeros_like(self.w))
   def getw(self): return [self.w]
   def reg(self): return tf.nn.l2_loss(self.w)
-  def feedforward(self,input,droprate):
+  def feedforward(self,input,droprate,resinput=None):
     self.input = input
     self.layer = tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
-    self.layerA = self.act(self.layer)
+    if not resinput==None:
+      self.layerA = self.act(self.layer) + resinput
+    else:
+      self.layerA = self.act(self.layer)
     return self.layerA
 
-  def feedforward_avg(self,input,droprate):
+  def feedforward_avg(self,input,droprate,resinput=None):
     self.input = input
     self.layer =  tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
-    self.layerA = self.act(self.layer)
+    if not resinput==None:
+      self.layerA = self.act(self.layer) + resinput
+    else:
+      self.layerA = self.act(self.layer)
     self.layerMean = tf.nn.avg_pool(self.layerA, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
     return self.layerMean
 
@@ -186,14 +190,15 @@ l2_1 = CNNLayer(2,128,128,tf_elu,d_tf_elu)
 l2_2 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
 l2_3 = CNNLayer(1,128,128,tf_elu,d_tf_elu)
 
-l3_1 = FNNLayer(4*4*128,512,tf_tanh,d_tf_tanh)
-l3_2 = FNNLayer(512,512,tf_atan,d_tf_atan)
-l3_3 = FNNLayer(512,10,tf_log,d_tf_log)
+l3_1 = FNNLayer(4*4*128,1024,tf_elu,d_tf_elu)
+l3_2 = FNNLayer(1024,1024,tf_elu,d_tf_elu)
+l3_3 = FNNLayer(1024,10,tf_elu,d_tf_elu)
 
 # === Make Graph ===
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 
+learning_rate = tf.placeholder(shape=[],dtype=tf.float32)
 droprate1 = tf.placeholder(shape=[],dtype=tf.float32)
 droprate2 = tf.placeholder(shape=[],dtype=tf.float32)
 droprate3 = tf.placeholder(shape=[],dtype=tf.float32)
@@ -203,17 +208,17 @@ iter_variable_dil = tf.placeholder(tf.float32, shape=())
 decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 layer0_1 = l0_1.feedforward(x,droprate1)
-layer0_2 = l0_2.feedforward(layer0_1,droprate1)
-layer0_3 = l0_3.feedforward(layer0_2,droprate1)
-layer0_4 = l0_4.feedforward_avg(layer0_3,droprate1)
+layer0_2 = l0_2.feedforward(layer0_1,droprate1,layer0_1)
+layer0_3 = l0_3.feedforward(layer0_2,droprate1,layer0_2)
+layer0_4 = l0_4.feedforward_avg(layer0_3,droprate1,layer0_3)
 
 layer1_1 = l1_1.feedforward(layer0_4,droprate2)
-layer1_2 = l1_2.feedforward(layer1_1,droprate2)
-layer1_3 = l1_3.feedforward_avg(layer1_2,droprate2)
+layer1_2 = l1_2.feedforward(layer1_1,droprate2,layer1_1)
+layer1_3 = l1_3.feedforward_avg(layer1_2,droprate2,layer1_2)
 
 layer2_1 = l2_1.feedforward(layer1_3,droprate3)
-layer2_2 = l2_2.feedforward(layer2_1,droprate3)
-layer2_3 = l2_3.feedforward_avg(layer2_2,droprate3)
+layer2_2 = l2_2.feedforward(layer2_1,droprate3,layer2_1)
+layer2_3 = l2_3.feedforward_avg(layer2_2,droprate3,layer2_2)
 
 layer3_Input = tf.reshape(layer2_3,[batch_size,-1])
 layer3_1 = l3_1.feedforward(layer3_Input,droprate4)
@@ -229,9 +234,9 @@ regularizers = l0_1.reg()+l0_2.reg()+l0_3.reg()+l0_4.reg()+\
                l1_1.reg()+l1_2.reg()+l1_3.reg()+\
                l2_1.reg()+l2_2.reg()+l2_3.reg()+\
                l3_1.reg()+l3_2.reg()+l3_3.reg()
+
 # --- auto train ---
-# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost+0.005*regularizers)
-auto_train = tf.train.ExponentialMovingAverage(learning_rate=learning_rate,decay=0.998).minimize(cost+0.005*regularizers)
+auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost+0.05*regularizers)
 
 # --- back prop ---
 grad3_3,grad3_3_w = l3_3.backprop(final_soft-y)
@@ -272,20 +277,17 @@ with sess:
   test_cost_overtime,test_acc_overtime = [],[]
   for iter in range(num_epoch):
 
-        # offset = (iter * batch_size) % (train_labels.shape[0] - batch_size)
-        # current_train_batch = train_images[offset:offset+batch_size,:,:,:]
-        # current_train_batch_label = train_labels[offset:offset+batch_size,:]
-        # sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_train_batch,y:current_train_batch_label})
-        # print("current iter:", iter,' Current batach : ',offset," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
-        # train_total_cost = train_total_cost + sess_results[0]
-        # train_total_acc = train_total_acc + sess_results[1]
-
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_batch,
-            y:current_batch_label,iter_variable_dil:iter,droprate1:1.0,droprate2:0.8,droprate3:0.9,droprate4:0.9})
+
+            if iter > 10: 
+              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.0001,iter_variable_dil:iter,droprate1:1.0,droprate2:1.0,droprate3:0.9,droprate4:1.0}
+            else: 
+              feed_dict = {x:current_batch,y:current_batch_label,learning_rate:0.001,iter_variable_dil:iter,droprate1:1.0,droprate2:0.8,droprate3:0.9,droprate4:0.9}
+
+            sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict=feed_dict)
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
