@@ -64,7 +64,7 @@ print(test_labels.shape)
 num_epoch =  100
 batch_size = 100
 print_size = 1
-shuffle_size = 10
+shuffle_size = 5
 divide_size = 4
 
 proportion_rate = 1000
@@ -103,24 +103,21 @@ class CNNLayer():
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
     self.layerA = self.act(self.layer)
-    self.layerA = tf.contrib.layers.batch_norm(self.layerA , 
-                                          center=True, scale=True)
+    self.layerA = tf.contrib.layers.batch_norm(self.layerA , center=True, scale=True)
     return self.layerA
 
   def feedforward_res(self,input):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
     self.layerA = self.act(self.layer) + self.input
-    self.layerA = tf.contrib.layers.batch_norm(self.layerA , 
-                                          center=True, scale=True)
+    self.layerA = tf.contrib.layers.batch_norm(self.layerA , center=True, scale=True)
     return self.layerA
 
   def feedforward_dropout(self,input,droprate):
     self.input = input
     self.layer = tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
     self.layerA = self.act(self.layer)
-    self.layerA = tf.contrib.layers.batch_norm(self.layerA , 
-                                          center=True, scale=True)
+    self.layerA = tf.contrib.layers.batch_norm(self.layerA , center=True, scale=True)
     return self.layerA
 
   def feedforward_avg(self,input,droprate):
@@ -130,7 +127,8 @@ class CNNLayer():
     self.layerMean = tf.nn.avg_pool(self.layerA, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
     return self.layerMean 
 
-
+  def backprop(self,gradient):
+        return 2
 
 
 
@@ -145,17 +143,17 @@ class CNNLayer():
 l0_1 = CNNLayer(7,3,48,  tf_elu,d_tf_elu)
 l0_2 = CNNLayer(1,48,48,tf_elu,d_tf_elu)
 l0_3 = CNNLayer(5,48,48,tf_elu,d_tf_elu)
-l0_4 = CNNLayer(1,48,96,tf_elu,d_tf_elu)
+l0_4 = CNNLayer(1,48,108,tf_elu,d_tf_elu)
 
-l1_1 = CNNLayer(3,96,96,tf_elu,d_tf_elu)
-l1_2 = CNNLayer(1,96,96,tf_elu,d_tf_elu)
-l1_3 = CNNLayer(2,96,96,tf_elu,d_tf_elu)
-l1_4 = CNNLayer(1,96,192,tf_elu,d_tf_elu)
+l1_1 = CNNLayer(3,108,108,tf_elu,d_tf_elu)
+l1_2 = CNNLayer(1,108,108,tf_elu,d_tf_elu)
+l1_3 = CNNLayer(2,108,108,tf_elu,d_tf_elu)
+l1_4 = CNNLayer(1,108,224,tf_elu,d_tf_elu)
 
-l2_1 = CNNLayer(2,192,192,tf_elu,d_tf_elu)
-l2_2 = CNNLayer(1,192,192,tf_elu,d_tf_elu)
-l2_3 = CNNLayer(1,192,192,tf_elu,d_tf_elu)
-l2_4 = CNNLayer(1,192,10,tf_elu,d_tf_elu)
+l2_1 = CNNLayer(2,224,224,tf_elu,d_tf_elu)
+l2_2 = CNNLayer(1,224,224,tf_elu,d_tf_elu)
+l2_3 = CNNLayer(1,224,224,tf_elu,d_tf_elu)
+l2_4 = CNNLayer(1,224,10,tf_elu,d_tf_elu)
 
 
 
@@ -240,6 +238,9 @@ auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=mom
 
 
 # === Start the Session ===
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
+gpu_options.allow_growth=True
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 with tf.Session() as sess: 
 
   sess.run(tf.global_variables_initializer())
