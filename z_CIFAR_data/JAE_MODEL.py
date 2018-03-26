@@ -297,23 +297,17 @@ with tf.Session() as sess:
 
   # plot and save
   plt.figure()
-  plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r')
-  plt.title('Train Cost over time')
+  plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r',label="Train")
+  plt.plot(range(len(train_cost_overtime)),test_acc_overtime,color='b',label='Test')
+  plt.legend()
+  plt.title('Cost over time')
   plt.show()
 
   plt.figure()
-  plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='b')
-  plt.title('Train Acc over time')
-  plt.show()
-
-  plt.figure()
-  plt.plot(range(len(test_cost_overtime)),test_cost_overtime,color='y')
-  plt.title('Test Cost over time')
-  plt.show()
-
-  plt.figure()
-  plt.plot(range(len(test_acc_overtime)),test_acc_overtime,color='g')
-  plt.title('Test Acc over time')
+  plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='r',label="Train")
+  plt.plot(range(len(train_acc_overtime)),test_acc_overtime,color='b',label='Test')
+  plt.legend()
+  plt.title('Acc over time')
   plt.show()
         
 
