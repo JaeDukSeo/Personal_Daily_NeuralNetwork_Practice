@@ -131,7 +131,7 @@ class CNNLayer_2():
 
 class CNNLayer_3():
       
-  def __init__(self,kernel,kernel2,in_c,out_c,act,d_act):
+  def __init__(self,kernel,in_c,out_c,act,d_act):
     with tf.device('/cpu:0'):
       self.w1 = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=0.05,mean=0.0))
       self.w2 = tf.Variable(tf.truncated_normal([kernel,kernel,out_c,out_c],stddev=0.05,mean=0.0))
@@ -165,10 +165,14 @@ class CNNLayer_3():
 # === Make Layers ===
 l0_1 = CNNLayer_1(3,3,16,tf_elu,d_tf_elu)
 
+l1_1 = CNNLayer_2(3,1,16,32,tf_elu,d_tf_elu)
+l1_2 = CNNLayer_3(3,32,32,tf_elu,d_tf_elu)
 
+l2_1 = CNNLayer_2(3,1,32,64,tf_elu,d_tf_elu)
+l2_2 = CNNLayer_3(3,64,64,tf_elu,d_tf_elu)
 
-
-
+l2_1 = CNNLayer_2(3,1,32,64,tf_elu,d_tf_elu)
+l2_2 = CNNLayer_3(3,64,64,tf_elu,d_tf_elu)
 
 
 

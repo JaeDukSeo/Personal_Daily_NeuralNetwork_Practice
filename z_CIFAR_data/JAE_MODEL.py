@@ -61,7 +61,7 @@ print(test_images.shape)
 print(test_labels.shape)
 
 # === Hyper ===
-num_epoch =  15
+num_epoch =  100
 batch_size = 100
 print_size = 1
 shuffle_size = 10
