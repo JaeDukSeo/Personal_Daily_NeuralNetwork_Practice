@@ -12,11 +12,6 @@ ia.seed(1)
 np.random.seed(789)
 tf.set_random_seed(789)
 
-seq0 = iaa.Sequential([
-    iaa.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
-    iaa.Fliplr(0.5), # horizontally flip 50% of the images
-    iaa.GaussianBlur(sigma=(0, 3.0)) # blur images with a sigma of 0 to 3.0
-])
 seq = iaa.Sequential([
     iaa.Fliplr(0.5), # horizontal flips
     iaa.Crop(percent=(0, 0.1)), # random crops
@@ -68,31 +63,26 @@ def d_tf_atan(x): return 1.0 / (1 + tf.square(x))
 # === Get Data ===
 train_images, train_labels, test_images,test_labels = get_data()
 
-train_images_aug1 = seq.augment_images(train_images)
-train_images_aug2 = seq.augment_images(train_images)
-
-train_images1 = np.concatenate((train_images,train_images_aug1),axis=0)
-train_images = np.concatenate((train_images1,train_images_aug2),axis=0)
-
-train_labels1 = np.concatenate((train_labels,train_labels),axis=0)
-train_labels = np.concatenate((train_labels,train_labels1),axis=0)
+# === Augment Data ===
+train_images_augmented = seq.augment_images(train_images)
+train_images = np.concatenate((train_images,train_images_augmented),axis=0)
+train_labels = np.concatenate((train_labels,train_labels),axis=0)
+train_images,train_labels = shuffle(train_images,train_labels)
 
 print(train_images.shape)
 print(train_labels.shape)
 print(test_images.shape)
 print(test_labels.shape)
 
-
 # === Hyper ===
 num_epoch =  10
-batch_size = 100
+batch_size = 500
 print_size = 2
 shuffle_size = 10
-divide_size = 2
+divide_size = 4
 
 proportion_rate = 1000
 decay_rate = 0.08
-# decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -113,6 +103,12 @@ class CNNLayer():
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,strids,strids,1],padding=padding)
     self.layerA = self.act(self.layer)
+    return self.layerA
+
+  def feedforward_res(self,input,strids=1,padding="SAME",resinput = None):
+    self.input = input
+    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,strids,strids,1],padding=padding)
+    self.layerA = resinput * self.act(self.layer) + resinput
     return self.layerA
 
   def backprop(self,gradient):
@@ -149,17 +145,18 @@ class CNNLayer():
     return grad_pass,grad_update
  
 # === Make Layers ===
-l1 = CNNLayer(3,3,96,tf_elu,d_tf_elu)
+l1 = CNNLayer(3,3,96,tf_relu,d_tf_elu)
 l2 = CNNLayer(3,96,96,tf_elu,d_tf_elu)
-l3 = CNNLayer(3,96,96,tf_elu,d_tf_elu)
+l3 = CNNLayer(3,96,96,tf_relu,d_tf_elu)
+l3_2 = CNNLayer(3,96,96,tf_relu,d_tf_elu)
 
-l4 = CNNLayer(3,96,192,tf_elu,d_tf_elu)
+l4 = CNNLayer(3,96,192,tf_relu,d_tf_elu)
 l5 = CNNLayer(3,192,192,tf_elu,d_tf_elu)
-l6 = CNNLayer(3,192,192,tf_elu,d_tf_elu)
+l6 = CNNLayer(3,192,192,tf_relu,d_tf_elu)
 
-l7 = CNNLayer(3,192,192,tf_elu,d_tf_elu)
+l7 = CNNLayer(3,192,192,tf_relu,d_tf_elu)
 l8 = CNNLayer(1,192,192,tf_elu,d_tf_elu)
-l9 = CNNLayer(1,192,10,tf_elu,d_tf_elu)
+l9 = CNNLayer(1,192,10,tf_relu,d_tf_elu)
 
 # === Make Graph ===
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
@@ -168,16 +165,16 @@ learning_rate = tf.placeholder(shape=[],dtype=tf.float32)
 
 layer1 = l1.feedforward(x)
 layer2 = l2.feedforward(layer1)
-layer3 = l3.feedforward(layer2,2)
+layer3 = l3.feedforward(layer2)
+layer3_2 = l3_2.feedforward(layer3,2)
 
-layer4 = l4.feedforward(layer3)
+layer4 = l4.feedforward(layer3_2)
 layer5 = l5.feedforward(layer4)
 layer6 = l6.feedforward(layer5,2)
 
 layer7 = l7.feedforward(layer6)
 layer8 = l8.feedforward(layer7,padding='VALID')
 layer9 = l9.feedforward(layer8,padding='VALID')
-
 global_avg_pool = tf.reduce_mean(layer9,[1,2])
 
 final_soft = tf_softmax(global_avg_pool)
@@ -198,6 +195,8 @@ with tf.Session() as sess:
 
   test_total_cost,test_total_acc = 0,0
   test_cost_overtime,test_acc_overtime = [],[]
+
+  # for number of epoch
   for iter in range(num_epoch):
 
         # Train Set
@@ -231,8 +230,8 @@ with tf.Session() as sess:
         # store
         train_cost_overtime.append(train_total_cost/(len(train_images)/divide_size/batch_size ) ) 
         train_acc_overtime.append(train_total_acc /(len(train_images)/divide_size/batch_size )  )
-        test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ) )
-        test_acc_overtime.append(test_total_acc/(len(test_images)/batch_size ) )
+        test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ))
+        test_acc_overtime.append(test_total_acc/(len(test_images)/batch_size ))
         
         # print
         if iter%print_size == 0:
@@ -243,6 +242,7 @@ with tf.Session() as sess:
             print("Avg Test Acc: ", test_acc_overtime[-1])
             print('-----------')      
 
+        # For every shuffle size, shuffle
         if iter%shuffle_size ==  0: 
           print("\n==== shuffling iter: =====",iter," \n")
           train_images,train_labels = shuffle(train_images,train_labels)
