@@ -1,14 +1,12 @@
 import os,sys
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import tensorflow as tf
-from six.moves import cPickle as pickle
 from read_10_data import get_data
 from sklearn.utils import shuffle
-
 import imgaug as ia
 from imgaug import augmenters as iaa
+
 ia.seed(1)
 np.random.seed(789)
 tf.set_random_seed(789)

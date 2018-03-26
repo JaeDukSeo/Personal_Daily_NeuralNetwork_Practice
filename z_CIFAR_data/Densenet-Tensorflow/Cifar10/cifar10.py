@@ -167,5 +167,3 @@ def data_augmentation(batch):
     batch = _random_flip_leftright(batch)
     batch = _random_crop(batch, [32, 32], 4)
     return batch
-
-download_data()

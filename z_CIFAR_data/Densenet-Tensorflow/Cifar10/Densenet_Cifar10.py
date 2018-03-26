@@ -182,16 +182,12 @@ class DenseNet():
 
         x = self.dense_block(input_x=x, nb_layers=32, layer_name='dense_final')
 
-
-
         # 100 Layer
         x = Batch_Normalization(x, training=self.training, scope='linear_batch')
         x = Relu(x)
         x = Global_Average_Pooling(x)
         x = flatten(x)
         x = Linear(x)
-
-
         # x = tf.reshape(x, [-1, 10])
         return x
 
@@ -199,14 +195,13 @@ class DenseNet():
 
 train_x, train_y, test_x, test_y = prepare_data()
 train_x, test_x = color_preprocessing(train_x, test_x)
+print("--------------- DONE ----------------")
 
 # image_size = 32, img_channels = 3, class_num = 10 in cifar10
 x = tf.placeholder(tf.float32, shape=[None, image_size, image_size, img_channels])
 label = tf.placeholder(tf.float32, shape=[None, class_num])
 
 training_flag = tf.placeholder(tf.bool)
-
-
 learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
 logits = DenseNet(x=x, nb_blocks=nb_block, filters=growth_k, training=training_flag).model
@@ -225,21 +220,20 @@ but, I'll use AdamOptimizer
 
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=epsilon)
 train = optimizer.minimize(cost)
-
-
 correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(label, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 saver = tf.train.Saver(tf.global_variables())
 
+print('Start the session')
 with tf.Session() as sess:
-    ckpt = tf.train.get_checkpoint_state('./model')
-    if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-        saver.restore(sess, ckpt.model_checkpoint_path)
-    else:
-        sess.run(tf.global_variables_initializer())
+    # ckpt = tf.train.get_checkpoint_state('./model')
+    # if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+    #     saver.restore(sess, ckpt.model_checkpoint_path)
+    # else:
+    sess.run(tf.global_variables_initializer())
 
-    summary_writer = tf.summary.FileWriter('./logs', sess.graph)
+    # summary_writer = tf.summary.FileWriter('./logs', sess.graph)
 
     epoch_learning_rate = init_learning_rate
     for epoch in range(1, total_epochs + 1):
@@ -284,9 +278,9 @@ with tf.Session() as sess:
 
                 test_acc, test_loss, test_summary = Evaluate(sess)
 
-                summary_writer.add_summary(summary=train_summary, global_step=epoch)
-                summary_writer.add_summary(summary=test_summary, global_step=epoch)
-                summary_writer.flush()
+                # summary_writer.add_summary(summary=train_summary, global_step=epoch)
+                # summary_writer.add_summary(summary=test_summary, global_step=epoch)
+                # summary_writer.flush()
 
                 line = "epoch: %d/%d, train_loss: %.4f, train_acc: %.4f, test_loss: %.4f, test_acc: %.4f \n" % (
                     epoch, total_epochs, train_loss, train_acc, test_loss, test_acc)
@@ -297,4 +291,4 @@ with tf.Session() as sess:
 
 
 
-        saver.save(sess=sess, save_path='./model/dense.ckpt')
+        # saver.save(sess=sess, save_path='./model/dense.ckpt')
