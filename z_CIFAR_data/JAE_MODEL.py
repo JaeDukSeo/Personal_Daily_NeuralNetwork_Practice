@@ -50,10 +50,10 @@ def d_tf_atan(x): return 1.0 / (1 + tf.square(x))
 train_images, train_labels, test_images,test_labels = get_data()
 
 # === Augment Data ===
-train_images_augmented = seq.augment_images(train_images)
-train_images = np.concatenate((train_images,train_images_augmented),axis=0)
-train_labels = np.concatenate((train_labels,train_labels),axis=0)
-train_images,train_labels = shuffle(train_images,train_labels)
+# train_images_augmented = seq.augment_images(train_images)
+# train_images = np.concatenate((train_images,train_images_augmented),axis=0)
+# train_labels = np.concatenate((train_labels,train_labels),axis=0)
+# train_images,train_labels = shuffle(train_images,train_labels)
 
 print(train_images.shape)
 print(train_labels.shape)
@@ -61,7 +61,7 @@ print(test_images.shape)
 print(test_labels.shape)
 
 # === Hyper ===
-num_epoch =  300
+num_epoch =  15
 batch_size = 100
 print_size = 1
 shuffle_size = 10
@@ -70,7 +70,7 @@ divide_size = 4
 proportion_rate = 1000
 decay_rate = 0.08
 
-learning_rate = 0.0006
+learning_rate = 0.0001
 momentum_rate = 0.7
 
 
@@ -103,18 +103,24 @@ class CNNLayer():
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
     self.layerA = self.act(self.layer)
+    self.layerA = tf.contrib.layers.batch_norm(self.layerA , 
+                                          center=True, scale=True)
     return self.layerA
 
-  def feedforward_res(self,input,resinput):
+  def feedforward_res(self,input):
     self.input = input
     self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerA = self.act(self.layer) + resinput
+    self.layerA = self.act(self.layer) + self.input
+    self.layerA = tf.contrib.layers.batch_norm(self.layerA , 
+                                          center=True, scale=True)
     return self.layerA
 
   def feedforward_dropout(self,input,droprate):
     self.input = input
     self.layer = tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
     self.layerA = self.act(self.layer)
+    self.layerA = tf.contrib.layers.batch_norm(self.layerA , 
+                                          center=True, scale=True)
     return self.layerA
 
   def feedforward_avg(self,input,droprate):
@@ -181,18 +187,18 @@ iter_variable_dil = tf.placeholder(tf.float32, shape=())
 decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 layer0_1 = l0_1.feedforward(x)
-layer0_2 = l0_2.feedforward(layer0_1)
-layer0_3 = l0_3.feedforward(layer0_2)
+layer0_2 = l0_2.feedforward_res(layer0_1)
+layer0_3 = l0_3.feedforward_res(layer0_2)
 layer0_4 = l0_4.feedforward(layer0_3)
 
 layer1_1 = l1_1.feedforward(layer0_4)
-layer1_2 = l1_2.feedforward(layer1_1)
-layer1_3 = l1_3.feedforward(layer1_2)
+layer1_2 = l1_2.feedforward_res(layer1_1)
+layer1_3 = l1_3.feedforward_res(layer1_2)
 layer1_4 = l1_4.feedforward(layer1_3)
 
 layer2_1 = l2_1.feedforward(layer1_4)
-layer2_2 = l2_2.feedforward(layer2_1)
-layer2_3 = l2_3.feedforward(layer2_2)
+layer2_2 = l2_2.feedforward_res(layer2_1)
+layer2_3 = l2_3.feedforward_res(layer2_2)
 layer2_4 = l2_4.feedforward(layer2_3)
 
 global_norm = tf.reduce_mean(layer2_4,[1,2])
