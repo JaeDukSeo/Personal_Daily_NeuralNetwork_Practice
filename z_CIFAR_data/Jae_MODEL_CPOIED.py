@@ -64,7 +64,7 @@ print(test_labels.shape)
 num_epoch =  100
 batch_size = 100
 print_size = 1
-shuffle_size = 5
+shuffle_size = 2
 divide_size = 4
 
 proportion_rate = 1000
@@ -81,144 +81,135 @@ momentum_rate = 0.7
 
 
 
+# To speed up the training
+FLAGS = tf.app.flags.FLAGS
+tf.app.flags.DEFINE_boolean('use_fp16', False, """Train the model using fp16.""")
+
+#Hyper Parameters!
+learning_rate = 0.01
+batch_size = 120
+training_iters = 200*(int(len(train_images)/batch_size))
+layers = 16
+
+# 1 conv + 3 convblocks*(3 conv layers *1 group for each block + 2 conv layers*(N-1) groups for each block [total 1+N-1 = N groups]) = layers
+# 3*2*(N-1) = layers - 1 - 3*3
+# N = (layers -10)/6 + 1
+
+N = ((layers-10)/6)+1
+K = 4 #(deepening factor)
+
+#(N and K are used in the same sense as defined here: https://arxiv.org/abs/1605.07146)
+n_classes = 10 # another useless step that I made due to certain reasons. 
+
+x = tf.placeholder(tf.float32, [None, 32, 32, 3])
+y = tf.placeholder(tf.float32, [None, n_classes])
+
+keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
+phase = tf.placeholder(tf.bool, name='phase') 
+# (Phase = true means training is undergoing. The contrary is ment when Phase is false.)
+
+# Create some wrappers for simplicity
+def conv2d(x,shape,strides):
+    # Conv2D wrapper
+    W = tf.Variable(tf.truncated_normal(shape=shape,stddev=5e-2))
+    x = tf.nn.conv2d(x, W, strides=[1, strides, strides, 1], padding='SAME')
+    # Didn't add bias because I read somewhere it's not necessary to add a bias if batch normalization is to be performed later
+    # May be add L2 regularization or something here if you wish to.
+    return x
+
+def activate(x,phase):
+    #wrapper for performing batch normalization and relu activation
+    x = tf.contrib.layers.batch_norm(x, center=True, scale=True,variables_collections=["batch_norm_non_trainable_variables_collection"],updates_collections=None, decay=0.9,is_training=phase,zero_debias_moving_mean=True, fused=True)
+    return tf.nn.relu(x,'relu')
+
+
+def wideres33block(X,N,K,iw,bw,s,dropout,phase):
+    
+    # Creates N no. of 3,3 type residual blocks with dropout that consitute the conv2/3/4 blocks
+    # with widening factor K and X as input. s is stride and bw is base width (no. of filters before multiplying with k)
+    # iw is input width.
+    # (see https://arxiv.org/abs/1605.07146 paper for details on the block)
+    # In this case, dropout = probability to keep the neuron enabled.
+    # phase = true when training, false otherwise.
+    
+    conv33_1 = conv2d(X,[3,3,iw,bw*K],s)
+    conv33_1 = activate(conv33_1,phase)
+    
+    conv33_1 = tf.nn.dropout(conv33_1,dropout)
+    
+    conv33_2 = conv2d(conv33_1,[3,3,bw*K,bw*K],1)
+    conv_s_1 = conv2d(X,[1,1,iw,bw*K],s) #shortcut connection
+    
+    caddtable = tf.add(conv33_2,conv_s_1)
+    
+    #1st of the N blocks for conv2/3/4 block ends here. The rest of N-1 blocks will be implemented next with a loop.
+
+    for i in range(0,int(N-1)):
+        
+        C = caddtable
+        Cactivated = activate(C,phase)
+        
+        conv33_1 = conv2d(Cactivated,[3,3,bw*K,bw*K],1)
+        conv33_1 = activate(conv33_1,phase)
+        
+        conv33_1 = tf.nn.dropout(conv33_1,dropout)
+            
+        conv33_2 = conv2d(conv33_1,[3,3,bw*K,bw*K],1)
+        caddtable = tf.add(conv33_2,C)
+    
+    return activate(caddtable,phase)
+
+
+    
+def WRN(x, dropout, phase): #Wide residual network
+
+    conv1 = conv2d(x,[3,3,3,16],1)
+    conv1 = activate(conv1,phase)
+
+    conv2 = wideres33block(conv1,N,K,16,16,1,dropout,phase)
+    conv3 = wideres33block(conv2,N,K,16*K,32,2,dropout,phase)
+    conv4 = wideres33block(conv3,N,K,32*K,64,2,dropout,phase)
+
+    pooled = tf.nn.avg_pool(conv4,ksize=[1,8,8,1],strides=[1,1,1,1],padding='VALID')
+    
+    #Initialize weights and biases for fully connected layers
+    wd1 = tf.Variable(tf.truncated_normal([1*1*64*K, 64*K],stddev=5e-2))
+    bd1 = tf.Variable(tf.constant(0.1,shape=[64*K]))
+    wout = tf.Variable(tf.random_normal([64*K, n_classes]))
+    bout = tf.Variable(tf.constant(0.1,shape=[n_classes]))
+
+    # Fully connected layer
+    # Reshape pooling layer output to fit fully connected layer input
+    fc1 = tf.reshape(pooled, [-1, wd1.get_shape().as_list()[0]])   
+    fc1 = tf.add(tf.matmul(fc1, wd1), bd1)
+    fc1 = tf.nn.relu(fc1)
+
+    #fc1 = tf.nn.dropout(fc1, dropout) #Not sure if I should or should not apply dropout here.
+    # Output, class prediction
+    out = tf.add(tf.matmul(fc1, wout), bout)
+    return out
 
 
 
 
 
+# Construct model
+model = WRN(x,keep_prob,phase)
 
-# =========== Layer Class ===========
-# === Convolutional Layer ===
-class CNNLayer():
-      
-  def __init__(self,kernel,in_c,out_c,act,d_act):
-    with tf.device('/cpu:0'):
-      self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=0.05,mean=0.0))
-      self.act,self.d_act = act,d_act
-      self.m,self.v = tf.Variable(tf.zeros_like(self.w)), tf.Variable(tf.zeros_like(self.w))
-  def getw(self): return [self.w]
-  def reg(self): return tf.nn.l2_loss(self.w)
+# Define loss and optimizer
+cost = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=y))
 
-  def feedforward(self,input):
-    self.input = input
-    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerA = self.act(self.layer)
-    self.layerA = tf.contrib.layers.batch_norm(self.layerA , center=True, scale=True)
-    return self.layerA
+global_step = tf.Variable(0)
+optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum = 0.9, use_nesterov=True).minimize(cost,global_step=global_step)
+#learning_rate = tf.train.exponential_decay(init_lr,global_step*batch_size, decay_steps=len(X_train), decay_rate=0.95, staircase=True)
 
-  def feedforward_res(self,input):
-    self.input = input
-    self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME')
-    self.layerA = self.act(self.layer) + self.input
-    self.layerA = tf.contrib.layers.batch_norm(self.layerA , center=True, scale=True)
-    return self.layerA
+# Evaluate model
+correct_pred = tf.equal(tf.argmax(model, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+prediction = tf.nn.softmax(logits=model)
 
-  def feedforward_dropout(self,input,droprate):
-    self.input = input
-    self.layer = tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
-    self.layerA = self.act(self.layer)
-    self.layerA = tf.contrib.layers.batch_norm(self.layerA , center=True, scale=True)
-    return self.layerA
-
-  def feedforward_avg(self,input,droprate):
-    self.input = input
-    self.layer =  tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,1,1,1],padding='SAME'),droprate)
-    self.layerA = self.act(self.layer)
-    self.layerMean = tf.nn.avg_pool(self.layerA, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-    return self.layerMean 
-
-  def backprop(self,gradient):
-        return 2
-
-
-
-
-
-
-
-
-
-
-# === Make Layers ===
-l0_1 = CNNLayer(7,3,48,  tf_elu,d_tf_elu)
-l0_2 = CNNLayer(1,48,48,tf_elu,d_tf_elu)
-l0_3 = CNNLayer(5,48,48,tf_elu,d_tf_elu)
-l0_4 = CNNLayer(1,48,108,tf_elu,d_tf_elu)
-
-l1_1 = CNNLayer(3,108,108,tf_elu,d_tf_elu)
-l1_2 = CNNLayer(1,108,108,tf_elu,d_tf_elu)
-l1_3 = CNNLayer(2,108,108,tf_elu,d_tf_elu)
-l1_4 = CNNLayer(1,108,224,tf_elu,d_tf_elu)
-
-l2_1 = CNNLayer(2,224,224,tf_elu,d_tf_elu)
-l2_2 = CNNLayer(1,224,224,tf_elu,d_tf_elu)
-l2_3 = CNNLayer(1,224,224,tf_elu,d_tf_elu)
-l2_4 = CNNLayer(1,224,10,tf_elu,d_tf_elu)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# === Make Graph ===
-x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
-y = tf.placeholder(shape=[None,10],dtype=tf.float32)
-
-droprate1 = tf.placeholder(shape=[],dtype=tf.float32)
-droprate2 = tf.placeholder(shape=[],dtype=tf.float32)
-droprate3 = tf.placeholder(shape=[],dtype=tf.float32)
-droprate4 = tf.placeholder(shape=[],dtype=tf.float32)
-
-iter_variable_dil = tf.placeholder(tf.float32, shape=())
-decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
-
-layer0_1 = l0_1.feedforward(x)
-layer0_2 = l0_2.feedforward_res(layer0_1)
-layer0_3 = l0_3.feedforward_res(layer0_2)
-layer0_4 = l0_4.feedforward(layer0_3)
-
-layer1_1 = l1_1.feedforward(layer0_4)
-layer1_2 = l1_2.feedforward_res(layer1_1)
-layer1_3 = l1_3.feedforward_res(layer1_2)
-layer1_4 = l1_4.feedforward(layer1_3)
-
-layer2_1 = l2_1.feedforward(layer1_4)
-layer2_2 = l2_2.feedforward_res(layer2_1)
-layer2_3 = l2_3.feedforward_res(layer2_2)
-layer2_4 = l2_4.feedforward(layer2_3)
-
-global_norm = tf.reduce_mean(layer2_4,[1,2])
-final_soft = tf_softmax(global_norm)
-cost = tf.reduce_sum(-1.0 * (y*tf.log(final_soft) + (1.0-y)*tf.log(1.0-final_soft)))
-correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-# --- auto train ---
-auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost)
-
-
-
-
-
-
-
-
-
-
-
-
+# Initializing the variables
+init = tf.global_variables_initializer()
 
 
 
@@ -256,8 +247,7 @@ with tf.Session() as sess:
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results = sess.run([cost,accuracy,correct_prediction,auto_train],feed_dict={x:current_batch,
-            y:current_batch_label,iter_variable_dil:iter,droprate1:1.0,droprate2:1.0,droprate3:1.0,droprate4:1.0})
+            sess_results =  sess.run([cost,accuracy,optimizer],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7, phase: True})
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
@@ -266,8 +256,7 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(test_images),batch_size):
           current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
           current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-          sess_results = sess.run( [cost,accuracy,correct_prediction], feed_dict= {x:current_batch,y:current_batch_label
-          ,droprate1:1.0,droprate2:1.0,droprate3:1.0,droprate4:1.0})
+          sess_results = sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7, phase: True})
           print("\t\t\tTest Image Current iter:", iter,' Current batach : ',current_batch_index, " current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
           test_total_cost = test_total_cost + sess_results[0]
           test_total_acc = test_total_acc + sess_results[1]
