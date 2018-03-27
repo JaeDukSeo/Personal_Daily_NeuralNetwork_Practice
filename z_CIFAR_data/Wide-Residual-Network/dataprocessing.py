@@ -80,6 +80,54 @@ print ("Shape of Testing Samples (input and output): "+str(X_test.shape)+" "+str
 
 
 
+def mean_std_normalization(X,mean,calculate_mean=True):
+    channel_size = X.shape[3]
+    for i in range(channel_size):
+        if calculate_mean == True:
+            mean[i] = np.mean(X[:,:,:,i])
+        variance = np.mean(np.square(X[:,:,:,i]-mean[i]))
+        deviation = np.sqrt(variance)
+        X[:,:,:,i] = (X[:,:,:,i]-mean[i])/deviation
+    return X,mean
 
+channel_size = X_train.shape[3]
+mean = np.zeros((channel_size),dtype=np.float32)
+
+X_train,train_mean = mean_std_normalization(X_train,mean)
+X_val,_ = mean_std_normalization(X_val,train_mean,False)
+X_test,_ = mean_std_normalization(X_test,train_mean,False)
+
+
+#smoothing_factor = 0.1
+classes_num = len(classes['label_names'])
+
+Y_train_processed = np.zeros((len(Y_train),classes_num),np.float32)
+Y_test_processed = np.zeros((len(Y_test),classes_num),np.float32)
+Y_val_processed = np.zeros((len(Y_val),classes_num),np.float32)
+
+for i in range(0,len(Y_train)):
+    Y_train_processed[i][int(Y_train[i])]=1
+    
+#Y_train_processed = (1-smoothing_factor)*(Y_train_processed)+(smoothing_factor/classes_num)
+                                                             
+for i in range(0,len(Y_val)):
+    Y_val_processed[i][int(Y_val[i])]=1 
+    
+for i in range(0,len(Y_test)):
+    Y_test_processed[i][int(Y_test[i])]=1
+
+
+import h5py
+
+file = h5py.File('mean_std_cifar_10.h5','w')
+file.create_dataset('X_train', data=X_train)
+file.create_dataset('X_val', data=X_val)
+file.create_dataset('X_test', data=X_test)
+file.create_dataset('Y_train', data=Y_train_processed)
+file.create_dataset('Y_val', data=Y_val_processed)
+file.create_dataset('Y_test', data=Y_test_processed)
+file.create_dataset('train_mean', data=train_mean)
+
+file.close()
 
 # -- end code --
