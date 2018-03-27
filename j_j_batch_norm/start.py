@@ -15,11 +15,11 @@ for i in range(30):
     test_data[i,:,:,:] = new_random_image
 
 # Show Sample Data here and there
-plt.imshow(np.squeeze(test_data[0,:,:,:]),cmap='gray')
-plt.show()
+# plt.imshow(np.squeeze(test_data[0,:,:,:]),cmap='gray')
+# plt.show()
 
-plt.imshow(np.squeeze(test_data[4,:,:,:]),cmap='gray')
-plt.show()
+# plt.imshow(np.squeeze(test_data[4,:,:,:]),cmap='gray')
+# plt.show()
 
 # 0.Print the information about the given batch of image
 print('\n=================================')
@@ -28,8 +28,8 @@ print("Data Max: ",test_data.max())
 print("Data Min: ",test_data.min())
 print("Data Mean: ",test_data.mean())
 print("Data Variance: ",test_data.var())
-plt.hist(test_data.flatten() ,bins='auto')
-plt.show()
+# plt.hist(test_data.flatten() ,bins='auto')
+# plt.show()
 print('=================================')
 
 # --------- case 1 normalize whole data ------
@@ -143,4 +143,40 @@ def case_3_batch_norm_tensorflow():
 
 
 
+def GroupNorm():
+    # x: input features with shape [N,C,H,W]
+    # gamma, beta: scale and offset, with shape [1,C,1,1]
+    # G: number of groups for GN
+
+    global test_data
+    x = test_data[:10,:,:,:]
+    x = tf.tile(x,[0,3,1,2]).eval()
+
+    G = 2
+    N, C, H, W = x.shape
+    x = tf.reshape(x, [N, G, C // G, H, W]).eval()
+
+    mean, var = tf.nn.moments(x,[2,3,4], keep_dims=True).eval()
+
+    x = (x - mean) / tf.sqrt(var + 1e-8)
+    x = tf.reshape(x, [N, C, H, W]).eval()
+
+    plt.imshow(np.squeeze(x[0,:,:,:]),cmap='gray')
+    plt.show()
+
+    plt.imshow(np.squeeze(x[4,:,:,:]),cmap='gray')
+    plt.show()
+
+    print('\n=================================')
+    print('============== Case 3 Tensorflow ===================')
+    print("Data Shape: ",x.shape)
+    print("Data Max: ",x.max())
+    print("Data Min: ",x.min())
+    print("Data Mean: ",x.mean())
+    print("Data Variance: ",x.var())
+    plt.hist(x.flatten() ,bins='auto')
+    plt.show()
+    print('=================================')
+
+GroupNorm()
 # -- end code --
