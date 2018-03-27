@@ -55,14 +55,9 @@ train_images, train_labels, test_images,test_labels = get_data()
 # train_labels = np.concatenate((train_labels,train_labels),axis=0)
 # train_images,train_labels = shuffle(train_images,train_labels)
 
-print(train_images.shape)
-print(train_labels.shape)
-print(test_images.shape)
-print(test_labels.shape)
-
 # === Hyper ===
 num_epoch =  100
-batch_size = 100
+batch_size = 120
 print_size = 1
 shuffle_size = 2
 divide_size = 4
@@ -70,10 +65,10 @@ divide_size = 4
 proportion_rate = 1000
 decay_rate = 0.08
 
-learning_rate = 0.0001
-momentum_rate = 0.7
+learning_rate = 0.01
+momentum_rate = 0.9
 
-
+layers = 16
 
 
 
@@ -85,11 +80,6 @@ momentum_rate = 0.7
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('use_fp16', False, """Train the model using fp16.""")
 
-#Hyper Parameters!
-learning_rate = 0.01
-batch_size = 120
-training_iters = 200*(int(len(train_images)/batch_size))
-layers = 16
 
 # 1 conv + 3 convblocks*(3 conv layers *1 group for each block + 2 conv layers*(N-1) groups for each block [total 1+N-1 = N groups]) = layers
 # 3*2*(N-1) = layers - 1 - 3*3
@@ -134,12 +124,10 @@ def wideres33block(X,N,K,iw,bw,s,dropout,phase):
     
     conv33_1 = conv2d(X,[3,3,iw,bw*K],s)
     conv33_1 = activate(conv33_1,phase)
-    
     conv33_1 = tf.nn.dropout(conv33_1,dropout)
     
     conv33_2 = conv2d(conv33_1,[3,3,bw*K,bw*K],1)
     conv_s_1 = conv2d(X,[1,1,iw,bw*K],s) #shortcut connection
-    
     caddtable = tf.add(conv33_2,conv_s_1)
     
     #1st of the N blocks for conv2/3/4 block ends here. The rest of N-1 blocks will be implemented next with a loop.
@@ -166,8 +154,11 @@ def WRN(x, dropout, phase): #Wide residual network
     conv1 = conv2d(x,[3,3,3,16],1)
     conv1 = activate(conv1,phase)
 
+    # N = ((layers-10)/6)+1 -- 2
+    # K = 4 #(deepening factor)
     conv2 = wideres33block(conv1,N,K,16,16,1,dropout,phase)
     conv3 = wideres33block(conv2,N,K,16*K,32,2,dropout,phase)
+
     conv4 = wideres33block(conv3,N,K,32*K,64,2,dropout,phase)
 
     pooled = tf.nn.avg_pool(conv4,ksize=[1,8,8,1],strides=[1,1,1,1],padding='VALID')
@@ -192,15 +183,15 @@ def WRN(x, dropout, phase): #Wide residual network
 
 
 
-
 # Construct model
 model = WRN(x,keep_prob,phase)
 
 # Define loss and optimizer
-cost = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=y))
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=y))
 
 global_step = tf.Variable(0)
-optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum = 0.9, use_nesterov=True).minimize(cost,global_step=global_step)
+optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum =momentum_rate, 
+use_nesterov=True).minimize(cost,global_step=global_step)
 #learning_rate = tf.train.exponential_decay(init_lr,global_step*batch_size, decay_steps=len(X_train), decay_rate=0.95, staircase=True)
 
 # Evaluate model
@@ -247,7 +238,8 @@ with tf.Session() as sess:
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,optimizer],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7, phase: True})
+            sess_results =  sess.run([cost,accuracy,optimizer],
+            feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7, phase: True})
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
@@ -256,7 +248,8 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(test_images),batch_size):
           current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
           current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-          sess_results = sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7, phase: True})
+          sess_results = sess.run([cost,accuracy],
+          feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7, phase: True})
           print("\t\t\tTest Image Current iter:", iter,' Current batach : ',current_batch_index, " current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
           test_total_cost = test_total_cost + sess_results[0]
           test_total_acc = test_total_acc + sess_results[1]
@@ -287,7 +280,7 @@ with tf.Session() as sess:
   # plot and save
   plt.figure()
   plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r',label="Train")
-  plt.plot(range(len(train_cost_overtime)),test_acc_overtime,color='b',label='Test')
+  plt.plot(range(len(train_cost_overtime)),test_cost_overtime,color='b',label='Test')
   plt.legend()
   plt.title('Cost over time')
   plt.show()

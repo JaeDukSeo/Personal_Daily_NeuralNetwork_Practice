@@ -15,11 +15,11 @@ for i in range(30):
     test_data[i,:,:,:] = new_random_image
 
 # Show Sample Data here and there
-# plt.imshow(np.squeeze(test_data[0,:,:,:]),cmap='gray')
-# plt.show()
+plt.imshow(np.squeeze(test_data[0,:,:,:]),cmap='gray')
+plt.show()
 
-# plt.imshow(np.squeeze(test_data[4,:,:,:]),cmap='gray')
-# plt.show()
+plt.imshow(np.squeeze(test_data[4,:,:,:]),cmap='gray')
+plt.show()
 
 # 0.Print the information about the given batch of image
 print('\n=================================')
@@ -28,8 +28,8 @@ print("Data Max: ",test_data.max())
 print("Data Min: ",test_data.min())
 print("Data Mean: ",test_data.mean())
 print("Data Variance: ",test_data.var())
-# plt.hist(test_data.flatten() ,bins='auto')
-# plt.show()
+plt.hist(test_data.flatten() ,bins='auto')
+plt.show()
 print('=================================')
 
 # --------- case 1 normalize whole data ------
@@ -54,7 +54,7 @@ def case_1_normalize():
     plt.hist(step_1.flatten() ,bins='auto')
     plt.show()
     print('=================================')
-# case_1_normalize()
+case_1_normalize()
 # --------- step 1 normalize whole data ------
 
 # --------- case 2 normalize whole data ------
@@ -79,7 +79,7 @@ def case_2_Standardization():
     plt.hist(case_2.flatten() ,bins='auto')
     plt.show()
     print('=================================')
-# case_2_Standardization()
+case_2_Standardization()
 # --------- case 2 normalize whole data ------
 
 # --------- case 3 batch normalize first 10------
@@ -108,7 +108,7 @@ def case_3_batch_norm_implement():
     plt.hist(case_3.flatten() ,bins='auto')
     plt.show()
     print('=================================')
-# case_3_batch_norm_implement()
+case_3_batch_norm_implement()
 # --------- case 3 batch normalize first 10------
 def case_3_batch_norm_tensorflow():
     
@@ -138,7 +138,7 @@ def case_3_batch_norm_tensorflow():
     plt.hist(case_3.flatten() ,bins='auto')
     plt.show()
     print('=================================')
-# case_3_batch_norm_tensorflow()
+case_3_batch_norm_tensorflow()
 # --------- case 3 batch normalize first 10------
 
 
