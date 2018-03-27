@@ -21,15 +21,14 @@ seq = iaa.Sequential([
     iaa.Sometimes(0.5,
         iaa.GaussianBlur(sigma=(0, 0.5))
     ),
-    iaa.ContrastNormalization((0.75, 1.5)),
-    iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
     iaa.Multiply((0.8, 1.2), per_channel=0.2),
     iaa.Affine(
         scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
         translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)},
         rotate=(-25, 25),
         shear=(-8, 8)
-    )
+    ),
+    iaa.CropAndPad(percent=(-0.25, 0.25))
 ], random_order=True) # apply augmenters in random order
 
 # activation functions here and there
@@ -65,17 +64,17 @@ print(test_images.shape)
 print(test_labels.shape)
 
 # === Hyper Parameter ===
-num_epoch =  150
+num_epoch =  100
 batch_size = 100
 print_size = 1
-shuffle_size = 1
-divide_size = 4
+shuffle_size = 2
+divide_size = 5
 
 proportion_rate = 1000
 decay_rate = 0.08
 
-learning_rate = 0.01
-learning_rate = 0.0001
+# learning_rate = 0.01
+# learning_rate = 0.0001
 
 momentum_rate = 0.9
 
@@ -137,18 +136,26 @@ l7_2 = CNNLayer(1,64*4,64*4,tf_elu,d_tf_elu)
 
 # ---- wide block 4 -----
 l8_1 = CNNLayer(3,64*4,128*4,tf_elu,d_tf_elu)
-l8_2 = CNNLayer(3,128*4,10,tf_elu,d_tf_elu)
-l8_short = CNNLayer(1,64*4,10,tf_elu,d_tf_elu)
+l8_2 = CNNLayer(3,128*4,128*4,tf_elu,d_tf_elu)
+l8_short = CNNLayer(1,64*4,128*4,tf_elu,d_tf_elu)
 
-l9_1 = CNNLayer(1,10,128*4,tf_elu,d_tf_elu)
-l9_2 = CNNLayer(1,128*4,10,tf_elu,d_tf_elu)
+l9_1 = CNNLayer(3,128*4,128*4,tf_elu,d_tf_elu)
+l9_2 = CNNLayer(1,128*4,128*4,tf_elu,d_tf_elu)
 
+# ---- wide block 4 -----
+l10_1 = CNNLayer(3,128*4,256*4,tf_elu,d_tf_elu)
+l10_2 = CNNLayer(3,256*4,10,tf_elu,d_tf_elu)
+l10_short = CNNLayer(1,128*4,10,tf_elu,d_tf_elu)
+
+l11_1 = CNNLayer(3,10,256*4,tf_elu,d_tf_elu)
+l11_2 = CNNLayer(1,256*4,10,tf_elu,d_tf_elu)
 
 
 # === Make graph ===
 x = tf.placeholder(tf.float32, [None, 32, 32, 3])
 y = tf.placeholder(tf.float32, [None, 10])
 keep_prob = tf.placeholder(tf.float32,[]) 
+learning_rate = tf.placeholder(tf.float32,[]) 
 
 layer1_0 = l1_0.feedforward(x)
 
@@ -192,18 +199,27 @@ layer8_add = tf.add(layer8_2,layer8_short)
 layer9_1 = l9_1.feedforward(layer8_add,keep_prob)
 layer9_2 = l9_2.feedforward(layer9_1)
 layer9_add = tf.add(layer9_2,layer8_add)
-layer9_add = tf.nn.avg_pool(layer9_add,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
+
+# ---- wide block 5 -----
+layer10_1 = l10_1.feedforward(layer9_add,keep_prob,2)
+layer10_2 = l10_2.feedforward(layer10_1)
+layer10_short = l10_short.feedforward(layer9_add,stride=2)
+layer10_add = tf.add(layer10_2,layer10_short)
+
+layer11_1 = l11_1.feedforward(layer10_add,keep_prob)
+layer11_2 = l11_2.feedforward(layer11_1)
+layer11_add = tf.add(layer11_2,layer10_add)
 
 # --- final layer ----
-final_soft = tf_softmax(tf.reshape(layer9_add,[batch_size,-1]))
+final_soft = tf_softmax(tf.reshape(layer11_add,[batch_size,-1]))
 cost = tf.reduce_mean(-1.0 * (y*tf.log(final_soft) + (1.0-y)*tf.log(1.0-final_soft)))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # --- auto train ---
 global_step = tf.Variable(0)
-# auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate,use_nesterov=True).minimize(cost,global_step=global_step)
-auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost,global_step=global_step)
+# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 
 
@@ -223,13 +239,19 @@ with tf.Session() as sess:
 
   test_total_cost,test_total_acc = 0,0
   test_cost_overtime,test_acc_overtime = [],[]
+
+  learning_rate_dynamic = 0.01
   for iter in range(num_epoch):
 
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7})
+
+            if iter == 60: 
+                learning_rate_dynamic = learning_rate_dynamic * 0.1
+
+            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7,learning_rate:learning_rate_dynamic})
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
