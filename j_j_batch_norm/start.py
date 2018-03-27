@@ -108,7 +108,7 @@ def case_3_batch_norm_implement():
     plt.hist(case_3.flatten() ,bins='auto')
     plt.show()
     print('=================================')
-case_3_batch_norm_implement()
+# case_3_batch_norm_implement()
 # --------- case 3 batch normalize first 10------
 def case_3_batch_norm_tensorflow():
     
@@ -118,7 +118,7 @@ def case_3_batch_norm_tensorflow():
     case_3 = tf.nn.batch_normalization(case3_data,
                     mean = case3_data.mean(axis=0),
                     variance = case3_data.var(axis=0),
-                    offset = None,scale = None,
+                    offset = 0.0,scale = 1.0,
                     variance_epsilon = 1e-8
     ).eval()
 
@@ -138,7 +138,7 @@ def case_3_batch_norm_tensorflow():
     plt.hist(case_3.flatten() ,bins='auto')
     plt.show()
     print('=================================')
-case_3_batch_norm_tensorflow()
+# case_3_batch_norm_tensorflow()
 # --------- case 3 batch normalize first 10------
 
 
