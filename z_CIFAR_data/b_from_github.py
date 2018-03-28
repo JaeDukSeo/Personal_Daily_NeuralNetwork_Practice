@@ -21,12 +21,12 @@ seq = iaa.Sequential([
 ], random_order=True) # apply augmenters in random order
 
 # activation functions here and there
-def tf_elu(x): return tf.nn.elu(x)
+# def tf_elu(x): return tf.nn.elu(x)
 def d_tf_elu(x): return tf_elu(x) + 1.0 
 
 def tf_softmax(x): return tf.nn.softmax(x)
 
-def tf_relu(x): return tf.nn.relu(x)
+def tf_elu(x): return tf.nn.relu(x)
 def d_tf_relu(x): return tf.cast(tf.greater(x,0),dtype=tf.float32)
 
 def tf_log(x): return tf.sigmoid(x)
@@ -63,8 +63,11 @@ proportion_rate = 1000
 decay_rate = 0.08
 
 learning_rate_dynamic = 0.01
-momentum_rate = 0.9
+learning_rate_dynamic = 0.05
 
+drop_out_rate = 1.0
+dynamic_drop_rate_change = 2
+momentum_rate = 0.3
 
 # === Make Class ===
 class CNNLayer():
@@ -88,10 +91,6 @@ class CNNLayer():
         return self.layerA
             
 
-
-
-
-
 # ---- Starting -----
 l1_0 = CNNLayer(3,3,16,tf_elu,d_tf_elu)
 
@@ -100,7 +99,7 @@ l2_1 = CNNLayer(3,16,16*4,tf_elu,d_tf_elu)
 l2_2 = CNNLayer(3,16*4,16*4,tf_elu,d_tf_elu)
 l2_short = CNNLayer(1,16,16*4,tf_elu,d_tf_elu)
 
-l3_1 = CNNLayer(3,16*4,16*4,tf_elu,d_tf_elu)
+l3_1 = CNNLayer(1,16*4,16*4,tf_elu,d_tf_elu)
 l3_2 = CNNLayer(1,16*4,16*4,tf_elu,d_tf_elu)
 
 # ---- wide block 2 -----
@@ -108,7 +107,7 @@ l4_1 = CNNLayer(3,16*4,32*4,tf_elu,d_tf_elu)
 l4_2 = CNNLayer(3,32*4,32*4,tf_elu,d_tf_elu)
 l4_short = CNNLayer(1,16*4,32*4,tf_elu,d_tf_elu)
 
-l5_1 = CNNLayer(3,32*4,32*4,tf_elu,d_tf_elu)
+l5_1 = CNNLayer(1,32*4,32*4,tf_elu,d_tf_elu)
 l5_2 = CNNLayer(1,32*4,32*4,tf_elu,d_tf_elu)
 
 # ---- wide block 3 -----
@@ -116,7 +115,7 @@ l6_1 = CNNLayer(3,32*4,64*4,tf_elu,d_tf_elu)
 l6_2 = CNNLayer(3,64*4,64*4,tf_elu,d_tf_elu)
 l6_short = CNNLayer(1,32*4,64*4,tf_elu,d_tf_elu)
 
-l7_1 = CNNLayer(3,64*4,64*4,tf_elu,d_tf_elu)
+l7_1 = CNNLayer(1,64*4,64*4,tf_elu,d_tf_elu)
 l7_2 = CNNLayer(1,64*4,64*4,tf_elu,d_tf_elu)
 
 # ---- wide block 4 -----
@@ -124,7 +123,7 @@ l8_1 = CNNLayer(3,64*4,128*4,tf_elu,d_tf_elu)
 l8_2 = CNNLayer(3,128*4,128*4,tf_elu,d_tf_elu)
 l8_short = CNNLayer(1,64*4,128*4,tf_elu,d_tf_elu)
 
-l9_1 = CNNLayer(3,128*4,128*4,tf_elu,d_tf_elu)
+l9_1 = CNNLayer(1,128*4,128*4,tf_elu,d_tf_elu)
 l9_2 = CNNLayer(1,128*4,128*4,tf_elu,d_tf_elu)
 
 # ---- wide block 5 -----
@@ -132,7 +131,7 @@ l10_1 = CNNLayer(3,128*4,256*4,tf_elu,d_tf_elu)
 l10_2 = CNNLayer(3,256*4,10,tf_elu,d_tf_elu)
 l10_short = CNNLayer(1,128*4,10,tf_elu,d_tf_elu)
 
-l11_1 = CNNLayer(3,10,256*4,tf_elu,d_tf_elu)
+l11_1 = CNNLayer(1,10,256*4,tf_elu,d_tf_elu)
 l11_2 = CNNLayer(1,256*4,10,tf_elu,d_tf_elu)
 
 
@@ -196,91 +195,109 @@ layer11_2 = l11_2.feedforward(layer11_1)
 layer11_add = tf.add(layer11_2,layer10_add)
 
 # --- final layer ----
-final_soft = tf_softmax(tf.reshape(layer11_add,[batch_size,-1]))
-cost = tf.reduce_mean(-1.0 * (y*tf.log(final_soft) + (1.0-y)*tf.log(1.0-final_soft)))
+final_soft = tf.reshape(layer11_add,[batch_size,-1])
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits= final_soft,labels=y))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+# --- l2 reg ----
+regularizer = l2_1.getl2() + l2_2.getl2() + l2_short.getl2() + \
+              l3_1.getl2() + l3_2.getl2() +\
+              l4_1.getl2() + l4_2.getl2() + l4_short.getl2() + \
+              l5_1.getl2() + l5_2.getl2() +\
+              l6_1.getl2() + l6_2.getl2() + l6_short.getl2() + \
+              l7_1.getl2() + l7_2.getl2() +\
+              l8_1.getl2() + l8_2.getl2() + l8_short.getl2() + \
+              l9_1.getl2() + l9_2.getl2() +\
+              l10_1.getl2() + l10_2.getl2() + l10_short.getl2() + \
+              l11_1.getl2() + l11_2.getl2() 
+
 # --- auto train ---
 global_step = tf.Variable(0)
-auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost,global_step=global_step)
+# auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost,global_step=global_step)
+auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost)
 
-
-
-
-
+# auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost + 0.05*regularizer) # This does not seem to work
+# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost) # This does not seem to work
 
 # === Start the Session ===
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
-gpu_options.allow_growth=True
-sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 with tf.Session() as sess: 
 
-  sess.run(tf.global_variables_initializer())
+    # start the session 
+    sess.run(tf.global_variables_initializer())
+    train_total_cost,train_total_acc, test_total_cost,test_total_acc =0,0,0,0
+    train_cost_overtime,train_acc_overtime,test_cost_overtime,test_acc_overtime = [],[],[],[]
+    count_drop = 0
 
-  train_total_cost,train_total_acc =0,0
-  train_cost_overtime,train_acc_overtime = [],[]
-
-  test_total_cost,test_total_acc = 0,0
-  test_cost_overtime,test_acc_overtime = [],[]
-
-  for iter in range(num_epoch):
+    # Start the Epoch
+    for iter in range(num_epoch):
 
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-
-            if iter == 200: 
-                learning_rate_dynamic = learning_rate_dynamic * 0.1
-
-            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.75,learning_rate:learning_rate_dynamic})
-            print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
+            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: drop_out_rate,learning_rate:learning_rate_dynamic})
+            print("current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic ,' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
+        # print('\n')
 
         # Test Set
         for current_batch_index in range(0,len(test_images),batch_size):
-          current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-          current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-          sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 1.0})
-          print("\t\t\tTest Image Current iter:", iter,' Current batach : ',current_batch_index, " current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
-          test_total_cost = test_total_cost + sess_results[0]
-          test_total_acc = test_total_acc + sess_results[1]
+            current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+            current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
+            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 1.0})
+            print("Test Image Current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic,' Current batach : ',current_batch_index, " current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            test_total_cost = test_total_cost + sess_results[0]
+            test_total_acc = test_total_acc + sess_results[1]
 
         # store
         train_cost_overtime.append(train_total_cost/(len(train_images)/divide_size/batch_size ) ) 
         train_acc_overtime.append(train_total_acc /(len(train_images)/divide_size/batch_size )  )
         test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ) )
         test_acc_overtime.append(test_total_acc/(len(test_images)/batch_size ) )
-        
+            
         # print
         if iter%print_size == 0:
-            print('\n=========')
-            print("Avg Train Cost: ", train_cost_overtime[-1])
-            print("Avg Train Acc: ", train_acc_overtime[-1])
-            print("Avg Test Cost: ", test_cost_overtime[-1])
-            print("Avg Test Acc: ", test_acc_overtime[-1])
-            print('-----------')      
+            print('\n\n==== Current Iter :', iter,' Average Results =====')
+            print("Avg Train Cost: %.5f"% train_cost_overtime[-1])
+            print("Avg Train Acc:  %.5f"% train_acc_overtime[-1])
+            print("Avg Test Cost:  %.5f"% test_cost_overtime[-1])
+            print("Avg Test Acc:   %.5f"% test_acc_overtime[-1])
+            print('=================================')      
 
         # shuffle 
         if iter%shuffle_size ==  0: 
-          print("\n==== shuffling iter: =====",iter," \n")
-          train_images,train_labels = shuffle(train_images,train_labels)
-          test_images,test_labels = shuffle(test_images,test_labels)
-          
+            print("==== shuffling iter: ",iter," =======\n")
+            train_images,train_labels = shuffle(train_images,train_labels)
+            test_images,test_labels = shuffle(test_images,test_labels)
+
+        # dynamic learning rate
+        if iter == 200: 
+            learning_rate_dynamic = learning_rate_dynamic * 0.1
+
+        # increase the drop count
+        if test_acc_overtime[-1]<train_acc_overtime[-1]:
+            count_drop = count_drop + 1
+
+        # dynamic drop out decrease
+        if dynamic_drop_rate_change == count_drop :
+            # drop_out_rate = drop_out_rate - 0.01
+            drop_out_rate = drop_out_rate * 0.95
+            count_drop = 0
+            
         # redeclare
         train_total_cost,train_total_acc,test_total_cost,test_total_acc=0,0,0,0
 
-  # plot and save
-  plt.figure()
-  plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r',label="Train COT")
-  plt.plot(range(len(train_cost_overtime)),test_cost_overtime,color='b',label='Test COT')
-  plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='g',label="Train AOT")
-  plt.plot(range(len(train_acc_overtime)),test_acc_overtime,color='y',label='Test AOT')
-  plt.legend()
-  plt.title('Results')
-  plt.show()
+    # plot and save
+    plt.figure()
+    plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r',label="Train COT")
+    plt.plot(range(len(train_cost_overtime)),test_cost_overtime,color='b',label='Test COT')
+    plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='g',label="Train AOT")
+    plt.plot(range(len(train_acc_overtime)),test_acc_overtime,color='y',label='Test AOT')
+    plt.legend()
+    plt.title('Results')
+    plt.show()
 
 
 # -- end code --
