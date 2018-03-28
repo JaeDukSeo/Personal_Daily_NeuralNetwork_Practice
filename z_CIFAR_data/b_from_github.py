@@ -56,24 +56,25 @@ print(test_labels.shape)
 num_epoch =  100
 batch_size = 100
 print_size = 1
-shuffle_size = 2
-divide_size = 5
+shuffle_size = 1
+divide_size = 4
 
 proportion_rate = 1000
 decay_rate = 0.08
 
-learning_rate_dynamic = 0.01
-learning_rate_dynamic = 0.05
+learning_rate_dynamic = 0.03
 
 drop_out_rate = 1.0
-dynamic_drop_rate_change = 2
+dynamic_drop_rate_change = 4
 momentum_rate = 0.3
 
 # === Make Class ===
 class CNNLayer():
     
     def __init__(self,kernel,in_c,out_c,act,d_act):
-        self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c] ,stddev=5e-2)  )
+        # self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c] ,stddev=5e-2)  )
+        self.w = tf.Variable(tf.random_normal([kernel,kernel,in_c,out_c] ,stddev=5e-2)  )
+        
         self.act = act
         self.d_act = d_act
     def getw(self): return self.w
@@ -81,58 +82,62 @@ class CNNLayer():
     def feedforward(self,input,dropout=None,stride=1):
         self.input = input
         if not dropout==None:
-            self.layer = tf.nn.dropout(tf.nn.conv2d(self.input,self.w,strides=[1,stride,stride,1],padding='SAME'),dropout)
-            self.layerA = self.act(self.layer)
-            self.layerA = self.layerA
+            self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,stride,stride,1],padding='SAME')
+            self.layerA = tf.nn.dropout(self.act(self.layer),dropout)
         else:
             self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,stride,stride,1],padding='SAME')
             self.layerA = self.act(self.layer)
-            self.layerA = self.layerA
-        return self.layerA
+        return tf.contrib.layers.batch_norm(self.layerA, 
+                                          center=True, scale=True)
             
 
 # ---- Starting -----
-l1_0 = CNNLayer(3,3,16,tf_elu,d_tf_elu)
+l1_0 = CNNLayer(3,3,64,tf_elu,d_tf_elu)
 
 # ---- wide block 1 -----
-l2_1 = CNNLayer(3,16,16*4,tf_elu,d_tf_elu)
-l2_2 = CNNLayer(3,16*4,16*4,tf_elu,d_tf_elu)
-l2_short = CNNLayer(1,16,16*4,tf_elu,d_tf_elu)
+block1_in,block1_out = 64,128
+l2_1 = CNNLayer(3,block1_in,block1_out,tf_elu,d_tf_elu)
+l2_2 = CNNLayer(3,block1_out,block1_out,tf_elu,d_tf_elu)
+l2_short = CNNLayer(3,block1_in,block1_out,tf_elu,d_tf_elu)
 
-l3_1 = CNNLayer(1,16*4,16*4,tf_elu,d_tf_elu)
-l3_2 = CNNLayer(1,16*4,16*4,tf_elu,d_tf_elu)
+l3_1 = CNNLayer(1,block1_out,block1_out,tf_elu,d_tf_elu)
+l3_2 = CNNLayer(1,block1_out,block1_out,tf_elu,d_tf_elu)
 
 # ---- wide block 2 -----
-l4_1 = CNNLayer(3,16*4,32*4,tf_elu,d_tf_elu)
-l4_2 = CNNLayer(3,32*4,32*4,tf_elu,d_tf_elu)
-l4_short = CNNLayer(1,16*4,32*4,tf_elu,d_tf_elu)
+block2_in,block2_out = 128,512
+l4_1 = CNNLayer(3,block2_in,block2_out,tf_elu,d_tf_elu)
+l4_2 = CNNLayer(3,block2_out,block2_out,tf_elu,d_tf_elu)
+l4_short = CNNLayer(3,block2_in,block2_out,tf_elu,d_tf_elu)
 
-l5_1 = CNNLayer(1,32*4,32*4,tf_elu,d_tf_elu)
-l5_2 = CNNLayer(1,32*4,32*4,tf_elu,d_tf_elu)
+l5_1 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
+l5_2 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 
 # ---- wide block 3 -----
-l6_1 = CNNLayer(3,32*4,64*4,tf_elu,d_tf_elu)
-l6_2 = CNNLayer(3,64*4,64*4,tf_elu,d_tf_elu)
-l6_short = CNNLayer(1,32*4,64*4,tf_elu,d_tf_elu)
+block3_in,block3_out = 512,1024
+l6_1 = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
+l6_2 = CNNLayer(3,block3_out,block3_out,tf_elu,d_tf_elu)
+l6_short = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
 
-l7_1 = CNNLayer(1,64*4,64*4,tf_elu,d_tf_elu)
-l7_2 = CNNLayer(1,64*4,64*4,tf_elu,d_tf_elu)
+l7_1 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
+l7_2 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 
 # ---- wide block 4 -----
-l8_1 = CNNLayer(3,64*4,128*4,tf_elu,d_tf_elu)
-l8_2 = CNNLayer(3,128*4,128*4,tf_elu,d_tf_elu)
-l8_short = CNNLayer(1,64*4,128*4,tf_elu,d_tf_elu)
+block4_in,block4_out = 1024,10
+l8_1 = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
+l8_2 = CNNLayer(3,block4_out,block4_out,tf_elu,d_tf_elu)
+l8_short = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
 
-l9_1 = CNNLayer(1,128*4,128*4,tf_elu,d_tf_elu)
-l9_2 = CNNLayer(1,128*4,128*4,tf_elu,d_tf_elu)
+l9_1 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
+l9_2 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
 
 # ---- wide block 5 -----
-l10_1 = CNNLayer(3,128*4,256*4,tf_elu,d_tf_elu)
-l10_2 = CNNLayer(3,256*4,10,tf_elu,d_tf_elu)
-l10_short = CNNLayer(1,128*4,10,tf_elu,d_tf_elu)
+# block5_in,block5_out = 256,10
+# l10_1 = CNNLayer(3,block5_in,block5_out,tf_elu,d_tf_elu)
+# l10_2 = CNNLayer(3,block5_out,block5_out,tf_elu,d_tf_elu)
+# l10_short = CNNLayer(3,block5_in,block5_out,tf_elu,d_tf_elu)
 
-l11_1 = CNNLayer(1,10,256*4,tf_elu,d_tf_elu)
-l11_2 = CNNLayer(1,256*4,10,tf_elu,d_tf_elu)
+# l11_1 = CNNLayer(1,block5_out,block5_out,tf_elu,d_tf_elu)
+# l11_2 = CNNLayer(1,block5_out,block5_out,tf_elu,d_tf_elu)
 
 
 # === Make graph ===
@@ -141,12 +146,12 @@ y = tf.placeholder(tf.float32, [None, 10])
 keep_prob = tf.placeholder(tf.float32,[]) 
 learning_rate = tf.placeholder(tf.float32,[]) 
 
-layer1_0 = l1_0.feedforward(x)
+layer1_0 = l1_0.feedforward(x,stride=2)
 
 # ---- wide block 1 -----
-layer2_1 = l2_1.feedforward(layer1_0,keep_prob)
+layer2_1 = l2_1.feedforward(layer1_0,keep_prob,2)
 layer2_2 = l2_2.feedforward(layer2_1)
-layer2_short = l2_short.feedforward(layer1_0)
+layer2_short = l2_short.feedforward(layer1_0,stride=2)
 layer2_add = tf.add(layer2_2,layer2_short)
 
 layer3_1 = l3_1.feedforward(layer2_add,keep_prob)
@@ -172,7 +177,6 @@ layer6_add = tf.add(layer6_2,layer6_short)
 layer7_1 = l7_1.feedforward(layer6_add,keep_prob)
 layer7_2 = l7_2.feedforward(layer7_1)
 layer7_add = tf.add(layer7_2,layer6_add)
-layer7_add = tf.nn.avg_pool(layer7_add,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
 
 # ---- wide block 4 -----
 layer8_1 = l8_1.feedforward(layer7_add,keep_prob,2)
@@ -185,32 +189,20 @@ layer9_2 = l9_2.feedforward(layer9_1)
 layer9_add = tf.add(layer9_2,layer8_add)
 
 # ---- wide block 5 -----
-layer10_1 = l10_1.feedforward(layer9_add,keep_prob,2)
-layer10_2 = l10_2.feedforward(layer10_1)
-layer10_short = l10_short.feedforward(layer9_add,stride=2)
-layer10_add = tf.add(layer10_2,layer10_short)
+# layer10_1 = l10_1.feedforward(layer9_add,keep_prob,2)
+# layer10_2 = l10_2.feedforward(layer10_1)
+# layer10_short = l10_short.feedforward(layer9_add,stride=2)
+# layer10_add = tf.add(layer10_2,layer10_short)
 
-layer11_1 = l11_1.feedforward(layer10_add,keep_prob)
-layer11_2 = l11_2.feedforward(layer11_1)
-layer11_add = tf.add(layer11_2,layer10_add)
+# layer11_1 = l11_1.feedforward(layer10_add,keep_prob)
+# layer11_2 = l11_2.feedforward(layer11_1)
+# layer11_add = tf.add(layer11_2,layer10_add)
 
 # --- final layer ----
-final_soft = tf.reshape(layer11_add,[batch_size,-1])
+final_soft = tf.reshape(layer9_add,[batch_size,-1])
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits= final_soft,labels=y))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-# --- l2 reg ----
-regularizer = l2_1.getl2() + l2_2.getl2() + l2_short.getl2() + \
-              l3_1.getl2() + l3_2.getl2() +\
-              l4_1.getl2() + l4_2.getl2() + l4_short.getl2() + \
-              l5_1.getl2() + l5_2.getl2() +\
-              l6_1.getl2() + l6_2.getl2() + l6_short.getl2() + \
-              l7_1.getl2() + l7_2.getl2() +\
-              l8_1.getl2() + l8_2.getl2() + l8_short.getl2() + \
-              l9_1.getl2() + l9_2.getl2() +\
-              l10_1.getl2() + l10_2.getl2() + l10_short.getl2() + \
-              l11_1.getl2() + l11_2.getl2() 
 
 # --- auto train ---
 global_step = tf.Variable(0)
