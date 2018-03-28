@@ -19,3 +19,4 @@ z_CIFAR_data/cifar10_pkl
 z_CIFAR_data/Densenet-Tensorflow/Cifar10/cifar-10-batches-py/
 z_CIFAR_data/Densenet-Tensorflow/Cifar10/logs/
 z_CIFAR_data/z_archieve/
+z_CIFAR_data/Wide-Residual-Network/mean_std/
