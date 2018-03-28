@@ -142,7 +142,7 @@ l8_short = CNNLayer(1,64*4,128*4,tf_elu,d_tf_elu)
 l9_1 = CNNLayer(3,128*4,128*4,tf_elu,d_tf_elu)
 l9_2 = CNNLayer(1,128*4,128*4,tf_elu,d_tf_elu)
 
-# ---- wide block 4 -----
+# ---- wide block 5 -----
 l10_1 = CNNLayer(3,128*4,256*4,tf_elu,d_tf_elu)
 l10_2 = CNNLayer(3,256*4,10,tf_elu,d_tf_elu)
 l10_short = CNNLayer(1,128*4,10,tf_elu,d_tf_elu)
@@ -219,7 +219,6 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # --- auto train ---
 global_step = tf.Variable(0)
 auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost,global_step=global_step)
-# auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 
 
@@ -248,10 +247,10 @@ with tf.Session() as sess:
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
 
-            if iter == 60: 
+            if iter == 200: 
                 learning_rate_dynamic = learning_rate_dynamic * 0.1
 
-            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.7,learning_rate:learning_rate_dynamic})
+            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 0.75,learning_rate:learning_rate_dynamic})
             print("current iter:", iter,' Current batach : ',current_batch_index," current cost: ", sess_results[0],' current acc: ',sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]

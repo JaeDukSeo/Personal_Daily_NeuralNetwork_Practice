@@ -8,6 +8,7 @@ import fnmatch
 import sys
 import matplotlib.pyplot as plt
 from pylearn2.datasets.cifar100 import CIFAR100
+import h5py
 
 """
 This file opens the CIFAR100 data after whitening and ZCA made by 'process_cifar_100_data' script
@@ -75,5 +76,15 @@ def get_noemal_data():
     # print('Train Date shape is',train_images.shape, 'and labels is',train_labels.shape)
     # print('Test Date shape is',test_images.shape, 'and labels is',test_labels.shape)
     return  train_images, train_labels, test_images,test_labels
+
+def get_std_mean_data():
+    file = h5py.File('./Wide-Residual-Network/mean_std/mean_std_cifar_10.h5','r+') 
+    X_train = file['X_train'][...]
+    Y_train = file['Y_train'][...]
+    X_val = file['X_val'][...]
+    Y_val = file['Y_val'][...]
+    X_test = file['X_test'][...]
+    Y_test = file['Y_test'][...]
+    return X_train,Y_train,X_test,Y_test
 
 # --end code--
