@@ -49,9 +49,26 @@ class Convolution_Layer():
 
         grad_middle = tf.nn.multiply(grad_part1,grad_part2)
 
-        updatew = []
+        grad_w = tf.nn.conv2d_backprop_filter(
+            input = grad_part3,
+            filter_sizes = self.w.shape,
+            out_backprop = grad_middle,
+            strides = [1,stride,stride,1],
+            padding='SAME'
+        )
 
-        return 3
+        grad_pass = tf.nn.conv2d_backprop_input(
+            input_sizes = self.input.shape,
+            filter = self.w,
+            out_backprop = grad_middle,
+            strides = [1,stride,stride,1],
+            padding='SAME'
+        )
+
+        updatew = []
+        updatew.append(tf.assign(self.m,alpha*self.m + learning_rate*grad_w))
+
+        return grad_pass,updatew
 
 # === Get Data ===
 train_images, train_labels, test_images,test_labels = get_data()
@@ -125,31 +142,11 @@ with tf.Session() as sess:
     # Start the Epoch
     for iter in range(num_epoch):
         
-        if iter < 100:
-            drop_out_rate1 = np.random.uniform(0.8,0.9)
-            drop_out_rate2 = np.random.uniform(0.7,0.8)
-            drop_out_rate3 = np.random.uniform(0.7,0.9)
-            drop_out_rate4 = np.random.uniform(0.9,0.98)
-            drop_out_rate5 = np.random.uniform(0.8,0.93)
-        elif iter < 200 and iter > 100:
-            drop_out_rate1 = np.random.uniform(0.7,0.8)
-            drop_out_rate2 = np.random.uniform(0.8,0.84)
-            drop_out_rate3 = np.random.uniform(0.8,0.9)
-            drop_out_rate4 = np.random.uniform(0.8,0.88)
-            drop_out_rate5 = np.random.uniform(0.9,0.93)
-            
-
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, 
-                                                                keep_prob1: drop_out_rate1,
-                                                                keep_prob2: drop_out_rate2,
-                                                                keep_prob3: drop_out_rate3,
-                                                                keep_prob4: drop_out_rate4,
-                                                                keep_prob5: drop_out_rate5,
-                                                                learning_rate:learning_rate_dynamic,noise_rate:dynamic_noise_rate})
+            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, learning_rate:learning_rate_dynamic})
             sess_results[0] = sess_results[0] * 0.5
             print("current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic ,' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
@@ -159,12 +156,7 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(test_images),batch_size):
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label,
-                                                                            keep_prob1: 1.0,
-                                                                keep_prob2: 1.0,
-                                                                keep_prob3: 1.0,
-                                                                keep_prob4: 1.0,
-                                                                keep_prob5: 1.0, noise_rate:0.0})
+            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
             sess_results[0] = sess_results[0] * 0.5
             print("Test Image Current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic,' Current batach : ',current_batch_index, " current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
