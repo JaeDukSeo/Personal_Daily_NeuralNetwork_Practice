@@ -64,7 +64,7 @@ def get_data():
     # print('Test Date shape is',test_images.shape, 'and labels is',test_labels.shape)
     return  train_images, train_labels, test_images,test_labels
 
-def get_noemal_data():
+def get_normal_data():
     ROOT_FOLDER = "C:/Users/JDSeo/Desktop/Personal_Daily_NeuralNetwork_Practice/z_CIFAR_data/cifar10_pkl/"
     # ROOT_FOLDER = '/cs/img/mangate/pylearn2_datasets/cifar100/pylearn2_gcn_whitened/'
     train_images, train_labels = process_data(ROOT_FOLDER+'train.pkl')
