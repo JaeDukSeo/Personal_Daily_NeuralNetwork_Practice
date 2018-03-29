@@ -13,6 +13,7 @@ tf.set_random_seed(789)
 
 seq = iaa.Sequential([
     iaa.Fliplr(0.5), # horizontal flips
+    iaa.Flipud(0.5), # horizontal flips
     iaa.Crop(percent=(0, 0.1)), # random crops
     iaa.Sometimes(0.5,
         iaa.GaussianBlur(sigma=(0, 0.5))
@@ -26,7 +27,7 @@ def d_tf_elu(x): return tf_elu(x) + 1.0
 
 def tf_softmax(x): return tf.nn.softmax(x)
 
-def tf_elu(x): return tf.nn.relu(x)
+def tf_relu(x): return tf.nn.relu(x)
 def d_tf_relu(x): return tf.cast(tf.greater(x,0),dtype=tf.float32)
 
 def tf_log(x): return tf.sigmoid(x)
@@ -35,7 +36,7 @@ def d_tf_log(x): return tf_log(x) * (1.0 - tf_log(x))
 def tf_tanh(x): return tf.nn.tanh(x)
 def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
 
-def tf_atan(x): return tf.atan(x)
+def tf_elu(x): return tf.atan(x)
 def d_tf_atan(x): return 1.0 / (1 + tf.square(x))
 
 # === Get Data ===
@@ -54,19 +55,19 @@ print(test_labels.shape)
 
 # === Hyper Parameter ===
 num_epoch =  100
-batch_size = 100
+batch_size = 50
 print_size = 1
 shuffle_size = 1
-divide_size = 4
+divide_size = 2
 
 proportion_rate = 1000
 decay_rate = 0.08
 
-learning_rate_dynamic = 0.03
+learning_rate_dynamic = 0.01
 
 drop_out_rate = 1.0
 dynamic_drop_rate_change = 4
-momentum_rate = 0.3
+momentum_rate = 0.6
 
 # === Make Class ===
 class CNNLayer():
@@ -92,10 +93,10 @@ class CNNLayer():
             
 
 # ---- Starting -----
-l1_0 = CNNLayer(3,3,64,tf_elu,d_tf_elu)
+l1_0 = CNNLayer(3,3,32,tf_elu,d_tf_elu)
 
 # ---- wide block 1 -----
-block1_in,block1_out = 64,128
+block1_in,block1_out = 32,32
 l2_1 = CNNLayer(3,block1_in,block1_out,tf_elu,d_tf_elu)
 l2_2 = CNNLayer(3,block1_out,block1_out,tf_elu,d_tf_elu)
 l2_short = CNNLayer(3,block1_in,block1_out,tf_elu,d_tf_elu)
@@ -104,7 +105,7 @@ l3_1 = CNNLayer(1,block1_out,block1_out,tf_elu,d_tf_elu)
 l3_2 = CNNLayer(1,block1_out,block1_out,tf_elu,d_tf_elu)
 
 # ---- wide block 2 -----
-block2_in,block2_out = 128,512
+block2_in,block2_out = 32,32
 l4_1 = CNNLayer(3,block2_in,block2_out,tf_elu,d_tf_elu)
 l4_2 = CNNLayer(3,block2_out,block2_out,tf_elu,d_tf_elu)
 l4_short = CNNLayer(3,block2_in,block2_out,tf_elu,d_tf_elu)
@@ -113,7 +114,7 @@ l5_1 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 l5_2 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 
 # ---- wide block 3 -----
-block3_in,block3_out = 512,1024
+block3_in,block3_out = 32,32
 l6_1 = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
 l6_2 = CNNLayer(3,block3_out,block3_out,tf_elu,d_tf_elu)
 l6_short = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
@@ -122,7 +123,7 @@ l7_1 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 l7_2 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 
 # ---- wide block 4 -----
-block4_in,block4_out = 1024,10
+block4_in,block4_out = 32,10
 l8_1 = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
 l8_2 = CNNLayer(3,block4_out,block4_out,tf_elu,d_tf_elu)
 l8_short = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
@@ -213,6 +214,9 @@ auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=mom
 # auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost) # This does not seem to work
 
 # === Start the Session ===
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+gpu_options.allow_growth=True
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 with tf.Session() as sess: 
 
     # start the session 
