@@ -83,18 +83,38 @@ divide_size = 4
 proportion_rate = 1000
 decay_rate = 0.08
 
-learning_rate_dynamic = 0.01
-momentum_rate = 0.9
+init_learning_rate = 0.01
+init_momentum_rate = 0.9
 
-drop_out_rate = np.random.uniform(0,1)
+drop_out_rate = np.random.uniform(0.8,0.9)
 dynamic_noise_rate = 0.9
 
-one_channel = 128
+one_channel = 56
 
 # === Make Class ===
-layer1_1 = 
-layer1_2 = 
-layer1_s = 
+l1_1 = Convolution_Layer(3,3,one_channel,tf_elu,d_tf_elu)
+l1_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l1_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+
+l2_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l2_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l2_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+
+l3_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l3_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l3_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+
+l4_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l4_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l4_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+
+l5_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
+l5_2 = Convolution_Layer(3,one_channel,10,tf_elu,d_tf_elu)
+l5_s = Convolution_Layer(1,3,10,tf_elu,d_tf_elu)
+
+
+
+
 
 
 
@@ -106,18 +126,35 @@ x = tf.placeholder(tf.float32, [None, 32, 32, 3])
 y = tf.placeholder(tf.float32, [None, 10])
 
 learning_rate = tf.placeholder(tf.float32,[]) 
-noise_rate = tf.placeholder(tf.float32)
+momentum_rate = tf.placeholder(tf.float32,[]) 
 
+layer1_1 = l1_1.feedforward(x,2)
+layer1_2 = l1_2.feedforward(layer1_1)
+layer1_s = l1_s.feedforward(x,2)
+layer1_add = layer1_s + layer1_2
 
+layer2_1 = l2_1.feedforward(layer1_add,2)
+layer2_2 = l2_2.feedforward(layer2_1)
+layer2_s = l2_s.feedforward(layer1_add,2)
+layer2_add = layer2_s + layer2_2
 
+layer3_1 = l3_1.feedforward(layer2_add,2)
+layer3_2 = l3_2.feedforward(layer3_1)
+layer3_s = l3_s.feedforward(layer2_add,2)
+layer3_add = layer3_s + layer3_2
 
+layer4_1 = l4_1.feedforward(layer3_add,2)
+layer4_2 = l4_2.feedforward(layer4_1)
+layer4_s = l4_s.feedforward(layer3_add,2)
+layer4_add = layer4_s + layer4_2
 
-
-
-
+layer5_1 = l5_1.feedforward(layer4_add,2)
+layer5_2 = l5_2.feedforward(layer5_1)
+layer5_s = l5_s.feedforward(layer4_add,2)
+layer5_add = layer5_s + layer5_2
 
 # --- final layer ----
-final_soft = tf.reshape(layer5_2,[batch_size,-1])
+final_soft = tf.reshape(layer5_add,[batch_size,-1])
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits= final_soft,labels=y))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -125,6 +162,23 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # --- auto train ---
 global_step = tf.Variable(0)
 auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost,global_step=global_step)
+
+
+
+sys.exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # === Start the Session ===
