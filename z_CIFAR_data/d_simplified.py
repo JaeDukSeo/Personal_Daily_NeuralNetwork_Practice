@@ -29,15 +29,15 @@ class Convolution_Layer():
     
     def __init__(self,kernel,in_c,out_c,act,d_act):
         
-        self.w = tf.Variable(tf.truncated_normal([kernel,kernel,inc_c,out_c],atddev=5e-2))
+        self.w = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c],stddev=5e-2))
         self.act,self.d_act = act,d_act
 
         self.m = tf.Variable(tf.zeros_like(self.w))
         self.v = tf.Variable(tf.zeros_like(self.w))
 
-    def feedforward(self,input,stride=1,padding='SAME',dropout_rate=1.0):
+    def feedforward(self,input,stride=1,padding='SAME',dropout=1.0):
         self.input = input
-        self.layer  = tf.nn.dropout(tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding=padding),dropout_rate)
+        self.layer  = tf.nn.dropout(tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding=padding),dropout)
         self.layerA = self.act(self.layer)
         return self.layerA
 
@@ -70,6 +70,9 @@ class Convolution_Layer():
 
         return grad_pass,updatew
 
+    def backprop_adam():
+        return 4
+
 # === Get Data ===
 train_images, train_labels, test_images,test_labels = get_data()
 
@@ -85,9 +88,8 @@ decay_rate = 0.08
 
 init_learning_rate = 0.01
 init_momentum_rate = 0.9
-
-drop_out_rate = np.random.uniform(0.8,0.9)
-dynamic_noise_rate = 0.9
+init_dropout_rate  = np.random.uniform(0.8,0.9)
+init_noise_rate    = np.random.uniform(0.1,0.5)
 
 one_channel = 56
 
@@ -98,19 +100,19 @@ l1_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
 
 l2_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
 l2_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
-l2_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+l2_s = Convolution_Layer(1,one_channel,one_channel,tf_elu,d_tf_elu)
 
 l3_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
 l3_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
-l3_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+l3_s = Convolution_Layer(1,one_channel,one_channel,tf_elu,d_tf_elu)
 
 l4_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
 l4_2 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
-l4_s = Convolution_Layer(1,3,one_channel,tf_elu,d_tf_elu)
+l4_s = Convolution_Layer(1,one_channel,one_channel,tf_elu,d_tf_elu)
 
 l5_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
 l5_2 = Convolution_Layer(3,one_channel,10,tf_elu,d_tf_elu)
-l5_s = Convolution_Layer(1,3,10,tf_elu,d_tf_elu)
+l5_s = Convolution_Layer(1,one_channel,10,tf_elu,d_tf_elu)
 
 
 
@@ -127,29 +129,30 @@ y = tf.placeholder(tf.float32, [None, 10])
 
 learning_rate = tf.placeholder(tf.float32,[]) 
 momentum_rate = tf.placeholder(tf.float32,[]) 
+dropout_rate  = tf.placeholder(tf.float32,[]) 
 
 layer1_1 = l1_1.feedforward(x,2)
-layer1_2 = l1_2.feedforward(layer1_1)
+layer1_2 = l1_2.feedforward(layer1_1,dropout=dropout_rate)
 layer1_s = l1_s.feedforward(x,2)
 layer1_add = layer1_s + layer1_2
 
 layer2_1 = l2_1.feedforward(layer1_add,2)
-layer2_2 = l2_2.feedforward(layer2_1)
+layer2_2 = l2_2.feedforward(layer2_1,dropout=dropout_rate)
 layer2_s = l2_s.feedforward(layer1_add,2)
 layer2_add = layer2_s + layer2_2
 
 layer3_1 = l3_1.feedforward(layer2_add,2)
-layer3_2 = l3_2.feedforward(layer3_1)
+layer3_2 = l3_2.feedforward(layer3_1,dropout=dropout_rate)
 layer3_s = l3_s.feedforward(layer2_add,2)
 layer3_add = layer3_s + layer3_2
 
 layer4_1 = l4_1.feedforward(layer3_add,2)
-layer4_2 = l4_2.feedforward(layer4_1)
+layer4_2 = l4_2.feedforward(layer4_1,dropout=dropout_rate)
 layer4_s = l4_s.feedforward(layer3_add,2)
 layer4_add = layer4_s + layer4_2
 
 layer5_1 = l5_1.feedforward(layer4_add,2)
-layer5_2 = l5_2.feedforward(layer5_1)
+layer5_2 = l5_2.feedforward(layer5_1,dropout=dropout_rate)
 layer5_s = l5_s.feedforward(layer4_add,2)
 layer5_add = layer5_s + layer5_2
 
@@ -164,8 +167,6 @@ global_step = tf.Variable(0)
 auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=momentum_rate).minimize(cost,global_step=global_step)
 
 
-
-sys.exit()
 
 
 
@@ -191,18 +192,22 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     train_total_cost,train_total_acc, test_total_cost,test_total_acc =0,0,0,0
     train_cost_overtime,train_acc_overtime,test_cost_overtime,test_acc_overtime = [],[],[],[]
-    count_drop = 0
 
     # Start the Epoch
     for iter in range(num_epoch):
         
+        # dynamically change
+        init_dropout_rate  = np.random.uniform(0.8,0.9)
+
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, learning_rate:learning_rate_dynamic})
+            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, learning_rate:init_learning_rate,momentum_rate:init_momentum_rate,dropout_rate:init_dropout_rate})
+
             sess_results[0] = sess_results[0] * 0.5
-            print("current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic ,' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            print("current iter:", iter,' Drop Out Rate: %.3f'%init_dropout_rate,' learning rate: %.3f'%init_learning_rate ,
+                ' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
 
@@ -210,9 +215,10 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(test_images),batch_size):
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
+            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label,dropout_rate:1.0})
             sess_results[0] = sess_results[0] * 0.5
-            print("Test Image Current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic,' Current batach : ',current_batch_index, " current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            print("Test Image Current iter:", iter,' Drop Out Rate: %.3f'%init_dropout_rate,' learning rate: %.3f'%init_learning_rate,
+                 ' Current batach : ',current_batch_index, " current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
             test_total_acc = test_total_acc + sess_results[1]
 
