@@ -69,7 +69,7 @@ train_images, train_labels, test_images,test_labels = get_data()
 
 # === Hyper Parameter ===
 num_epoch =  200
-batch_size = 100
+batch_size = 500
 print_size = 1
 shuffle_size = 1
 divide_size = 4
@@ -77,8 +77,8 @@ divide_size = 4
 proportion_rate = 1000
 decay_rate = 0.08
 
-init_learning_rate = 0.00001
-init_momentum_rate = 0.4
+init_learning_rate = 0.000008
+init_momentum_rate = 0.9
 init_dropout_rate  = np.random.uniform(0.8,0.9)
 init_noise_rate    = np.random.uniform(0.1,0.5)
 
@@ -104,12 +104,6 @@ l4_s = Convolution_Layer(1,one_channel,one_channel,tf_elu,d_tf_elu)
 l5_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
 l5_2 = Convolution_Layer(3,one_channel,10,tf_elu,d_tf_elu)
 l5_s = Convolution_Layer(1,one_channel,10,tf_elu,d_tf_elu)
-
-
-
-
-
-
 
 
 
@@ -147,9 +141,9 @@ layer5_2 = l5_2.feedforward(layer5_1,dropout=dropout_rate)
 layer5_s = l5_s.feedforward(layer4_add,2)
 layer5_add = layer5_s + layer5_2
 
-# --- final layer ---- adding clip by value
-final_soft = tf.clip_by_value(tf_softmax(tf.reshape(layer5_add,[batch_size,-1])) ,1e-10,1.0)
-cost = tf.reduce_mean( -1.0 * ( y * tf.log(final_soft)) + (1.0-y) * tf.log( 1.0-final_soft)   )
+# --- final layer ---- 
+final_soft = tf_softmax(tf.reshape(layer5_add,[batch_size,-1])) + 1e-7
+cost = tf.reduce_mean( -1.0 * ( y * tf.log(final_soft) + (1.0-y) * tf.log( 1.0-final_soft) )  )
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -183,8 +177,6 @@ grad_update = grad5_sw + grad5_2w + grad5_1w + \
               grad3_sw + grad3_2w + grad3_1w + \
               grad2_sw + grad2_2w + grad2_1w + \
               grad1_sw + grad1_2w + grad1_1w 
-
-
 
 # === Start the Session ===
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
