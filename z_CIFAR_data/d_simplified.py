@@ -42,6 +42,40 @@ class Convolution_Layer():
 
     def backprop(self,gradient,stride=1):
         
+        grad_part_1 = gradient
+        grad_part_2 = self.d_act(self.layer)
+        grad_part_3 = self.input
+
+        grad_middle = tf.multiply(grad_part_1,grad_part_2)
+        grad = tf.nn.conv2d_backprop_filter(
+            input = grad_part_3,
+            filter_sizes = self.w.shape,
+            out_backprop = grad_middle,
+            strides = [1,stride,stride,1],
+            padding='SAME'
+        )
+
+        pass_on_grad = tf.nn.conv2d_backprop_input(
+            input_sizes= [batch_size, self.input.shape[1].value, self.input.shape[2].value, self.input.shape[3].value],
+            filter = self.w,
+            out_backprop = grad_middle,
+            strides = [1,stride,stride,1],
+            padding="SAME"
+        )
+
+        grad_update = []
+        grad_update.append(tf.assign(self.m,tf.add(beta1*self.m, (1-beta1)*grad)))
+        grad_update.append(tf.assign(self.v,tf.add(beta2*self.v, (1-beta2)*grad**2)))
+
+        m_hat = self.m / (1-beta1)
+        v_hat = self.v / (1-beta2)
+        adam_middel = learning_rate/(tf.sqrt(v_hat) + adam_e)
+        grad_update.append(tf.assign(self.w,tf.subtract(self.w,tf.multiply(adam_middel,m_hat))))
+
+        return pass_on_grad,grad_update         
+
+    def backprop_mom(self,gradient,stride=1):
+        
         grad_part1 = gradient
         grad_part2 = self.d_act(self.layer)
         grad_part3 = self.input
@@ -73,7 +107,7 @@ class Convolution_Layer():
 
 
 # === Get Data ===
-PathDicom = "./cifar10/cifar-10-batches-py/cifar10batchespy/"
+PathDicom = "./cifar10/cifar-10-batches-py/"
 lstFilesDCM = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     for filename in fileList:
@@ -110,12 +144,15 @@ test_images = np.rot90(np.rot90(test_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np
 
 # === Hyper Parameter ===
 num_epoch =  200
-batch_size = 500
+batch_size = 50
 print_size = 1
 shuffle_size = 1
 divide_size = 4
 
-proportion_rate = 1000
+beta1,beta2 = 0.9,0.999
+adam_e = 0.00000001
+
+proportion_rate = 1
 decay_rate = 0.08
 
 init_learning_rate = 0.000008
@@ -123,7 +160,7 @@ init_momentum_rate = 0.9
 init_dropout_rate  = np.random.uniform(0.8,0.9)
 init_noise_rate    = np.random.uniform(0.1,0.5)
 
-one_channel = 128
+one_channel = 256
 
 # === Make Class ===
 l1_1 = Convolution_Layer(3,3,one_channel,tf_elu,d_tf_elu)
@@ -146,9 +183,6 @@ l5_1 = Convolution_Layer(3,one_channel,one_channel,tf_elu,d_tf_elu)
 l5_2 = Convolution_Layer(3,one_channel,10,tf_elu,d_tf_elu)
 l5_s = Convolution_Layer(1,one_channel,10,tf_elu,d_tf_elu)
 
-
-
-
 # === Make graph ===
 x = tf.placeholder(tf.float32, [None, 32, 32, 3])
 y = tf.placeholder(tf.float32, [None, 10])
@@ -156,6 +190,9 @@ y = tf.placeholder(tf.float32, [None, 10])
 learning_rate = tf.placeholder(tf.float32,[]) 
 momentum_rate = tf.placeholder(tf.float32,[]) 
 dropout_rate  = tf.placeholder(tf.float32,[]) 
+
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 layer1_1 = l1_1.feedforward(x,2)
 layer1_2 = l1_2.feedforward(layer1_1,dropout=dropout_rate)
@@ -185,7 +222,7 @@ layer5_add = layer5_s + layer5_2
 # --- final layer ---- 
 final_reshape = tf.reshape(layer5_add,[batch_size,-1])
 final_soft = tf_softmax(final_reshape)
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2( logits= final_reshape , labels=y))
+cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
