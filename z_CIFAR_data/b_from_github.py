@@ -30,13 +30,17 @@ def tf_softmax(x): return tf.nn.softmax(x)
 def tf_relu(x): return tf.nn.relu(x)
 def d_tf_relu(x): return tf.cast(tf.greater(x,0),dtype=tf.float32)
 
-def tf_log(x): return tf.sigmoid(x)
+def tf_elu(x): return tf.nn.leaky_relu(x)
+
+def tf_elu(x): return tf.nn.softplus(x) # dont use this 
+
+def tf_log(x): return tf.sigmoid(x) # dont use this 
 def d_tf_log(x): return tf_log(x) * (1.0 - tf_log(x))
 
-def tf_tanh(x): return tf.nn.tanh(x)
+def tf_tanh(x): return tf.nn.tanh(x) # dont use this 
 def d_tf_tanh(x): return 1.0 - tf.square(tf_tanh(x))
 
-def tf_elu(x): return tf.atan(x)
+def tf_atan(x): return tf.atan(x) # dont use this 
 def d_tf_atan(x): return 1.0 / (1 + tf.square(x))
 
 # === Get Data ===
@@ -88,8 +92,7 @@ class CNNLayer():
         else:
             self.layer = tf.nn.conv2d(self.input,self.w,strides=[1,stride,stride,1],padding='SAME')
             self.layerA = self.act(self.layer)
-        return tf.contrib.layers.batch_norm(self.layerA, 
-                                          center=True, scale=True)
+        return self.layer
             
 
 # ---- Starting -----
@@ -214,7 +217,7 @@ auto_train = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=mom
 # auto_train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost) # This does not seem to work
 
 # === Start the Session ===
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
 gpu_options.allow_growth=True
 sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 with tf.Session() as sess: 
