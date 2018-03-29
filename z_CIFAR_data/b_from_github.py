@@ -68,8 +68,8 @@ momentum_rate = 0.9
 drop_out_rate = 0.6
 dynamic_drop_rate_change = 10000
 
-dynamic_noise_rate = 0.9
-one_channel = 256
+dynamic_noise_rate = 1.5
+one_channel = 64
 
 # === Make Class ===
 class CNNLayer():
@@ -115,7 +115,7 @@ l5_1 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 l5_2 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 
 # ---- wide block 3 -----
-block3_in,block3_out = one_channel,10
+block3_in,block3_out = one_channel,one_channel
 l6_1 = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
 l6_2 = CNNLayer(3,block3_out,block3_out,tf_elu,d_tf_elu)
 l6_short = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
@@ -124,13 +124,13 @@ l7_1 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 l7_2 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 
 # ---- wide block 4 -----
-# block4_in,block4_out = one_channel,one_channel
-# l8_1 = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
-# l8_2 = CNNLayer(3,block4_out,block4_out,tf_elu,d_tf_elu)
-# l8_short = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
+block4_in,block4_out = one_channel,10
+l8_1 = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
+l8_2 = CNNLayer(3,block4_out,block4_out,tf_elu,d_tf_elu)
+l8_short = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
 
-# l9_1 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
-# l9_2 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
+l9_1 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
+l9_2 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
 
 # # ---- wide block 5 -----
 # block5_in,block5_out = one_channel,10
@@ -181,27 +181,26 @@ layer6_1 = l6_1.feedforward(layer5_add,keep_prob,2)
 layer6_2 = l6_2.feedforward(layer6_1)
 layer6_short = l6_short.feedforward(layer5_add,stride=2)
 if is_train is not None:
-    layer6_add = tf.add(layer6_2,layer6_short)+layer6_short*np.random.poisson(size=(batch_size,2,2,10)) * noise_rate
+    layer6_add = tf.add(layer6_2,layer6_short)+layer6_short*np.random.poisson(size=(batch_size,2,2,one_channel)) * noise_rate
 else:
     layer6_add = tf.add(layer6_2,layer6_short)+layer6_short
 layer7_1 = l7_1.feedforward(layer6_add,keep_prob)
 layer7_2 = l7_2.feedforward(layer7_1)
 layer7_add = tf.add(layer7_2,layer6_add)
-layer7_add = tf.nn.avg_pool(layer7_add,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
 
 # # ---- wide block 4 -----
-# layer8_1 = l8_1.feedforward(layer7_add,keep_prob,2)
-# layer8_2 = l8_2.feedforward(layer8_1)
-# layer8_short = l8_short.feedforward(layer7_add,stride=2)
+layer8_1 = l8_1.feedforward(layer7_add,keep_prob,2)
+layer8_2 = l8_2.feedforward(layer8_1)
+layer8_short = l8_short.feedforward(layer7_add,stride=2)
 
-# if is_train is not None:
-#     layer8_add = tf.add(layer8_2,layer8_short) + layer8_short*np.random.randn(batch_size,2,2,one_channel) * noise_rate
-# else:
-#     layer8_add = tf.add(layer8_2,layer8_short) + layer8_short
+if is_train is not None:
+    layer8_add = tf.add(layer8_2,layer8_short) + layer8_short*np.random.randn(batch_size,1,1,10) * noise_rate
+else:
+    layer8_add = tf.add(layer8_2,layer8_short) + layer8_short
 
-# layer9_1 = l9_1.feedforward(layer8_add,keep_prob)
-# layer9_2 = l9_2.feedforward(layer9_1)
-# layer9_add = tf.add(layer9_2,layer8_add)
+layer9_1 = l9_1.feedforward(layer8_add,keep_prob)
+layer9_2 = l9_2.feedforward(layer9_1)
+layer9_add = tf.add(layer9_2,layer8_add)
 
 # # ---- wide block 5 -----
 # layer10_1 = l10_1.feedforward(layer9_add,keep_prob,2)
@@ -219,7 +218,7 @@ layer7_add = tf.nn.avg_pool(layer7_add,ksize=[1,2,2,1],strides=[1,2,2,1],padding
 # layer11_add = tf.add(layer11_2,layer10_add)
 
 # --- final layer ----
-final_soft = tf.reshape(layer7_add,[batch_size,-1])
+final_soft = tf.reshape(layer9_add,[batch_size,-1])
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits= final_soft,labels=y))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -253,14 +252,14 @@ with tf.Session() as sess:
             dynamic_noise_rate = dynamic_noise_rate*0.95
             drop_out_rate = drop_out_rate * 0.85        
         elif iter == 75:
-            dynamic_noise_rate = dynamic_noise_rate*1.1
-            drop_out_rate = drop_out_rate * 1.1
+            dynamic_noise_rate = dynamic_noise_rate*1.05
+            drop_out_rate = drop_out_rate * 1.05
 
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: drop_out_rate,learning_rate:learning_rate_dynamic,noise_rate:dynamic_noise_rate})
+            sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: drop_out_rate,is_train:True, learning_rate:learning_rate_dynamic,noise_rate:dynamic_noise_rate})
             sess_results[0] = sess_results[0] * 0.5
             print("current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic ,' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
