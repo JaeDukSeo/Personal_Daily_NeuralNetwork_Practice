@@ -77,7 +77,7 @@ class CNN_Block_2():
         self.layer_2 = tf.nn.dropout(tf.nn.conv2d(self.layer_1A ,self.w2,strides=[1,stride_1,stride_1,1],padding='SAME'),dropout)
         self.layer_2A = self.act(self.layer_2)
 
-        self.output = self.layer_2A + self.input + np.random.randn(batch_size,self.input.shape[1],self.input.shape[2],self.input.shape[3]) * noise_rate
+        self.output = self.layer_2A + self.input + np.random.randn() * noise_rate
         return self.output
 
     def backprop(self,gradient,strides=1):
@@ -148,7 +148,7 @@ layer4_1 = l4_1.feedforward(layer3_2,keep_prob4)
 layer4_2 = l4_2.feedforward(layer4_1,keep_prob4,noise_rate=noise_ratehere)
 
 layer5_1 = l5_1.feedforward(layer4_2,keep_prob5)
-layer5_2 = l5_2.feedforward(layer5_1,keep_prob5,noise_rate=noise_ratehere)
+layer5_2 = l5_2.feedforward(layer5_1,keep_prob5)
 
 # --- final layer ----
 final_soft = tf.reshape(layer5_2,[batch_size,-1])

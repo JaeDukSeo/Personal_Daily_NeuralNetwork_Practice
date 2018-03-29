@@ -35,15 +35,24 @@ class Convolution_Layer():
         self.m = tf.Variable(tf.zeros_like(self.w))
         self.v = tf.Variable(tf.zeros_like(self.w))
 
-    def feedforward(self,input,stride=1,padding='SAME'):
+    def feedforward(self,input,stride=1,padding='SAME',dropout_rate=1.0):
         self.input = input
-        self.layer  = tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding=padding)
+        self.layer  = tf.nn.dropout(tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding=padding),dropout_rate)
         self.layerA = self.act(self.layer)
         return self.layerA
 
     def backprop(self,gradient,stride=1):
+        
+        grad_part1 = gradient
+        grad_part2 = self.d_act(self.layer)
+        grad_part3 = self.input
+
+        grad_middle = tf.nn.multiply(grad_part1,grad_part2)
+
+        updatew = []
+
         return 3
-     
+
 # === Get Data ===
 train_images, train_labels, test_images,test_labels = get_data()
 
@@ -66,50 +75,29 @@ dynamic_noise_rate = 0.9
 one_channel = 128
 
 # === Make Class ===
-l1_1 = CNN_Block_1(kernel=3,kernel2=1,in_c=3,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
-l1_2 = CNN_Block_2(kernel=3,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
+layer1_1 = 
+layer1_2 = 
+layer1_s = 
 
-l2_1 = CNN_Block_1(kernel=3,kernel2=1,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
-l2_2 = CNN_Block_2(kernel=3,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
 
-l3_1 = CNN_Block_1(kernel=3,kernel2=1,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
-l3_2 = CNN_Block_2(kernel=3,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
 
-l4_1 = CNN_Block_1(kernel=3,kernel2=1,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
-l4_2 = CNN_Block_2(kernel=3,in_c=one_channel,out_c=one_channel,act=tf_elu,d_act=d_tf_elu)
 
-l5_1 = CNN_Block_1(kernel=3,kernel2=1,in_c=one_channel,out_c=10,act=tf_elu,d_act=d_tf_elu)
-l5_2 = CNN_Block_2(kernel=3,in_c=10,out_c=10,act=tf_elu,d_act=d_tf_elu)
 
 
 # === Make graph ===
 x = tf.placeholder(tf.float32, [None, 32, 32, 3])
 y = tf.placeholder(tf.float32, [None, 10])
 
-keep_prob1 = tf.placeholder(tf.float32,[]) 
-keep_prob2 = tf.placeholder(tf.float32,[]) 
-keep_prob3 = tf.placeholder(tf.float32,[]) 
-keep_prob4 = tf.placeholder(tf.float32,[]) 
-keep_prob5 = tf.placeholder(tf.float32,[]) 
-
-
 learning_rate = tf.placeholder(tf.float32,[]) 
 noise_rate = tf.placeholder(tf.float32)
 
-layer1_1 = l1_1.feedforward(x,keep_prob1)
-layer1_2 = l1_2.feedforward(layer1_1,keep_prob1)
 
-layer2_1 = l2_1.feedforward(layer1_2,keep_prob2)
-layer2_2 = l2_2.feedforward(layer2_1,keep_prob2)
 
-layer3_1 = l3_1.feedforward(layer2_2,keep_prob3)
-layer3_2 = l3_2.feedforward(layer3_1,keep_prob3)
 
-layer4_1 = l4_1.feedforward(layer3_2,keep_prob4)
-layer4_2 = l4_2.feedforward(layer4_1,keep_prob4)
 
-layer5_1 = l5_1.feedforward(layer4_2,keep_prob5)
-layer5_2 = l5_2.feedforward(layer5_1,keep_prob5)
+
+
+
 
 # --- final layer ----
 final_soft = tf.reshape(layer5_2,[batch_size,-1])
