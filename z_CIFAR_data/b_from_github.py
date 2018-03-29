@@ -53,7 +53,7 @@ print(test_images.shape)
 print(test_labels.shape)
 
 # === Hyper Parameter ===
-num_epoch =  300
+num_epoch =  200
 batch_size = 100
 print_size = 1
 shuffle_size = 1
@@ -63,12 +63,13 @@ proportion_rate = 1000
 decay_rate = 0.08
 
 learning_rate_dynamic = 0.01
+momentum_rate = 0.9
 
-drop_out_rate = 0.7
-dynamic_drop_rate_change = 4000
-momentum_rate = 0.6
+drop_out_rate = 0.6
+dynamic_drop_rate_change = 10000
 
 dynamic_noise_rate = 0.9
+one_channel = 128
 
 # === Make Class ===
 class CNNLayer():
@@ -92,13 +93,12 @@ class CNNLayer():
             self.layerA = self.act(self.layer)
 
         return self.layerA
-            
 
 # ---- Starting -----
-l1_0 = CNNLayer(3,3,128,tf_elu,d_tf_elu)
+l1_0 = CNNLayer(3,3,one_channel,tf_elu,d_tf_elu)
 
 # ---- wide block 1 -----
-block1_in,block1_out = 128,128
+block1_in,block1_out = one_channel,one_channel
 l2_1 = CNNLayer(3,block1_in,block1_out,tf_elu,d_tf_elu)
 l2_2 = CNNLayer(3,block1_out,block1_out,tf_elu,d_tf_elu)
 l2_short = CNNLayer(3,block1_in,block1_out,tf_elu,d_tf_elu)
@@ -107,7 +107,7 @@ l3_1 = CNNLayer(1,block1_out,block1_out,tf_elu,d_tf_elu)
 l3_2 = CNNLayer(1,block1_out,block1_out,tf_elu,d_tf_elu)
 
 # ---- wide block 2 -----
-block2_in,block2_out = 128,128
+block2_in,block2_out = one_channel,one_channel
 l4_1 = CNNLayer(3,block2_in,block2_out,tf_elu,d_tf_elu)
 l4_2 = CNNLayer(3,block2_out,block2_out,tf_elu,d_tf_elu)
 l4_short = CNNLayer(3,block2_in,block2_out,tf_elu,d_tf_elu)
@@ -116,7 +116,7 @@ l5_1 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 l5_2 = CNNLayer(1,block2_out,block2_out,tf_elu,d_tf_elu)
 
 # ---- wide block 3 -----
-block3_in,block3_out = 128,128
+block3_in,block3_out = one_channel,one_channel
 l6_1 = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
 l6_2 = CNNLayer(3,block3_out,block3_out,tf_elu,d_tf_elu)
 l6_short = CNNLayer(3,block3_in,block3_out,tf_elu,d_tf_elu)
@@ -125,7 +125,7 @@ l7_1 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 l7_2 = CNNLayer(1,block3_out,block3_out,tf_elu,d_tf_elu)
 
 # ---- wide block 4 -----
-block4_in,block4_out = 128,10
+block4_in,block4_out = one_channel,one_channel
 l8_1 = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
 l8_2 = CNNLayer(3,block4_out,block4_out,tf_elu,d_tf_elu)
 l8_short = CNNLayer(3,block4_in,block4_out,tf_elu,d_tf_elu)
@@ -134,14 +134,13 @@ l9_1 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
 l9_2 = CNNLayer(1,block4_out,block4_out,tf_elu,d_tf_elu)
 
 # ---- wide block 5 -----
-# block5_in,block5_out = 256,10
-# l10_1 = CNNLayer(3,block5_in,block5_out,tf_elu,d_tf_elu)
-# l10_2 = CNNLayer(3,block5_out,block5_out,tf_elu,d_tf_elu)
-# l10_short = CNNLayer(3,block5_in,block5_out,tf_elu,d_tf_elu)
+block5_in,block5_out = one_channel,10
+l10_1 = CNNLayer(3,block5_in,block5_out,tf_elu,d_tf_elu)
+l10_2 = CNNLayer(3,block5_out,block5_out,tf_elu,d_tf_elu)
+l10_short = CNNLayer(3,block5_in,block5_out,tf_elu,d_tf_elu)
 
-# l11_1 = CNNLayer(1,block5_out,block5_out,tf_elu,d_tf_elu)
-# l11_2 = CNNLayer(1,block5_out,block5_out,tf_elu,d_tf_elu)
-
+l11_1 = CNNLayer(1,block5_out,block5_out,tf_elu,d_tf_elu)
+l11_2 = CNNLayer(1,block5_out,block5_out,tf_elu,d_tf_elu)
 
 # === Make graph ===
 x = tf.placeholder(tf.float32, [None, 32, 32, 3])
@@ -152,15 +151,16 @@ is_train = tf.placeholder(tf.bool)
 noise_rate = tf.placeholder(tf.float32)
 
 # ---- start layer ----
-layer1_0 = l1_0.feedforward(x,stride=2)
+layer1_0 = l1_0.feedforward(x)
 
 # ---- wide block 1 -----
 layer2_1 = l2_1.feedforward(layer1_0,keep_prob,2)
 layer2_2 = l2_2.feedforward(layer2_1)
 layer2_short = l2_short.feedforward(layer1_0,stride=2)
 
+# np.random.weibull(a=1,size=(batch_size,16,16,one_channel)) * noise_rate
 if is_train is not None:
-    layer2_add = tf.add(layer2_2,layer2_short) +layer2_short*np.random.randn(batch_size,8,8,128) * noise_rate
+    layer2_add = tf.add(layer2_2,layer2_short) +layer2_short
 else:
     layer2_add = tf.add(layer2_2,layer2_short) +layer2_short
 
@@ -174,7 +174,7 @@ layer4_2 = l4_2.feedforward(layer4_1)
 layer4_short = l4_short.feedforward(layer3_add,stride=2)
 
 if is_train is not None:
-    layer4_add = tf.add(layer4_2,layer4_short)+layer4_short*np.random.poisson(size=(batch_size,4,4,128)) * noise_rate
+    layer4_add = tf.add(layer4_2,layer4_short)+layer4_short*np.random.randn(batch_size,8,8,one_channel) * noise_rate
 else:
     layer4_add = tf.add(layer4_2,layer4_short)+layer4_short
 
@@ -187,8 +187,9 @@ layer6_1 = l6_1.feedforward(layer5_add,keep_prob,2)
 layer6_2 = l6_2.feedforward(layer6_1)
 layer6_short = l6_short.feedforward(layer5_add,stride=2)
 
+# *np.random.poisson(size=(batch_size,4,4,one_channel)) * noise_rate
 if is_train is not None:
-    layer6_add = tf.add(layer6_2,layer6_short)+layer6_short*np.random.randn(batch_size,2,2,128) * noise_rate
+    layer6_add = tf.add(layer6_2,layer6_short)+layer6_short
 else:
     layer6_add = tf.add(layer6_2,layer6_short)+layer6_short
 
@@ -202,7 +203,7 @@ layer8_2 = l8_2.feedforward(layer8_1)
 layer8_short = l8_short.feedforward(layer7_add,stride=2)
 
 if is_train is not None:
-    layer8_add = tf.add(layer8_2,layer8_short) + layer8_short*np.random.weibull(a=1,size=(batch_size,1,1,10)) * noise_rate
+    layer8_add = tf.add(layer8_2,layer8_short) + layer8_short*np.random.randn(batch_size,2,2,one_channel) * noise_rate
 else:
     layer8_add = tf.add(layer8_2,layer8_short) + layer8_short
 
@@ -211,17 +212,22 @@ layer9_2 = l9_2.feedforward(layer9_1)
 layer9_add = tf.add(layer9_2,layer8_add)
 
 # ---- wide block 5 -----
-# layer10_1 = l10_1.feedforward(layer9_add,keep_prob,2)
-# layer10_2 = l10_2.feedforward(layer10_1)
-# layer10_short = l10_short.feedforward(layer9_add,stride=2)
-# layer10_add = tf.add(layer10_2,layer10_short)
+layer10_1 = l10_1.feedforward(layer9_add,keep_prob,2)
+layer10_2 = l10_2.feedforward(layer10_1)
+layer10_short = l10_short.feedforward(layer9_add,stride=2)
 
-# layer11_1 = l11_1.feedforward(layer10_add,keep_prob)
-# layer11_2 = l11_2.feedforward(layer11_1)
-# layer11_add = tf.add(layer11_2,layer10_add)
+# *np.random.randn(batch_size,1,1,10) * noise_rate
+if is_train is not None:
+    layer10_add = tf.add(layer10_2,layer10_short) + layer10_short
+else:
+    layer10_add = tf.add(layer10_2,layer10_short) + layer10_short
+
+layer11_1 = l11_1.feedforward(layer10_add,keep_prob)
+layer11_2 = l11_2.feedforward(layer11_1)
+layer11_add = tf.add(layer11_2,layer10_add)
 
 # --- final layer ----
-final_soft = tf.reshape(layer9_add,[batch_size,-1])
+final_soft = tf.reshape(layer11_add,[batch_size,-1])
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits= final_soft,labels=y))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -251,21 +257,23 @@ with tf.Session() as sess:
     # Start the Epoch
     for iter in range(num_epoch):
 
-        if iter == 225: 
+        # dynamic changes
+        if iter == 250: 
             dynamic_noise_rate = dynamic_noise_rate*0.95
-            drop_out_rate = drop_out_rate * 0.95
-        elif iter == 150:
+            drop_out_rate = drop_out_rate * 0.85
+        elif iter == 175:
             dynamic_noise_rate = dynamic_noise_rate*0.95
-            drop_out_rate = drop_out_rate * 0.95        
+            drop_out_rate = drop_out_rate * 0.85        
         elif iter == 75:
-            dynamic_noise_rate = dynamic_noise_rate*0.95
-            drop_out_rate = drop_out_rate * 0.95
+            dynamic_noise_rate = dynamic_noise_rate*1.1
+            drop_out_rate = drop_out_rate * 1.1
 
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy,auto_train],feed_dict={x: current_batch, y: current_batch_label, keep_prob: drop_out_rate,learning_rate:learning_rate_dynamic,is_train:True,noise_rate:dynamic_noise_rate})
+            sess_results[0] = sess_results[0] * 0.5
             print("current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic ,' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
@@ -276,15 +284,16 @@ with tf.Session() as sess:
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label, keep_prob: 1.0,noise_rate:0.0})
+            sess_results[0] = sess_results[0] * 0.5
             print("Test Image Current iter:", iter,' Drop Out Rate: %.3f'%drop_out_rate,' learning rate: %.3f'%learning_rate_dynamic,' Current batach : ',current_batch_index, " current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
             test_total_acc = test_total_acc + sess_results[1]
 
         # store
-        train_cost_overtime.append(train_total_cost/(len(train_images)/divide_size/batch_size ) ) 
+        train_cost_overtime.append(train_total_cost/(len(train_images)/divide_size/batch_size )  ) 
         train_acc_overtime.append(train_total_acc /(len(train_images)/divide_size/batch_size )  )
-        test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ) )
-        test_acc_overtime.append(test_total_acc/(len(test_images)/batch_size ) )
+        test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ))
+        test_acc_overtime.append(test_total_acc/(len(test_images)/batch_size ))
             
         # print
         if iter%print_size == 0:
@@ -302,12 +311,12 @@ with tf.Session() as sess:
             # test_images,test_labels = shuffle(test_images,test_labels)
 
         # dynamic learning rate
-        if iter == 200: 
-            learning_rate_dynamic = learning_rate_dynamic * 0.1
+        # if iter == 200: 
+        #     learning_rate_dynamic = learning_rate_dynamic * 0.1
 
         # increase the drop count
-        if test_acc_overtime[-1]<train_acc_overtime[-1]:
-            count_drop = count_drop + 1
+        # if test_acc_overtime[-1]<train_acc_overtime[-1]:
+        #     count_drop = count_drop + 1
 
         # dynamic drop out decrease
         # if dynamic_drop_rate_change == count_drop :
@@ -325,6 +334,7 @@ with tf.Session() as sess:
         plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='g',label="Train AOT")
         plt.plot(range(len(train_acc_overtime)),test_acc_overtime,color='y',label='Test AOT')
         plt.legend()
+        plt.axis('auto')
         plt.title('Results')
         plt.pause(0.1)
 
