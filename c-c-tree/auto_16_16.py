@@ -43,7 +43,7 @@ def unpickle(file):
 class ConLayer():
   
   def __init__(self,kernel,in_c,out_c,act,d_act):
-    self.w  = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c], stddev=0.005))
+    self.w  = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c], stddev=0.0005))
     self.act,self.d_act = act,d_act
     self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
@@ -53,7 +53,7 @@ class ConLayer():
     self.layerA = self.act(self.layer)
     return self.layerA
 
-  def backprop(self,gradient):
+  def backpropagation(self,gradient,stride=1):
     grad_part1 = gradient
     grad_part2 = self.d_act(self.layer)
     grad_part3 = self.input
@@ -64,14 +64,14 @@ class ConLayer():
       input = grad_part3,
       filter_sizes = self.w.shape,
       out_backprop = grad_middle,
-      strides=[1,1,1,1],padding='SAME'
+      strides=[1,stride,stride,1],padding='SAME'
     )
 
     grad_pass = tf.nn.conv2d_backprop_input(
       input_sizes = [batch_size] + list(self.input.shape[1:]),
       filter = self.w,
       out_backprop = grad_middle,
-      strides=[1,1,1,1],padding='SAME'
+      strides=[1,stride,stride,1],padding='SAME'
     )
 
     update_w = []
@@ -91,7 +91,7 @@ class ConLayer():
 
 class fnnlayer():
     def __init__(self,input_dim,hidden_dim,activation,d_activation):
-        self.w = tf.Variable(tf.truncated_normal([input_dim,hidden_dim], stddev=0.005))
+        self.w = tf.Variable(tf.truncated_normal([input_dim,hidden_dim], stddev=0.0005))
         self.act,self.d_act  = activation,d_activation
         self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
@@ -101,7 +101,7 @@ class fnnlayer():
         self.layerA = self.act(self.layer)
         return self.layerA
 
-    def backpropagation(self,gradient=None,time_stamp=None):
+    def backpropagation(self,gradient=None):
         grad_part_1 = gradient
         grad_part_2 = self.d_act(self.layer)
         grad_part_3 = self.input 
@@ -122,7 +122,7 @@ class fnnlayer():
         update_w.append(
           tf.assign(self.w, self.w - adam_middle * m_hat   )
         )
-        return grad_pass,w_update
+        return grad_pass,update_w
 
 
 
@@ -173,15 +173,15 @@ test_images  = test_batch
 num_epoch =  200
 batch_size = 100
 print_size = 1
-shuffle_size = 1
-divide_size = 5
+shuffle_size = 8
+divide_size = 2
 
-init_lr = 0.001
+init_lr = 0.0005
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
 
-proportion_rate = 1000
+proportion_rate = 0
 decay_rate = 0.08
 
 one_channel = 16
@@ -228,6 +228,9 @@ l5_s = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
 # --- make graph ----
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
+
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 layer1_1 = l1_1.feedforward(x,stride=2)
 layer1_2 = l1_2.feedforward(layer1_1)
@@ -281,21 +284,12 @@ layer5_add = layer5_s+layer5_2
 
 # --- final layer ---
 final_soft = tf_softmax(layer5_add)
-cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer5_add,labels=y)) * 0.5
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-# ---- auto train ---
+# -- auto train --
 auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
-# auto_train = tf.train.MomentumOptimizer(learning_rate=init_lr,momentum =init_momentum).minimize(cost)
-
-
-
-
-
-
-
-
 
 # === Start the Session ===
 with tf.Session() as sess: 
@@ -312,9 +306,9 @@ with tf.Session() as sess:
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction], feed_dict={x: current_batch, y: current_batch_label})
-            print("current iter:", iter,' learning rate: %.3f'%init_lr ,
-                ' Current batach : ',current_batch_index," current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter})
+            print("current iter:", iter,' learning rate: %.6f'%init_lr ,
+                ' Current batach : ',current_batch_index," current cost: %.18f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
 
@@ -323,8 +317,8 @@ with tf.Session() as sess:
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
-            print("Test Image Current iter:", iter,' learning rate: %.3f'%init_lr,
-                 ' Current batach : ',current_batch_index, " current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            print("Test Image Current iter:", iter,' learning rate: %.6f'%init_lr,
+                 ' Current batach : ',current_batch_index, " current cost: %.18f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
             test_total_acc = test_total_acc + sess_results[1]
 
@@ -337,10 +331,10 @@ with tf.Session() as sess:
         # print
         if iter%print_size == 0:
             print('\n\n==== Current Iter :', iter,' Average Results =====')
-            print("Avg Train Cost: %.8f"% train_cost_overtime[-1])
-            print("Avg Train Acc:  %.8f"% train_acc_overtime[-1])
-            print("Avg Test Cost:  %.8f"% test_cost_overtime[-1])
-            print("Avg Test Acc:   %.8f"% test_acc_overtime[-1])
+            print("Avg Train Cost: %.18f"% train_cost_overtime[-1])
+            print("Avg Train Acc:  %.18f"% train_acc_overtime[-1])
+            print("Avg Test Cost:  %.18f"% test_cost_overtime[-1])
+            print("Avg Test Acc:   %.18f"% test_acc_overtime[-1])
             print('=================================')      
 
         # shuffle 

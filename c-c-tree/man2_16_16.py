@@ -47,13 +47,13 @@ class ConLayer():
     self.act,self.d_act = act,d_act
     self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
-  def feedforward(self,input,stride=1):
+  def feedforward(self,input):
     self.input = input
-    self.layer  = tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding='SAME')
+    self.layer  = tf.nn.conv2d(input,self.w,strides=[1,1,1,1],padding='SAME')
     self.layerA = self.act(self.layer)
     return self.layerA
 
-  def backprop(self,gradient):
+  def backpropagation(self,gradient):
     grad_part1 = gradient
     grad_part2 = self.d_act(self.layer)
     grad_part3 = self.input
@@ -101,7 +101,7 @@ class fnnlayer():
         self.layerA = self.act(self.layer)
         return self.layerA
 
-    def backpropagation(self,gradient=None,time_stamp=None):
+    def backpropagation(self,gradient=None):
         grad_part_1 = gradient
         grad_part_2 = self.d_act(self.layer)
         grad_part_3 = self.input 
@@ -122,7 +122,7 @@ class fnnlayer():
         update_w.append(
           tf.assign(self.w, self.w - adam_middle * m_hat   )
         )
-        return grad_pass,w_update
+        return grad_pass,update_w
 
 
 
@@ -184,7 +184,7 @@ adam_e = 0.00000001
 proportion_rate = 1000
 decay_rate = 0.08
 
-one_channel = 8
+one_channel = 16
 one_vector  = 1064
 
 # === make classes ====
@@ -216,10 +216,9 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_Input_shape = 32*32* (8 *3)
-l4_1 = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
+l4_1 = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
-l4_s = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
+l4_s = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
 
 l5_1 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l5_2 = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
@@ -281,21 +280,58 @@ layer5_add = layer5_s+layer5_2
 
 # --- final layer ---
 final_soft = tf_softmax(layer5_add)
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer5_add,labels=y))
+cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-# ---- auto train ---
-auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
-# auto_train = tf.train.MomentumOptimizer(learning_rate=init_lr,momentum =init_momentum).minimize(cost)
+# ---- manual -----
+grad5_Input = final_soft-y
+grad5_s,grad5_sw = l5_s.backpropagation(grad5_Input)
+grad5_2,grad5_2w = l5_2.backpropagation(grad5_Input)
+grad5_1,grad5_1w = l5_1.backpropagation(grad5_2)
 
+grad4_Input = grad5_s + grad5_1
+grad4_s,grad4_sw = l4_s.backpropagation(grad4_Input)
+grad4_2,grad4_2w = l4_2.backpropagation(grad4_Input)
+grad4_1,grad4_1w = l4_1.backpropagation(grad4_2)
 
+grad3_Input = tf.reshape(grad4_s+grad4_1,[batch_size,32,32,9])
+grad3_3_s,grad3_3_sw = l3_3_s.backpropagation(grad3_Input[:,:,:,:3])
+grad3_3_2,grad3_3_2w = l3_3_2.backpropagation(grad3_Input[:,:,:,:3])
+grad3_3_1,grad3_3_1w = l3_3_1.backpropagation(grad3_3_2)
 
+grad3_2_s,grad3_2_sw = l3_2_s.backpropagation(grad3_Input[:,:,:,3:6])
+grad3_2_2,grad3_2_2w = l3_2_2.backpropagation(grad3_Input[:,:,:,3:6])
+grad3_2_1,grad3_2_1w = l3_2_1.backpropagation(grad3_2_2)
 
+grad3_1_s,grad3_1_sw = l3_1_s.backpropagation(grad3_Input[:,:,:,6:])
+grad3_1_2,grad3_1_2w = l3_1_2.backpropagation(grad3_Input[:,:,:,6:])
+grad3_1_1,grad3_1_1w = l3_1_1.backpropagation(grad3_1_2)
 
+grad2_Input = grad3_3_1 + grad3_1_s + grad3_2_1 + grad3_2_s + grad3_1_1 + grad3_3_s
+grad2_3_s,grad2_3_sw = l2_3_s.backpropagation(grad2_Input)
+grad2_3_2,grad2_3_2w = l2_3_2.backpropagation(grad2_Input)
+grad2_3_1,grad2_3_1w = l2_3_1.backpropagation(grad2_3_2)
 
+grad2_2_s,grad2_2_sw = l2_2_s.backpropagation(grad2_Input)
+grad2_2_2,grad2_2_2w = l2_2_2.backpropagation(grad2_Input)
+grad2_2_1,grad2_2_1w = l2_2_1.backpropagation(grad2_2_2)
 
+grad2_1_s,grad2_1_sw = l2_1_s.backpropagation(grad2_Input)
+grad2_1_2,grad2_1_2w = l2_1_2.backpropagation(grad2_Input)
+grad2_1_1,grad2_1_1w = l2_1_1.backpropagation(grad2_1_2)
 
+grad1_Input = grad2_1_1 + grad2_1_s + grad2_2_1 + grad2_2_s + grad2_3_1 + grad2_3_s
+grad1_s,grad1_sw = l1_s.backpropagation(grad1_Input)
+grad1_2,grad1_2w = l1_2.backpropagation(grad1_Input)
+grad1_1,grad1_1w = l1_1.backpropagation(grad1_2)
+
+grad_update = grad5_sw + grad5_2w + grad5_1w + grad4_sw + grad4_2w + grad4_1w + grad3_3_sw + grad3_3_2w + grad3_3_1w + \
+            grad3_2_sw + grad3_2_2w + grad3_2_1w + \
+            grad3_1_sw + grad3_1_2w + grad3_1_1w + \
+            grad2_3_sw + grad2_3_2w + grad2_3_1w + \
+            grad2_2_sw + grad2_2_2w + grad2_2_1w + \
+            grad2_1_sw + grad2_1_2w + grad2_1_1w + grad1_sw + grad1_2w + grad1_1w 
 
 # === Start the Session ===
 with tf.Session() as sess: 
@@ -312,7 +348,7 @@ with tf.Session() as sess:
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction], feed_dict={x: current_batch, y: current_batch_label})
+            sess_results =  sess.run([cost,accuracy,grad_update,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label})
             print("current iter:", iter,' learning rate: %.3f'%init_lr ,
                 ' Current batach : ',current_batch_index," current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
