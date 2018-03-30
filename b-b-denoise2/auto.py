@@ -119,10 +119,10 @@ class ConLayer():
     return grad_pass,update_w
 
 # --- hyper parameter ---
-num_epoch = 100
+num_epoch = 30
 batch_size = 10
 
-init_lr = 0.0000001
+init_lr = 0.001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 1e-8
@@ -278,8 +278,36 @@ with tf.Session() as sess:
 
   plt.imshow(np.squeeze(sess_results),cmap='gray')
   plt.show()
-  
 
+  current_batch = np.expand_dims(test_images[100,:,:,:],axis=0)
+  current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+  sess_results = sess.run(layer3_add,feed_dict={x:current_batch,y:current_batch_noise})
+
+  sess_results = (sess_results-sess_results.min()) /  (sess_results.max()- sess_results.min())
+
+  plt.imshow(np.squeeze(current_batch),cmap='gray')
+  plt.show()
+
+  plt.imshow(np.squeeze(current_batch_noise),cmap='gray')
+  plt.show()
+
+  plt.imshow(np.squeeze(sess_results),cmap='gray')
+  plt.show()  
+
+  current_batch = np.expand_dims(test_images[57,:,:,:],axis=0)
+  current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+  sess_results = sess.run(layer3_add,feed_dict={x:current_batch,y:current_batch_noise})
+
+  sess_results = (sess_results-sess_results.min()) /  (sess_results.max()- sess_results.min())
+
+  plt.imshow(np.squeeze(current_batch),cmap='gray')
+  plt.show()
+
+  plt.imshow(np.squeeze(current_batch_noise),cmap='gray')
+  plt.show()
+
+  plt.imshow(np.squeeze(sess_results),cmap='gray')
+  plt.show()
   
 
 

@@ -119,10 +119,10 @@ class ConLayer():
     return grad_pass,update_w
 
 # --- hyper parameter ---
-num_epoch = 100
+num_epoch = 30
 batch_size = 10
 
-init_lr = 0.0000001
+init_lr = 0.001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 1e-8
@@ -130,7 +130,8 @@ adam_e = 1e-8
 one_channel = 3
 print_size = 1
 
-
+proportion_rate = 100
+decay_rate = 0.08
 
 
 
@@ -168,6 +169,9 @@ l3_s = ConLayer(1,one_channel,1,tf_ReLU,d_tf_ReLu)
 x = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 y = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
+
 layer1_1 = l1_1.feedforward(x)
 layer1_2 = l1_2.feedforward(layer1_1)
 layer1_s = l1_s.feedforward(x)
@@ -185,21 +189,18 @@ layer3_add = layer3_s + layer3_2
 
 cost = tf.reduce_mean(tf.square(layer3_add-y)*0.5)
 
-# --- auto train ---
-auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
-
 # # --- man back prop ---
 grad3_s,grad3_sw = l3_s.backprop(layer3_add-y)
 grad3_2,grad3_2w = l3_2.backprop(layer3_add-y)
 grad3_1,grad3_1w = l3_1.backprop(grad3_2)
 
-grad2_s,grad2_sw = l2_s.backprop(grad3_1+grad3_s)
-grad2_2,grad2_2w = l2_2.backprop(grad3_1+grad3_s)
-grad2_1,grad2_1w = l2_1.backprop(grad2_2)
+grad2_s,grad2_sw = l2_s.backprop(grad3_1+grad3_s+decay_propotoin_rate * ( (layer3_add-y) +grad3_2  ) ) 
+grad2_2,grad2_2w = l2_2.backprop(grad3_1+grad3_s+decay_propotoin_rate * ( (layer3_add-y) +grad3_2  ))
+grad2_1,grad2_1w = l2_1.backprop(grad2_2+decay_propotoin_rate * ( (layer3_add-y) +grad3_2 + grad3_1 ) ) 
 
-grad1_s,grad1_sw = l1_s.backprop(grad2_1+grad2_s)
-grad1_2,grad1_2w = l1_2.backprop(grad2_1+grad2_s)
-grad1_1,grad1_1w = l1_1.backprop(grad1_2)
+grad1_s,grad1_sw = l1_s.backprop(grad2_1+grad2_s+decay_propotoin_rate * ( (layer3_add-y) +grad3_2 + grad3_1+grad2_2 ))
+grad1_2,grad1_2w = l1_2.backprop(grad2_1+grad2_s+decay_propotoin_rate * ( (layer3_add-y) +grad3_2 + grad3_1+grad2_2 ))
+grad1_1,grad1_1w = l1_1.backprop(grad1_2+decay_propotoin_rate * ( (layer3_add-y) +grad3_2 + grad3_1+grad2_2+grad1_s ))
 
 grad_update = grad3_sw + grad3_2w + grad3_1w + \
               grad2_sw + grad2_2w + grad2_1w + \
@@ -239,8 +240,7 @@ with tf.Session() as sess:
     for current_batch_index in range(0,len(train_images),batch_size):
       current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
       current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
-      sess_results = sess.run([cost,auto_train],feed_dict={x:current_batch,y:current_batch_noise})
-      # sess_results = sess.run([cost,grad_update],feed_dict={x:current_batch,y:current_batch_noise})
+      sess_results = sess.run([cost,grad_update],feed_dict={x:current_batch,y:current_batch_noise,iter_variable_dil:iter})
       print("Iter: ", iter , " Cost %.3f"%sess_results[0],end='\r')
       train_total_cost = train_total_cost + sess_results[0]
     
