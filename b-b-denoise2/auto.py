@@ -119,15 +119,15 @@ class ConLayer():
     return grad_pass,update_w
 
 # --- hyper parameter ---
-num_epoch = 30
+num_epoch = 100
 batch_size = 10
 
-init_lr = 0.001
+init_lr = 0.0001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 1e-8
 
-one_channel = 3
+one_channel = 8
 print_size = 1
 
 
@@ -239,9 +239,8 @@ with tf.Session() as sess:
     for current_batch_index in range(0,len(train_images),batch_size):
       current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
       current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
-      sess_results = sess.run([cost,auto_train],feed_dict={x:current_batch,y:current_batch_noise})
-      # sess_results = sess.run([cost,grad_update],feed_dict={x:current_batch,y:current_batch_noise})
-      print("Iter: ", iter , " Cost %.3f"%sess_results[0],end='\r')
+      sess_results = sess.run([cost,auto_train],feed_dict={x:current_batch_noise,y:current_batch})
+      print("Iter: ", iter , " Cost %.10f"%sess_results[0],end='\r')
       train_total_cost = train_total_cost + sess_results[0]
     
     print("\n----- testing iter ",iter,' ---------')
@@ -249,8 +248,8 @@ with tf.Session() as sess:
     for current_batch_index in range(0,len(test_images),batch_size):
       current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
       current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
-      sess_results = sess.run([cost],feed_dict={x:current_batch,y:current_batch_noise})
-      print("Iter: ", iter , " Cost %.3f"%sess_results[0],end='\r')
+      sess_results = sess.run([cost],feed_dict={x:current_batch_noise,y:current_batch})
+      print("Iter: ", iter , " Cost %.10f"%sess_results[0],end='\r')
       test_total_cost = test_total_cost + sess_results[0]
 
     # store
@@ -261,12 +260,17 @@ with tf.Session() as sess:
       print('------------------------')       
       print("Avg Train Cost: ", train_cost_overtime[-1])
       print("Avg Test Cost: ", test_cost_overtime[-1])
-      print('------------------------\n\n')       
+      print('------------------------\n\n')
+
+    test_total_cost = 0
+    train_total_cost = 0
+           
+
 
   # see three examples
   current_batch = np.expand_dims(test_images[4,:,:,:],axis=0)
   current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
-  sess_results = sess.run(layer3_add,feed_dict={x:current_batch,y:current_batch_noise})
+  sess_results = sess.run(layer3_add,feed_dict={x:current_batch_noise})
 
   sess_results = (sess_results-sess_results.min()) /  (sess_results.max()- sess_results.min())
 
@@ -281,7 +285,7 @@ with tf.Session() as sess:
 
   current_batch = np.expand_dims(test_images[100,:,:,:],axis=0)
   current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
-  sess_results = sess.run(layer3_add,feed_dict={x:current_batch,y:current_batch_noise})
+  sess_results = sess.run(layer3_add,feed_dict={x:current_batch_noise})
 
   sess_results = (sess_results-sess_results.min()) /  (sess_results.max()- sess_results.min())
 
@@ -296,7 +300,7 @@ with tf.Session() as sess:
 
   current_batch = np.expand_dims(test_images[57,:,:,:],axis=0)
   current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
-  sess_results = sess.run(layer3_add,feed_dict={x:current_batch,y:current_batch_noise})
+  sess_results = sess.run(layer3_add,feed_dict={x:current_batch_noise})
 
   sess_results = (sess_results-sess_results.min()) /  (sess_results.max()- sess_results.min())
 
