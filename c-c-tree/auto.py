@@ -47,9 +47,9 @@ class ConLayer():
     self.act,self.d_act = act,d_act
     self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
-  def feedforward(self,input):
+  def feedforward(self,input,stride=1):
     self.input = input
-    self.layer  = tf.nn.conv2d(input,self.w,strides=[1,1,1,1],padding='SAME')
+    self.layer  = tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding='SAME')
     self.layerA = self.act(self.layer)
     return self.layerA
 
@@ -184,8 +184,8 @@ adam_e = 0.00000001
 proportion_rate = 1000
 decay_rate = 0.08
 
-one_channel = 2
-one_vector  = 1024
+one_channel = 4
+one_vector  = 1064
 
 # === make classes ====
 l1_1 = ConLayer(3,3,one_channel,tf_ReLU,d_tf_ReLu)
@@ -216,9 +216,9 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_1 = fnnlayer(32*32*6,one_vector,tf_ReLU,d_tf_ReLu)
+l4_1 = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
-l4_s = fnnlayer(32*32*6,one_vector,tf_ReLU,d_tf_ReLu)
+l4_s = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
 
 l5_1 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l5_2 = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
@@ -228,9 +228,9 @@ l5_s = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 
-layer1_1 = l1_1.feedforward(x)
+layer1_1 = l1_1.feedforward(x,stride=2)
 layer1_2 = l1_2.feedforward(layer1_1)
-layer1_s = l1_s.feedforward(x)
+layer1_s = l1_s.feedforward(x,stride=2)
 layer1_add = layer1_s + layer1_2
 
 # --- node layer 2 -----
@@ -287,9 +287,6 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # ---- auto train ---
 auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
 
-# ---- space for manual -----
-
-# ---- space for manual -----
 
 
 
