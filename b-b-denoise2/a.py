@@ -215,9 +215,7 @@ with tf.Session() as sess:
     if iter%print_size == 0:
       print('\n=========')
       print("Avg Train Cost: ", train_cost_overtime[-1])
-      print("Avg Train Acc: ", train_acc_overtime[-1])
       print("Avg Test Cost: ", test_cost_overtime[-1])
-      print("Avg Test Acc: ", test_acc_overtime[-1])
       print('-----------')       
 
   # see three examples
