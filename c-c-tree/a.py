@@ -31,6 +31,8 @@ def d_tf_elu(x):
   maks2 = tf_elu(tf.cast(tf.less_equal(x,0),dtype=tf.float32) * x)
   return mask1 + mask2
 
+def tf_softmax(x): return tf.nn.softmax(x)
+
 def unpickle(file):
     import pickle
     with open(file, 'rb') as fo:
@@ -41,7 +43,7 @@ def unpickle(file):
 class ConLayer():
   
   def __init__(self,kernel,in_c,out_c,act,d_act):
-    self.w  = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c], stddev=0.05))
+    self.w  = tf.Variable(tf.truncated_normal([kernel,kernel,in_c,out_c], stddev=0.005))
     self.act,self.d_act = act,d_act
     self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
@@ -89,14 +91,13 @@ class ConLayer():
 
 class fnnlayer():
     def __init__(self,input_dim,hidden_dim,activation,d_activation):
-    
-        self.w = tf.Variable(tf.random_normal([input_dim,hidden_dim]))
+        self.w = tf.Variable(tf.truncated_normal([input_dim,hidden_dim], stddev=0.005))
         self.act,self.d_act  = activation,d_activation
         self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
     def feed_forward(self,input=None):
         self.input = input
-        self.layer = tf.matmul(input,self.w) + self.b 
+        self.layer = tf.matmul(input,self.w) 
         self.layerA = self.act(self.layer)
         return self.layerA
 
@@ -169,11 +170,13 @@ train_images = train_batch
 test_images  = test_batch
 
 # === Hyper Parameter ===
-num_epoch =  100
+num_epoch =  200
 batch_size = 100
 print_size = 1
 shuffle_size = 1
 divide_size = 5
+
+init_lr = 0.0001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -181,8 +184,8 @@ adam_e = 0.00000001
 proportion_rate = 1000
 decay_rate = 0.08
 
-one_channel = 4
-one_vector  = 1024
+one_channel = 3
+one_vector  = 1064
 
 # === make classes ====
 l1_1 = ConLayer(3,3,one_channel,tf_ReLU,d_tf_ReLu)
@@ -213,9 +216,9 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_1 = fnnlayer(32*32*4,one_vector,tf_ReLU,d_tf_ReLu)
+l4_1 = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
-l4_s = fnnlayer(32*32*4,one_vector,tf_ReLU,d_tf_ReLu)
+l4_s = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
 
 l5_1 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l5_2 = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
@@ -265,7 +268,111 @@ layer3_3_add = layer3_3_s + layer3_3_2
 
 # ---- fully connected layer ----
 layer4_Input = tf.reshape(tf.concat([layer3_1_add,layer3_2_add,layer3_3_add],axis=3),[batch_size,-1])
-print(layer4_Input.shape)
+layer4_1 = l4_1.feed_forward(layer4_Input)
+layer4_2 = l4_2.feed_forward(layer4_1)
+layer4_s = l4_s.feed_forward(layer4_Input)
+layer4_add = layer4_s+layer4_2
+
+layer5_1 = l5_1.feed_forward(layer4_add)
+layer5_2 = l5_2.feed_forward(layer5_1)
+layer5_s = l5_s.feed_forward(layer4_add)
+layer5_add = layer5_s+layer5_2
+
+# --- final layer ---
+final_soft = tf_softmax(layer5_add)
+cost = tf.reduce_mean(-1.0 * (y* tf.log(final_soft) + (1-y)*tf.log(1-final_soft)))
+correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+# ---- auto train ---
+auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
+
+# ---- space for manual -----
+
+# ---- space for manual -----
+
+
+
+
+
+
+
+
+# === Start the Session ===
+with tf.Session() as sess: 
+
+    # start the session 
+    sess.run(tf.global_variables_initializer())
+    train_total_cost,train_total_acc, test_total_cost,test_total_acc =0,0,0,0
+    train_cost_overtime,train_acc_overtime,test_cost_overtime,test_acc_overtime = [],[],[],[]
+
+    # Start the Epoch
+    for iter in range(num_epoch):
+        
+        # Train Set
+        for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
+            current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+            current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
+            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction], feed_dict={x: current_batch, y: current_batch_label})
+            print("current iter:", iter,' learning rate: %.3f'%init_lr ,
+                ' Current batach : ',current_batch_index," current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            train_total_cost = train_total_cost + sess_results[0]
+            train_total_acc = train_total_acc + sess_results[1]
+
+        # Test Set
+        for current_batch_index in range(0,len(test_images),batch_size):
+            current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+            current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
+            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
+            print("Test Image Current iter:", iter,' learning rate: %.3f'%init_lr,
+                 ' Current batach : ',current_batch_index, " current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            test_total_cost = test_total_cost + sess_results[0]
+            test_total_acc = test_total_acc + sess_results[1]
+
+        # store
+        train_cost_overtime.append(train_total_cost/(len(train_images)/divide_size/batch_size )  ) 
+        train_acc_overtime.append(train_total_acc /(len(train_images)/divide_size/batch_size )  )
+        test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ))
+        test_acc_overtime.append(test_total_acc/(len(test_images)/batch_size ))
+            
+        # print
+        if iter%print_size == 0:
+            print('\n\n==== Current Iter :', iter,' Average Results =====')
+            print("Avg Train Cost: %.8f"% train_cost_overtime[-1])
+            print("Avg Train Acc:  %.8f"% train_acc_overtime[-1])
+            print("Avg Test Cost:  %.8f"% test_cost_overtime[-1])
+            print("Avg Test Acc:   %.8f"% test_acc_overtime[-1])
+            print('=================================')      
+
+        # shuffle 
+        if iter%shuffle_size ==  0: 
+            print("==== shuffling iter: ",iter," =======\n")
+            train_images,train_labels = shuffle(train_images,train_labels)
+
+        # redeclare
+        train_total_cost,train_total_acc,test_total_cost,test_total_acc=0,0,0,0
+
+        # real time ploting
+        if iter > 0: plt.clf()
+        plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r',label="Train COT")
+        plt.plot(range(len(train_cost_overtime)),test_cost_overtime,color='b',label='Test COT')
+        plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='g',label="Train AOT")
+        plt.plot(range(len(train_acc_overtime)),test_acc_overtime,color='y',label='Test AOT')
+        plt.legend()
+        plt.axis('auto')
+        plt.title('Results')
+        plt.pause(0.1)
+
+    # plot and save
+    plt.clf()
+    plt.plot(range(len(train_cost_overtime)),train_cost_overtime,color='r',label="Train COT")
+    plt.plot(range(len(train_cost_overtime)),test_cost_overtime,color='b',label='Test COT')
+    plt.plot(range(len(train_acc_overtime)),train_acc_overtime,color='g',label="Train AOT")
+    plt.plot(range(len(train_acc_overtime)),test_acc_overtime,color='y',label='Test AOT')
+    plt.legend()
+    plt.title('Results')
+    plt.show()
+
 
 
 
