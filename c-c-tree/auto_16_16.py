@@ -184,7 +184,7 @@ adam_e = 0.00000001
 proportion_rate = 1000
 decay_rate = 0.08
 
-one_channel = 4
+one_channel = 16
 one_vector  = 1064
 
 # === make classes ====
@@ -216,9 +216,10 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_1 = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
+l4_Input_shape = 16*16* (16 *3)
+l4_1 = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
-l4_s = fnnlayer(32*32*9,one_vector,tf_ReLU,d_tf_ReLu)
+l4_s = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
 
 l5_1 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l5_2 = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
@@ -286,6 +287,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # ---- auto train ---
 auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
+# auto_train = tf.train.MomentumOptimizer(learning_rate=init_lr,momentum =init_momentum).minimize(cost)
 
 
 
