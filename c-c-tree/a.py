@@ -87,6 +87,44 @@ class ConLayer():
 
     return grad_pass,update_w
 
+class fnnlayer():
+    def __init__(self,input_dim,hidden_dim,activation,d_activation):
+    
+        self.w = tf.Variable(tf.random_normal([input_dim,hidden_dim]))
+        self.act,self.d_act  = activation,d_activation
+        self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
+
+    def feed_forward(self,input=None):
+        self.input = input
+        self.layer = tf.matmul(input,self.w) + self.b 
+        self.layerA = self.act(self.layer)
+        return self.layerA
+
+    def backpropagation(self,gradient=None,time_stamp=None):
+        grad_part_1 = gradient
+        grad_part_2 = self.d_act(self.layer)
+        grad_part_3 = self.input 
+
+        grad_x_mid = tf.multiply(grad_part_1,grad_part_2)
+        grad = tf.matmul(tf.transpose(grad_part_3),grad_x_mid)
+
+        grad_pass = tf.matmul(tf.multiply(grad_part_1,grad_part_2),tf.transpose(self.w))
+
+        update_w = []
+
+        update_w.append( tf.assign( self.m,self.m * beta1 + (1-beta1) * grad     )   )
+        update_w.append( tf.assign( self.v,self.v * beta2 + (1-beta2) * grad  ** 2   )   )
+
+        m_hat = self.m/(1-beta1)
+        v_hat = self.v/(1-beta2)
+        adam_middle = init_lr / ( tf.sqrt(v_hat) + adam_e)
+        update_w.append(
+          tf.assign(self.w, self.w - adam_middle * m_hat   )
+        )
+        return grad_pass,w_update
+
+
+
 # --- get data ---
 PathDicom = "./data/cifar-10-batches-py/"
 lstFilesDCM = []  # create an empty list
@@ -144,6 +182,7 @@ proportion_rate = 1000
 decay_rate = 0.08
 
 one_channel = 4
+one_vector  = 1024
 
 # === make classes ====
 l1_1 = ConLayer(3,3,one_channel,tf_ReLU,d_tf_ReLu)
@@ -174,7 +213,13 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
+l4_1 = fnnlayer(32*32*4,one_vector,tf_ReLU,d_tf_ReLu)
+l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
+l4_s = fnnlayer(32*32*4,one_vector,tf_ReLU,d_tf_ReLu)
 
+l5_1 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
+l5_2 = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
+l5_s = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
 
 # --- make graph ----
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
