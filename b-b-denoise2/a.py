@@ -8,6 +8,7 @@ import numpy as np,sys,os
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, draw, show,ion
 from scipy.ndimage import imread
+from sklearn.utils import shuffle
 import tensorflow as tf
 
 tf.set_random_seed(789)
@@ -33,9 +34,9 @@ def d_tf_elu(x):
   return mask1 + mask2
 
 # ---- prepare data ----
-one = np.zeros((119,512,512))
-two = np.zeros((119,512,512))
-three = np.zeros((119,512,512))
+one = np.zeros((110,512,512,1))
+two = np.zeros((110,512,512,1))
+three = np.zeros((110,512,512,1))
 
 lung_data1 = zipfile.ZipFile("./data/lung_data_1.zip", 'r')
 lung_data2 = zipfile.ZipFile("./data/lung_data_2.zip", 'r')
@@ -46,14 +47,17 @@ lung_data2_list = lung_data2.namelist()
 lung_data3_list = lung_data3.namelist()
 
 for current_file_index in range(0,len(lung_data1.namelist()) - 9 ):
-  one[current_file_index,:,:] =   imread(io.BytesIO(lung_data1.open(lung_data1_list[current_file_index]).read()),mode='F')
-  two[current_file_index,:,:] =   imread(io.BytesIO(lung_data2.open(lung_data2_list[current_file_index]).read()),mode='F')
-  three[current_file_index,:,:] = imread(io.BytesIO(lung_data3.open(lung_data3_list[current_file_index]).read()),mode='F')
+  one[current_file_index,:,:] =   np.expand_dims(imread(io.BytesIO(lung_data1.open(lung_data1_list[current_file_index]).read()),mode='F').astype(np.float32),axis=3)
+  two[current_file_index,:,:] =    np.expand_dims(imread(io.BytesIO(lung_data2.open(lung_data2_list[current_file_index]).read()),mode='F').astype(np.float32),axis=3)
+  three[current_file_index,:,:] = np.expand_dims( imread(io.BytesIO(lung_data3.open(lung_data3_list[current_file_index]).read()),mode='F').astype(np.float32),axis=3)
 
 # --- normalize data batch normalization ----
 one = (one-one.min()) / (one.max()-one.min()) 
 two = (two-two.min()) / (two.max()-two.min()) 
 three = (three-three.min()) / (three.max()-three.min()) 
+
+train_images  = np.vstack((one,two))
+test_images   = three
 
 # ---- make class ----
 class ConLayer():
@@ -74,9 +78,9 @@ class ConLayer():
     grad_part2 = self.d_act(self.layer)
     grad_part3 = self.input
 
-    grad_middle = tf.nn.multiply(grad_part1,grad_part2)
+    grad_middle = tf.multiply(grad_part1,grad_part2)
 
-    grad_w = tf.nn.conv2d_backprop_filter(
+    grad = tf.nn.conv2d_backprop_filter(
       input = grad_part3,
       filter_sizes = self.w.shape,
       out_backprop = grad_middle,
@@ -92,17 +96,30 @@ class ConLayer():
 
     update_w = []
 
+    update_w.append( tf.assign( self.m,self.m * beta1 + (1-beta1) * grad     )   )
+    update_w.append( tf.assign( self.v,self.v * beta2 + (1-beta2) * grad  ** 2   )   )
+
+    m_hat = self.m/(1-beta1)
+    v_hat = self.v/(1-beta2)
+    adam_middle = init_lr / ( tf.sqrt(v_hat) + adam_e)
+
+    update_w.append(
+      tf.assign(self.w, self.w - adam_middle * m_hat   )
+    )
 
     return grad_pass,update_w
 
 # --- hyper parameter ---
-num_epoch = 300
+num_epoch = 10
 batch_size = 10
+
+init_lr = 0.0001
 
 beta1,beta2 = 0.9,0.999
 adam_e = 1e-8
 
-one_channel = 128
+one_channel = 3
+print_size = 1
 
 # --- make layers ---
 l1_1 = ConLayer(3,1,one_channel,tf_ReLU,d_tf_ReLu)
@@ -117,8 +134,108 @@ l3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_2 = ConLayer(3,one_channel,1,tf_ReLU,d_tf_ReLu)
 l3_s = ConLayer(1,one_channel,1,tf_ReLU,d_tf_ReLu)
 
+# --- make graph ---
+x = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
+y = tf.placeholder(shape=[None,512,512,1],dtype=tf.float32)
 
+layer1_1 = l1_1.feedforward(x)
+layer1_2 = l1_2.feedforward(layer1_1)
+layer1_s = l1_s.feedforward(x)
+layer1_add = layer1_s + layer1_2
 
+layer2_1 = l2_1.feedforward(layer1_add)
+layer2_2 = l2_2.feedforward(layer2_1)
+layer2_s = l2_s.feedforward(layer1_add)
+layer2_add = layer2_s + layer2_2
+
+layer3_1 = l3_1.feedforward(layer2_add)
+layer3_2 = l3_2.feedforward(layer3_1)
+layer3_s = l3_s.feedforward(layer2_add)
+layer3_add = layer3_s + layer3_2
+
+cost = tf.reduce_mean(tf.square(layer3_add-y)*0.5)
+
+# --- auto train ---
+auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
+
+# # --- man back prop ---
+grad3_s,grad3_sw = l3_s.backprop(layer3_add-y)
+grad3_2,grad3_2w = l3_2.backprop(layer3_add-y)
+grad3_1,grad3_1w = l3_1.backprop(grad3_2)
+
+grad2_s,grad2_sw = l2_s.backprop(grad3_1+grad3_s)
+grad2_2,grad2_2w = l2_2.backprop(grad3_1+grad3_s)
+grad2_1,grad2_1w = l2_1.backprop(grad2_2)
+
+grad1_s,grad1_sw = l1_s.backprop(grad2_1+grad2_s)
+grad1_2,grad1_2w = l1_2.backprop(grad2_1+grad2_s)
+grad1_1,grad1_1w = l1_1.backprop(grad1_2)
+
+grad_update = grad3_sw + grad3_2w + grad3_1w + \
+              grad2_sw + grad2_2w + grad2_1w + \
+              grad1_sw + grad1_2w + grad1_1w 
+
+# --- make session ---
+with tf.Session() as sess: 
+
+  sess.run(tf.global_variables_initializer())
+
+  train_total_cost =0
+  train_cost_overtime = []
+
+  test_total_cost = 0
+  test_cost_overtime = []
+
+  # epcoh
+  for iter in range(num_epoch):
+        
+    train_images = shuffle(train_images)
+
+    for current_batch_index in range(0,len(train_images),batch_size):
+      current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+      current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+      sess_results = sess.run([cost,auto_train],feed_dict={x:current_batch,y:current_batch_noise})
+      # sess_results = sess.run([cost,grad_update],feed_dict={x:current_batch,y:current_batch_noise})
+      print("Iter: ", iter , " Cost %.3f"%sess_results[0],end='\r')
+      train_total_cost = train_total_cost + sess_results[0]
+    
+    print("\n----- testing iter ",iter,' ---------')
+
+    for current_batch_index in range(0,len(test_images),batch_size):
+      current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+      current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+      sess_results = sess.run([cost],feed_dict={x:current_batch,y:current_batch_noise})
+      print("Iter: ", iter , " Cost %.3f"%sess_results[0],end='\r')
+      test_total_cost = test_total_cost + sess_results[0]
+
+    # store
+    train_cost_overtime.append(train_total_cost/(len(train_images)/batch_size ) )
+    test_cost_overtime.append(test_total_cost/(len(test_images)/batch_size ) )
+
+    if iter%print_size == 0:
+      print('\n=========')
+      print("Avg Train Cost: ", train_cost_overtime[-1])
+      print("Avg Train Acc: ", train_acc_overtime[-1])
+      print("Avg Test Cost: ", test_cost_overtime[-1])
+      print("Avg Test Acc: ", test_acc_overtime[-1])
+      print('-----------')       
+
+  # see three examples
+  current_batch = test_images[4,:,:,:]
+  current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+  sess_results = sess.run(layer3_add,feed_dict={x:current_batch,y:current_batch_noise})
+
+  sess_results = (sess_results-sess_results.min()) /  (sess_results.max()- sess_results.min())
+
+  plt.imshow(np.squeeze(current_batch),cmap='gray')
+  plt.show()
+
+  plt.imshow(np.squeeze(current_batch_noise),cmap='gray')
+  plt.show()
+
+  plt.imshow(np.squeeze(sess_results),cmap='gray')
+  plt.show()
+  
 
   
 

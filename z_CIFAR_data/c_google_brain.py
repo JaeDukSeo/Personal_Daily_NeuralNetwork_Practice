@@ -40,7 +40,7 @@ class Convolution_Layer():
         self.layerA = self.act(self.layer)
         return self.layerA
 
-    def backprop(self,gradient,stride=1):
+    def backprop(self,gradient,iter_var,stride=1):
         
         grad_part_1 = gradient
         grad_part_2 = self.d_act(self.layer)
@@ -62,6 +62,12 @@ class Convolution_Layer():
             strides = [1,stride,stride,1],
             padding="SAME"
         )
+
+        # ------ Calculate The Additive Noise -------
+        n_value = 0.0001
+        ADDITIVE_NOISE_STD = n_value / (tf.pow((1 + iter_var), 0.55))
+        ADDITIVE_GAUSSIAN_NOISE = tf.random_normal(mean=0,stddev=ADDITIVE_NOISE_STD,shape=[])
+        # ------ Calculate The Additive Noise -------
 
         grad_update = []
         grad_update.append(tf.assign(self.m,tf.add(beta1*self.m, (1-beta1)*grad)))
@@ -144,10 +150,10 @@ test_images = np.rot90(np.rot90(test_batch,1,axes=(1,3)),3,axes=(1,2)).astype(np
 
 # === Hyper Parameter ===
 num_epoch =  200
-batch_size = 50
+batch_size = 100
 print_size = 1
 shuffle_size = 1
-divide_size = 4
+divide_size = 5
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
@@ -160,7 +166,7 @@ init_momentum_rate = 0.9
 init_dropout_rate  = np.random.uniform(0.8,0.9)
 init_noise_rate    = np.random.uniform(0.1,0.5)
 
-one_channel = 256
+one_channel = 164
 
 # === Make Class ===
 l1_1 = Convolution_Layer(3,3,one_channel,tf_elu,d_tf_elu)
@@ -231,25 +237,25 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # --- manual back prop --- adding 1e-50 for numerical stability
 error_soft = tf.reshape( final_soft -y,[batch_size,1,1,10])
-grad5_s,grad5_sw = l5_s.backprop(error_soft,stride=2)
-grad5_2,grad5_2w = l5_2.backprop(error_soft)
-grad5_1,grad5_1w = l5_1.backprop(grad5_2,stride=2)
+grad5_s,grad5_sw = l5_s.backprop(error_soft,stride=2,iter_var=iter_variable_dil)
+grad5_2,grad5_2w = l5_2.backprop(error_soft,iter_var=iter_variable_dil)
+grad5_1,grad5_1w = l5_1.backprop(grad5_2,stride=2,iter_var=iter_variable_dil)
 
-grad4_s,grad4_sw = l4_s.backprop(grad5_1+grad5_s,stride=2)
-grad4_2,grad4_2w = l4_2.backprop(grad5_1+grad5_s)
-grad4_1,grad4_1w = l4_1.backprop(grad4_2,stride=2)
+grad4_s,grad4_sw = l4_s.backprop(grad5_1+grad5_s,stride=2,iter_var=iter_variable_dil)
+grad4_2,grad4_2w = l4_2.backprop(grad5_1+grad5_s,iter_var=iter_variable_dil)
+grad4_1,grad4_1w = l4_1.backprop(grad4_2,stride=2,iter_var=iter_variable_dil)
 
-grad3_s,grad3_sw = l3_s.backprop(grad4_1+grad4_s,stride=2)
-grad3_2,grad3_2w = l3_2.backprop(grad4_1+grad4_s)
-grad3_1,grad3_1w = l3_1.backprop(grad3_2,stride=2)
+grad3_s,grad3_sw = l3_s.backprop(grad4_1+grad4_s,stride=2,iter_var=iter_variable_dil)
+grad3_2,grad3_2w = l3_2.backprop(grad4_1+grad4_s,iter_var=iter_variable_dil)
+grad3_1,grad3_1w = l3_1.backprop(grad3_2,stride=2,iter_var=iter_variable_dil)
 
-grad2_s,grad2_sw = l2_s.backprop(grad3_1+grad3_s,stride=2)
-grad2_2,grad2_2w = l2_2.backprop(grad3_1+grad3_s)
-grad2_1,grad2_1w = l2_1.backprop(grad2_2,stride=2)
+grad2_s,grad2_sw = l2_s.backprop(grad3_1+grad3_s,stride=2,iter_var=iter_variable_dil)
+grad2_2,grad2_2w = l2_2.backprop(grad3_1+grad3_s,iter_var=iter_variable_dil)
+grad2_1,grad2_1w = l2_1.backprop(grad2_2,stride=2,iter_var=iter_variable_dil)
 
-grad1_s,grad1_sw = l1_s.backprop(grad2_1+grad2_s,stride=2)
-grad1_2,grad1_2w = l1_2.backprop(grad2_1+grad2_s)
-grad1_1,grad1_1w = l1_1.backprop(grad1_2,stride=2)
+grad1_s,grad1_sw = l1_s.backprop(grad2_1+grad2_s,stride=2,iter_var=iter_variable_dil)
+grad1_2,grad1_2w = l1_2.backprop(grad2_1+grad2_s,iter_var=iter_variable_dil)
+grad1_1,grad1_1w = l1_1.backprop(grad1_2,stride=2,iter_var=iter_variable_dil)
 
 grad_update = grad5_sw + grad5_2w + grad5_1w + \
               grad4_sw + grad4_2w + grad4_1w + \
@@ -271,15 +277,12 @@ with tf.Session() as sess:
     # Start the Epoch
     for iter in range(num_epoch):
         
-        # dynamically change
-        init_dropout_rate  = np.random.uniform(0.8,0.9)
-
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy,grad_update,final_soft,error_soft,correct_prediction],
-                                feed_dict={x: current_batch, y: current_batch_label, learning_rate:init_learning_rate,momentum_rate:init_momentum_rate,dropout_rate:init_dropout_rate})
+                                feed_dict={x: current_batch, y: current_batch_label, learning_rate:init_learning_rate,momentum_rate:init_momentum_rate,dropout_rate:1.0,iter_variable_dil:iter})
 
             print("current iter:", iter,' Drop Out Rate: %.3f'%init_dropout_rate,' learning rate: %.3f'%init_learning_rate ,
                 ' Current batach : ',current_batch_index," current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
@@ -290,7 +293,7 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(test_images),batch_size):
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label,dropout_rate:1.0})
+            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label,dropout_rate:1.0,iter_variable_dil:iter})
 
             print("Test Image Current iter:", iter,' Drop Out Rate: %.3f'%init_dropout_rate,' learning rate: %.3f'%init_learning_rate,
                  ' Current batach : ',current_batch_index, " current cost: %.5f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
