@@ -8,7 +8,7 @@ from scipy.ndimage import imread
 from sklearn.utils import shuffle
 import tensorflow as tf
 from sklearn.preprocessing import OneHotEncoder
-
+plt.style.use('ggplot')
 tf.set_random_seed(789)
 np.random.seed(568)
 
@@ -53,7 +53,7 @@ class ConLayer():
     self.layerA = self.act(self.layer)
     return self.layerA
 
-  def backprop(self,gradient):
+  def backpropagation(self,gradient,stride=1):
     grad_part1 = gradient
     grad_part2 = self.d_act(self.layer)
     grad_part3 = self.input
@@ -64,14 +64,14 @@ class ConLayer():
       input = grad_part3,
       filter_sizes = self.w.shape,
       out_backprop = grad_middle,
-      strides=[1,1,1,1],padding='SAME'
+      strides=[1,stride,stride,1],padding='SAME'
     )
 
     grad_pass = tf.nn.conv2d_backprop_input(
       input_sizes = [batch_size] + list(self.input.shape[1:]),
       filter = self.w,
       out_backprop = grad_middle,
-      strides=[1,1,1,1],padding='SAME'
+      strides=[1,stride,stride,1],padding='SAME'
     )
 
     update_w = []
@@ -101,7 +101,7 @@ class fnnlayer():
         self.layerA = self.act(self.layer)
         return self.layerA
 
-    def backpropagation(self,gradient=None,time_stamp=None):
+    def backpropagation(self,gradient=None):
         grad_part_1 = gradient
         grad_part_2 = self.d_act(self.layer)
         grad_part_3 = self.input 
@@ -122,9 +122,7 @@ class fnnlayer():
         update_w.append(
           tf.assign(self.w, self.w - adam_middle * m_hat   )
         )
-        return grad_pass,w_update
-
-
+        return grad_pass,update_w
 
 # --- get data ---
 PathDicom = "./data/cifar-10-batches-py/"
@@ -173,18 +171,19 @@ test_images  = test_batch
 num_epoch =  200
 batch_size = 100
 print_size = 1
-shuffle_size = 1
-divide_size = 5
+shuffle_size = 8
+divide_size = 2
 
 init_lr = 0.001
+
+proportion_rate = 1.5
+decay_rate = 0.005
+# decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
 
-proportion_rate = 1000
-decay_rate = 0.08
-
-one_channel = 8
+one_channel = 16
 one_vector  = 1064
 
 # === make classes ====
@@ -216,7 +215,7 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_Input_shape = 32*32* (8 *3)
+l4_Input_shape = 16*16* (16 *3)
 l4_1 = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l4_s = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
@@ -229,9 +228,12 @@ l5_s = fnnlayer(one_vector,10,tf_ReLU,d_tf_ReLu)
 x = tf.placeholder(shape=[None,32,32,3],dtype=tf.float32)
 y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 
-layer1_1 = l1_1.feedforward(x)
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
+
+layer1_1 = l1_1.feedforward(x,stride=2)
 layer1_2 = l1_2.feedforward(layer1_1)
-layer1_s = l1_s.feedforward(x)
+layer1_s = l1_s.feedforward(x,stride=2)
 layer1_add = layer1_s + layer1_2
 
 # --- node layer 2 -----
@@ -281,21 +283,59 @@ layer5_add = layer5_s+layer5_2
 
 # --- final layer ---
 final_soft = tf_softmax(layer5_add)
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer5_add,labels=y))
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer5_add,labels=y)) * 0.5
 correct_prediction = tf.equal(tf.argmax(final_soft, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-# ---- auto train ---
-auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
-# auto_train = tf.train.MomentumOptimizer(learning_rate=init_lr,momentum =init_momentum).minimize(cost)
+# ---- manual -----
+grad5_Input = final_soft-y
+grad5_s,grad5_sw = l5_s.backpropagation(grad5_Input)
+grad5_2,grad5_2w = l5_2.backpropagation(grad5_Input)
+grad5_1,grad5_1w = l5_1.backpropagation(grad5_2)
 
+grad4_Input = grad5_s + grad5_1
+grad4_s,grad4_sw = l4_s.backpropagation(grad4_Input+decay_propotoin_rate * (grad5_2) )
+grad4_2,grad4_2w = l4_2.backpropagation(grad4_Input+decay_propotoin_rate * (grad5_2) )
+grad4_1,grad4_1w = l4_1.backpropagation(grad4_2+decay_propotoin_rate * (grad5_2))
 
+grad3_Input = tf.reshape(grad4_s+grad4_1,[batch_size,16,16,one_channel*3])
+grad3_3_s,grad3_3_sw = l3_3_s.backpropagation(grad3_Input[:,:,:,:16])
+grad3_3_2,grad3_3_2w = l3_3_2.backpropagation(grad3_Input[:,:,:,:16])
+grad3_3_1,grad3_3_1w = l3_3_1.backpropagation(grad3_3_2 + decay_propotoin_rate * (grad3_Input[:,:,:,:16]) )
 
+grad3_2_s,grad3_2_sw = l3_2_s.backpropagation(grad3_Input[:,:,:,16:32])
+grad3_2_2,grad3_2_2w = l3_2_2.backpropagation(grad3_Input[:,:,:,16:32])
+grad3_2_1,grad3_2_1w = l3_2_1.backpropagation(grad3_2_2+ decay_propotoin_rate * (grad3_Input[:,:,:,16:32]))
 
+grad3_1_s,grad3_1_sw = l3_1_s.backpropagation(grad3_Input[:,:,:,32:])
+grad3_1_2,grad3_1_2w = l3_1_2.backpropagation(grad3_Input[:,:,:,32:])
+grad3_1_1,grad3_1_1w = l3_1_1.backpropagation(grad3_1_2+ decay_propotoin_rate * (grad3_Input[:,:,:,32:]))
 
+grad3_Input_added = grad3_Input[:,:,:,32:] + grad3_Input[:,:,:,16:32] + grad3_Input[:,:,:,:16]
+grad2_Input = grad3_3_1 + grad3_1_s + grad3_2_1 + grad3_2_s + grad3_1_1 + grad3_3_s
+grad2_3_s,grad2_3_sw = l2_3_s.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
+grad2_3_2,grad2_3_2w = l2_3_2.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
+grad2_3_1,grad2_3_1w = l2_3_1.backpropagation(grad2_3_2)
 
+grad2_2_s,grad2_2_sw = l2_2_s.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
+grad2_2_2,grad2_2_2w = l2_2_2.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
+grad2_2_1,grad2_2_1w = l2_2_1.backpropagation(grad2_2_2)
 
+grad2_1_s,grad2_1_sw = l2_1_s.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
+grad2_1_2,grad2_1_2w = l2_1_2.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
+grad2_1_1,grad2_1_1w = l2_1_1.backpropagation(grad2_1_2)
 
+grad1_Input = grad2_1_1 + grad2_1_s + grad2_2_1 + grad2_2_s + grad2_3_1 + grad2_3_s
+grad1_s,grad1_sw = l1_s.backpropagation(grad1_Input,stride=2)
+grad1_2,grad1_2w = l1_2.backpropagation(grad1_Input)
+grad1_1,grad1_1w = l1_1.backpropagation(grad1_2,stride=2)
+
+grad_update = grad5_sw + grad5_2w + grad5_1w + grad4_sw + grad4_2w + grad4_1w + grad3_3_sw + grad3_3_2w + grad3_3_1w + \
+            grad3_2_sw + grad3_2_2w + grad3_2_1w + \
+            grad3_1_sw + grad3_1_2w + grad3_1_1w + \
+            grad2_3_sw + grad2_3_2w + grad2_3_1w + \
+            grad2_2_sw + grad2_2_2w + grad2_2_1w + \
+            grad2_1_sw + grad2_1_2w + grad2_1_1w + grad1_sw + grad1_2w + grad1_1w 
 
 # === Start the Session ===
 with tf.Session() as sess: 
@@ -312,9 +352,9 @@ with tf.Session() as sess:
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction], feed_dict={x: current_batch, y: current_batch_label})
-            print("current iter:", iter,' learning rate: %.3f'%init_lr ,
-                ' Current batach : ',current_batch_index," current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            sess_results =  sess.run([cost,accuracy,grad_update,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter})
+            print("current iter:", iter,' learning rate: %.6f'%init_lr ,
+                ' Current batach : ',current_batch_index," current cost: %.18f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
 
@@ -323,8 +363,8 @@ with tf.Session() as sess:
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
-            print("Test Image Current iter:", iter,' learning rate: %.3f'%init_lr,
-                 ' Current batach : ',current_batch_index, " current cost: %.8f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+            print("Test Image Current iter:", iter,' learning rate: %.6f'%init_lr,
+                 ' Current batach : ',current_batch_index, " current cost: %.18f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
             test_total_acc = test_total_acc + sess_results[1]
 
@@ -337,10 +377,10 @@ with tf.Session() as sess:
         # print
         if iter%print_size == 0:
             print('\n\n==== Current Iter :', iter,' Average Results =====')
-            print("Avg Train Cost: %.8f"% train_cost_overtime[-1])
-            print("Avg Train Acc:  %.8f"% train_acc_overtime[-1])
-            print("Avg Test Cost:  %.8f"% test_cost_overtime[-1])
-            print("Avg Test Acc:   %.8f"% test_acc_overtime[-1])
+            print("Avg Train Cost: %.18f"% train_cost_overtime[-1])
+            print("Avg Train Acc:  %.18f"% train_acc_overtime[-1])
+            print("Avg Test Cost:  %.18f"% test_cost_overtime[-1])
+            print("Avg Test Acc:   %.18f"% test_acc_overtime[-1])
             print('=================================')      
 
         # shuffle 
