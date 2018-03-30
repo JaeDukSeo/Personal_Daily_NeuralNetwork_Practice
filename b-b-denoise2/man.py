@@ -130,7 +130,7 @@ adam_e = 1e-8
 one_channel = 3
 print_size = 1
 
-proportion_rate = 100
+proportion_rate = 1000
 decay_rate = 0.08
 
 

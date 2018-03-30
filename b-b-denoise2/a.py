@@ -247,8 +247,11 @@ with tf.Session() as sess:
     print("\n----- testing iter ",iter,' ---------')
 
     for current_batch_index in range(0,len(test_images),batch_size):
+
       current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-      current_batch_noise =  current_batch * 0.5 * np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+      current_batch_noise =  current_batch * 0.5 * 
+      np.random.uniform(0,5,size=(current_batch.shape[0],current_batch.shape[1],current_batch.shape[2],current_batch.shape[3])) 
+      
       sess_results = sess.run([cost],feed_dict={x:current_batch,y:current_batch_noise})
       print("Iter: ", iter , " Cost %.3f"%sess_results[0],end='\r')
       test_total_cost = test_total_cost + sess_results[0]
