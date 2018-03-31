@@ -171,13 +171,14 @@ test_images  = test_batch
 num_epoch =  200
 batch_size = 100
 print_size = 1
-shuffle_size = 8
-divide_size = 2
+
+shuffle_size = 5
+divide_size = 10
 
 init_lr = 0.001
 
-proportion_rate = 1.5
-decay_rate = 0.005
+proportion_rate = 0.6
+decay_rate = 0.000001
 # decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 beta1,beta2 = 0.9,0.999
@@ -354,7 +355,7 @@ with tf.Session() as sess:
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy,grad_update,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter})
             print("current iter:", iter,' learning rate: %.6f'%init_lr ,
-                ' Current batach : ',current_batch_index," current cost: %.18f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+                ' Current batach : ',current_batch_index," current cost: %.28f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
 
@@ -364,7 +365,7 @@ with tf.Session() as sess:
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
             sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
             print("Test Image Current iter:", iter,' learning rate: %.6f'%init_lr,
-                 ' Current batach : ',current_batch_index, " current cost: %.18f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+                 ' Current batach : ',current_batch_index, " current cost: %.28f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
             test_total_acc = test_total_acc + sess_results[1]
 
