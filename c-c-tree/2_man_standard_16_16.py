@@ -177,8 +177,8 @@ divide_size = 10
 
 init_lr = 0.001
 
-proportion_rate = 0.6
-decay_rate = 0.000001
+proportion_rate = 0.9
+decay_rate = 0.00001
 # decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 beta1,beta2 = 0.9,0.999

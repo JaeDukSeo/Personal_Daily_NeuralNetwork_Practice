@@ -47,9 +47,9 @@ class ConLayer():
     self.act,self.d_act = act,d_act
     self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
-  def feedforward(self,input,stride=1):
+  def feedforward(self,input,stride=1,drop=1.0):
     self.input = input
-    self.layer  = tf.contrib.layers.batch_norm(tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding='SAME'))
+    self.layer  = tf.nn.dropout(tf.contrib.layers.batch_norm(tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding='SAME')),drop)
     self.layerA = self.act(self.layer)
     return self.layerA
 
@@ -95,9 +95,9 @@ class fnnlayer():
         self.act,self.d_act  = activation,d_activation
         self.m,self.v = tf.Variable(tf.zeros_like(self.w)),tf.Variable(tf.zeros_like(self.w))
 
-    def feed_forward(self,input=None):
+    def feed_forward(self,input=None,drop=1.0):
         self.input = input
-        self.layer = tf.contrib.layers.batch_norm(tf.matmul(input,self.w))
+        self.layer = tf.nn.dropout(tf.contrib.layers.batch_norm(tf.matmul(input,self.w)),drop)
         self.layerA = self.act(self.layer)
         return self.layerA
 #  tf.contrib.layers.batch_norm(current, scale=True, is_training=is_training, updates_collections=None)
@@ -170,13 +170,13 @@ train_images = train_batch
 test_images  = test_batch
 
 # === Hyper Parameter ===
-num_epoch =  200
+num_epoch =  500
 batch_size = 100
 print_size = 1
-shuffle_size = 8
+shuffle_size = 1
 divide_size = 10
 
-init_lr = 0.001
+init_lr = 0.05
 
 proportion_rate = 1000
 decay_rate = 0.008
@@ -185,8 +185,8 @@ decay_rate = 0.008
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
 
-one_channel = 84
-one_vector  = 1645
+one_channel = 68
+one_vector  = 1800
 
 # === make classes ====
 l1_1 = ConLayer(3,3,one_channel,tf_ReLU,d_tf_ReLu)
@@ -221,7 +221,7 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_Input_shape = 8*8* (one_channel *3)
+l4_Input_shape = 8*8* (one_channel *4)
 l4_1 = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l4_s = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
@@ -237,60 +237,61 @@ y = tf.placeholder(shape=[None,10],dtype=tf.float32)
 iter_variable_dil = tf.placeholder(tf.float32, shape=())
 decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 learing_rate_train= tf.placeholder(tf.float32, shape=())
+dropoutrate =  tf.placeholder(tf.float32, shape=())
 
-layer1_1 = l1_1.feedforward(x,stride=2)
-layer1_2 = l1_2.feedforward(layer1_1)
-layer1_s = l1_s.feedforward(x,stride=2)
+layer1_1 = l1_1.feedforward(x,stride=2,drop=dropoutrate)
+layer1_2 = l1_2.feedforward(layer1_1,drop=dropoutrate)
+layer1_s = l1_s.feedforward(x,stride=2,drop=dropoutrate)
 layer1_add = layer1_s + layer1_2
 
-layer1_1_2 = l1_1_2.feedforward(layer1_add,stride=2)
-layer1_2_2 = l1_2_2.feedforward(layer1_1_2)
-layer1_s_2 = l1_s_2.feedforward(layer1_add,stride=2)
+layer1_1_2 = l1_1_2.feedforward(layer1_add,stride=2,drop=dropoutrate)
+layer1_2_2 = l1_2_2.feedforward(layer1_1_2,drop=dropoutrate)
+layer1_s_2 = l1_s_2.feedforward(layer1_add,stride=2,drop=dropoutrate)
 layer1_add_2 = layer1_s_2 + layer1_2_2
 
 # --- node layer 2 -----
-layer2_1_1 = l2_1_1.feedforward(layer1_add_2)
-layer2_1_2 = l2_1_2.feedforward(layer2_1_1)
-layer2_1_s = l2_1_s.feedforward(layer1_add_2)
+layer2_1_1 = l2_1_1.feedforward(layer1_add_2,drop=dropoutrate)
+layer2_1_2 = l2_1_2.feedforward(layer2_1_1,drop=dropoutrate)
+layer2_1_s = l2_1_s.feedforward(layer1_add_2,drop=dropoutrate)
 layer2_1_add = layer2_1_s + layer2_1_2
 
-layer2_2_1 = l2_2_1.feedforward(layer1_add_2)
-layer2_2_2 = l2_2_2.feedforward(layer2_1_1)
-layer2_2_s = l2_2_s.feedforward(layer1_add_2)
+layer2_2_1 = l2_2_1.feedforward(layer1_add_2,drop=dropoutrate)
+layer2_2_2 = l2_2_2.feedforward(layer2_1_1,drop=dropoutrate)
+layer2_2_s = l2_2_s.feedforward(layer1_add_2,drop=dropoutrate)
 layer2_2_add = layer2_2_s + layer2_2_2
 
-layer2_3_1 = l2_3_1.feedforward(layer1_add_2)
-layer2_3_2 = l2_3_2.feedforward(layer2_3_1)
-layer2_3_s = l2_3_s.feedforward(layer1_add_2)
+# --- node layer 3 -----
+layer3_Input = layer2_1_add + layer2_2_add 
+layer2_3_1 = l2_3_1.feedforward(layer3_Input,drop=dropoutrate)
+layer2_3_2 = l2_3_2.feedforward(layer2_3_1,drop=dropoutrate)
+layer2_3_s = l2_3_s.feedforward(layer3_Input,drop=dropoutrate)
 layer2_3_add = layer2_3_s + layer2_3_2
 
-# --- node layer 3 -----
-layer3_Input = layer2_1_add + layer2_2_add + layer2_3_add
-layer3_1_1 = l3_1_1.feedforward(layer3_Input)
-layer3_1_2 = l3_1_2.feedforward(layer3_1_1)
-layer3_1_s = l3_1_s.feedforward(layer3_Input)
+layer3_1_1 = l3_1_1.feedforward(layer3_Input,drop=dropoutrate)
+layer3_1_2 = l3_1_2.feedforward(layer3_1_1,drop=dropoutrate)
+layer3_1_s = l3_1_s.feedforward(layer3_Input,drop=dropoutrate)
 layer3_1_add = layer3_1_s + layer3_1_2
 
-layer3_2_1 = l3_2_1.feedforward(layer3_Input)
-layer3_2_2 = l3_2_2.feedforward(layer3_2_1)
-layer3_2_s = l3_2_s.feedforward(layer3_Input)
+layer3_2_1 = l3_2_1.feedforward(layer3_Input,drop=dropoutrate)
+layer3_2_2 = l3_2_2.feedforward(layer3_2_1,drop=dropoutrate)
+layer3_2_s = l3_2_s.feedforward(layer3_Input,drop=dropoutrate)
 layer3_2_add = layer3_2_s + layer3_2_2
 
-layer3_3_1 = l3_3_1.feedforward(layer3_Input)
-layer3_3_2 = l3_3_2.feedforward(layer3_3_1)
-layer3_3_s = l3_3_s.feedforward(layer3_Input)
+layer3_3_1 = l3_3_1.feedforward(layer3_Input,drop=dropoutrate)
+layer3_3_2 = l3_3_2.feedforward(layer3_3_1,drop=dropoutrate)
+layer3_3_s = l3_3_s.feedforward(layer3_Input,drop=dropoutrate)
 layer3_3_add = layer3_3_s + layer3_3_2
 
 # ---- fully connected layer ----
-layer4_Input = tf.reshape(tf.concat([layer3_1_add,layer3_2_add,layer3_3_add],axis=3),[batch_size,-1])
-layer4_1 = l4_1.feed_forward(layer4_Input)
-layer4_2 = l4_2.feed_forward(layer4_1)
-layer4_s = l4_s.feed_forward(layer4_Input)
+layer4_Input = tf.reshape(tf.concat([layer2_3_add,layer3_1_add,layer3_2_add,layer3_3_add],axis=3),[batch_size,-1])
+layer4_1 = l4_1.feed_forward(layer4_Input,drop=dropoutrate)
+layer4_2 = l4_2.feed_forward(layer4_1,drop=dropoutrate)
+layer4_s = l4_s.feed_forward(layer4_Input,drop=dropoutrate)
 layer4_add = layer4_s+layer4_2
 
-layer5_1 = l5_1.feed_forward(layer4_add)
-layer5_2 = l5_2.feed_forward(layer5_1)
-layer5_s = l5_s.feed_forward(layer4_add)
+layer5_1 = l5_1.feed_forward(layer4_add,drop=dropoutrate)
+layer5_2 = l5_2.feed_forward(layer5_1,drop=dropoutrate)
+layer5_s = l5_s.feed_forward(layer4_add,drop=dropoutrate)
 layer5_add = layer5_s+layer5_2
 
 # --- final layer ---
@@ -315,20 +316,19 @@ with tf.Session() as sess:
     # Start the Epoch
     for iter in range(num_epoch):
         
-        if iter > 30 : 
+        dynamic_drop = np.random.uniform(0.7,0.8)
+        
+        if iter > 300 : 
             shuffle_size=1
+            dynamic_drop = np.random.uniform(0.7,0.9)
 
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-
-            if iter > 30:
-                sess_results =  sess.run([cost,accuracy,auto_train2,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter,learing_rate_train:0.01})
-            else:
-                sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter,learing_rate_train:init_lr})
+            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter,learing_rate_train:init_lr,dropoutrate:dynamic_drop})
             print("current iter:", iter,' learning rate: %.6f'%init_lr ,
-                ' Current batach : ',current_batch_index," current cost: %.38f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
+                ' Current batach : ',current_batch_index," Drop Rate:",dynamic_drop," current cost: %.38f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
             train_total_acc = train_total_acc + sess_results[1]
 
@@ -336,7 +336,7 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(test_images),batch_size):
             current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = test_labels[current_batch_index:current_batch_index+batch_size,:]
-            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label})
+            sess_results =  sess.run([cost,accuracy],feed_dict={x: current_batch, y: current_batch_label,dropoutrate:1.0})
             print("Test Image Current iter:", iter,' learning rate: %.6f'%init_lr,
                  ' Current batach : ',current_batch_index, " current cost: %.38f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             test_total_cost = test_total_cost + sess_results[0]
