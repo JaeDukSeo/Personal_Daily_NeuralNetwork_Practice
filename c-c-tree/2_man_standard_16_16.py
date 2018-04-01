@@ -49,7 +49,7 @@ class ConLayer():
 
   def feedforward(self,input,stride=1):
     self.input = input
-    self.layer  = tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding='SAME')
+    self.layer  = tf.contrib.layers.batch_norm(tf.nn.conv2d(input,self.w,strides=[1,stride,stride,1],padding='SAME'))
     self.layerA = self.act(self.layer)
     return self.layerA
 
@@ -97,7 +97,7 @@ class fnnlayer():
 
     def feed_forward(self,input=None):
         self.input = input
-        self.layer = tf.matmul(input,self.w) 
+        self.layer = tf.contrib.layers.batch_norm(tf.matmul(input,self.w))
         self.layerA = self.act(self.layer)
         return self.layerA
 
@@ -168,29 +168,32 @@ train_images = train_batch
 test_images  = test_batch
 
 # === Hyper Parameter ===
-num_epoch =  200
+num_epoch =  100
 batch_size = 100
 print_size = 1
-
-shuffle_size = 5
+shuffle_size = 1
 divide_size = 10
 
 init_lr = 0.001
 
-proportion_rate = 0.9
-decay_rate = 0.00001
+proportion_rate = 0.5
+decay_rate = 0.003
 # decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 beta1,beta2 = 0.9,0.999
 adam_e = 0.00000001
 
-one_channel = 16
-one_vector  = 1064
+one_channel = 84
+one_vector  = 1645
 
 # === make classes ====
 l1_1 = ConLayer(3,3,one_channel,tf_ReLU,d_tf_ReLu)
 l1_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l1_s = ConLayer(1,3,one_channel,tf_ReLU,d_tf_ReLu)
+
+l1_1_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
+l1_2_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
+l1_s_2 = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
 l2_1_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l2_1_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
@@ -216,7 +219,7 @@ l3_3_1 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_2 = ConLayer(3,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 l3_3_s = ConLayer(1,one_channel,one_channel,tf_ReLU,d_tf_ReLu)
 
-l4_Input_shape = 16*16* (16 *3)
+l4_Input_shape = 8*8* (one_channel *3)
 l4_1 = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
 l4_2 = fnnlayer(one_vector,one_vector,tf_ReLU,d_tf_ReLu)
 l4_s = fnnlayer(l4_Input_shape,one_vector,tf_ReLU,d_tf_ReLu)
@@ -237,20 +240,25 @@ layer1_2 = l1_2.feedforward(layer1_1)
 layer1_s = l1_s.feedforward(x,stride=2)
 layer1_add = layer1_s + layer1_2
 
+layer1_1_2 = l1_1_2.feedforward(layer1_add,stride=2)
+layer1_2_2 = l1_2_2.feedforward(layer1_1_2)
+layer1_s_2 = l1_s_2.feedforward(layer1_add,stride=2)
+layer1_add_2 = layer1_s_2 + layer1_2_2
+
 # --- node layer 2 -----
-layer2_1_1 = l2_1_1.feedforward(layer1_add)
+layer2_1_1 = l2_1_1.feedforward(layer1_add_2)
 layer2_1_2 = l2_1_2.feedforward(layer2_1_1)
-layer2_1_s = l2_1_s.feedforward(layer1_add)
+layer2_1_s = l2_1_s.feedforward(layer1_add_2)
 layer2_1_add = layer2_1_s + layer2_1_2
 
-layer2_2_1 = l2_2_1.feedforward(layer1_add)
-layer2_2_2 = l2_2_2.feedforward(layer2_1_1)
-layer2_2_s = l2_2_s.feedforward(layer1_add)
+layer2_2_1 = l2_2_1.feedforward(layer1_add_2)
+layer2_2_2 = l2_2_2.feedforward(layer2_2_1)
+layer2_2_s = l2_2_s.feedforward(layer1_add_2)
 layer2_2_add = layer2_2_s + layer2_2_2
 
-layer2_3_1 = l2_3_1.feedforward(layer1_add)
+layer2_3_1 = l2_3_1.feedforward(layer1_add_2)
 layer2_3_2 = l2_3_2.feedforward(layer2_3_1)
-layer2_3_s = l2_3_s.feedforward(layer1_add)
+layer2_3_s = l2_3_s.feedforward(layer1_add_2)
 layer2_3_add = layer2_3_s + layer2_3_2
 
 # --- node layer 3 -----
@@ -271,7 +279,11 @@ layer3_3_s = l3_3_s.feedforward(layer3_Input)
 layer3_3_add = layer3_3_s + layer3_3_2
 
 # ---- fully connected layer ----
-layer4_Input = tf.reshape(tf.concat([layer3_1_add,layer3_2_add,layer3_3_add],axis=3),[batch_size,-1])
+layer3_a = layer3_1_add + layer3_2_add
+layer3_b = layer3_2_add + layer3_3_add
+layer3_c = layer3_1_add + layer3_3_add
+
+layer4_Input = tf.reshape(tf.concat([layer3_a,layer3_b,layer3_c],axis=3),[batch_size,-1])
 layer4_1 = l4_1.feed_forward(layer4_Input)
 layer4_2 = l4_2.feed_forward(layer4_1)
 layer4_s = l4_s.feed_forward(layer4_Input)
@@ -299,20 +311,20 @@ grad4_s,grad4_sw = l4_s.backpropagation(grad4_Input+decay_propotoin_rate * (grad
 grad4_2,grad4_2w = l4_2.backpropagation(grad4_Input+decay_propotoin_rate * (grad5_2) )
 grad4_1,grad4_1w = l4_1.backpropagation(grad4_2+decay_propotoin_rate * (grad5_2))
 
-grad3_Input = tf.reshape(grad4_s+grad4_1,[batch_size,16,16,one_channel*3])
-grad3_3_s,grad3_3_sw = l3_3_s.backpropagation(grad3_Input[:,:,:,:16])
-grad3_3_2,grad3_3_2w = l3_3_2.backpropagation(grad3_Input[:,:,:,:16])
-grad3_3_1,grad3_3_1w = l3_3_1.backpropagation(grad3_3_2 + decay_propotoin_rate * (grad3_Input[:,:,:,:16]) )
+grad3_Input = tf.reshape(grad4_s+grad4_1,[batch_size,8,8,one_channel*3])
+grad3_3_s,grad3_3_sw = l3_3_s.backpropagation(grad3_Input[:,:,:,:84])
+grad3_3_2,grad3_3_2w = l3_3_2.backpropagation(grad3_Input[:,:,:,:84])
+grad3_3_1,grad3_3_1w = l3_3_1.backpropagation(grad3_3_2 + decay_propotoin_rate * (grad3_Input[:,:,:,:84]) )
 
-grad3_2_s,grad3_2_sw = l3_2_s.backpropagation(grad3_Input[:,:,:,16:32])
-grad3_2_2,grad3_2_2w = l3_2_2.backpropagation(grad3_Input[:,:,:,16:32])
-grad3_2_1,grad3_2_1w = l3_2_1.backpropagation(grad3_2_2+ decay_propotoin_rate * (grad3_Input[:,:,:,16:32]))
+grad3_2_s,grad3_2_sw = l3_2_s.backpropagation(grad3_Input[:,:,:,84:84+84])
+grad3_2_2,grad3_2_2w = l3_2_2.backpropagation(grad3_Input[:,:,:,84:84+84])
+grad3_2_1,grad3_2_1w = l3_2_1.backpropagation(grad3_2_2+ decay_propotoin_rate * (grad3_Input[:,:,:,84:84+84]))
 
-grad3_1_s,grad3_1_sw = l3_1_s.backpropagation(grad3_Input[:,:,:,32:])
-grad3_1_2,grad3_1_2w = l3_1_2.backpropagation(grad3_Input[:,:,:,32:])
-grad3_1_1,grad3_1_1w = l3_1_1.backpropagation(grad3_1_2+ decay_propotoin_rate * (grad3_Input[:,:,:,32:]))
+grad3_1_s,grad3_1_sw = l3_1_s.backpropagation(grad3_Input[:,:,:,84+84:])
+grad3_1_2,grad3_1_2w = l3_1_2.backpropagation(grad3_Input[:,:,:,84+84:])
+grad3_1_1,grad3_1_1w = l3_1_1.backpropagation(grad3_1_2+ decay_propotoin_rate * (grad3_Input[:,:,:,84+84:]))
 
-grad3_Input_added = grad3_Input[:,:,:,32:] + grad3_Input[:,:,:,16:32] + grad3_Input[:,:,:,:16]
+grad3_Input_added = grad3_Input[:,:,:,84+84:] + grad3_Input[:,:,:,84:84+84] + grad3_Input[:,:,:,:84]
 grad2_Input = grad3_3_1 + grad3_1_s + grad3_2_1 + grad3_2_s + grad3_1_1 + grad3_3_s
 grad2_3_s,grad2_3_sw = l2_3_s.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
 grad2_3_2,grad2_3_2w = l2_3_2.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
@@ -326,7 +338,12 @@ grad2_1_s,grad2_1_sw = l2_1_s.backpropagation(grad2_Input+ decay_propotoin_rate 
 grad2_1_2,grad2_1_2w = l2_1_2.backpropagation(grad2_Input+ decay_propotoin_rate * (grad3_Input_added+grad3_3_2+grad3_2_2+grad3_1_2))
 grad2_1_1,grad2_1_1w = l2_1_1.backpropagation(grad2_1_2)
 
-grad1_Input = grad2_1_1 + grad2_1_s + grad2_2_1 + grad2_2_s + grad2_3_1 + grad2_3_s
+grad1_Input_2 = grad2_1_1 + grad2_1_s + grad2_2_1 + grad2_2_s + grad2_3_1 + grad2_3_s
+grad1_s_2,grad1_s_2w = l1_s_2.backpropagation(grad1_Input_2,stride=2)
+grad1_2_2,grad1_2_2w = l1_2_2.backpropagation(grad1_Input_2)
+grad1_1_2,grad1_1_2w = l1_1_2.backpropagation(grad1_2_2,stride=2)
+
+grad1_Input = grad1_1_2 + grad1_s_2
 grad1_s,grad1_sw = l1_s.backpropagation(grad1_Input,stride=2)
 grad1_2,grad1_2w = l1_2.backpropagation(grad1_Input)
 grad1_1,grad1_1w = l1_1.backpropagation(grad1_2,stride=2)
@@ -336,7 +353,9 @@ grad_update = grad5_sw + grad5_2w + grad5_1w + grad4_sw + grad4_2w + grad4_1w + 
             grad3_1_sw + grad3_1_2w + grad3_1_1w + \
             grad2_3_sw + grad2_3_2w + grad2_3_1w + \
             grad2_2_sw + grad2_2_2w + grad2_2_1w + \
-            grad2_1_sw + grad2_1_2w + grad2_1_1w + grad1_sw + grad1_2w + grad1_1w 
+            grad2_1_sw + grad2_1_2w + grad2_1_1w + \
+            grad1_s_2w + grad1_2_2w + grad1_1_2w + \
+            grad1_sw + grad1_2w + grad1_1w 
 
 # === Start the Session ===
 with tf.Session() as sess: 

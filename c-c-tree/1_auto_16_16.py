@@ -100,7 +100,7 @@ class fnnlayer():
         self.layer = tf.contrib.layers.batch_norm(tf.matmul(input,self.w))
         self.layerA = self.act(self.layer)
         return self.layerA
-#  tf.contrib.layers.batch_norm(current, scale=True, is_training=is_training, updates_collections=None)
+
     def backpropagation(self,gradient=None):
         grad_part_1 = gradient
         grad_part_2 = self.d_act(self.layer)
@@ -170,10 +170,10 @@ train_images = train_batch
 test_images  = test_batch
 
 # === Hyper Parameter ===
-num_epoch =  200
+num_epoch =  100
 batch_size = 100
 print_size = 1
-shuffle_size = 8
+shuffle_size = 1
 divide_size = 10
 
 init_lr = 0.001
@@ -282,7 +282,11 @@ layer3_3_s = l3_3_s.feedforward(layer3_Input)
 layer3_3_add = layer3_3_s + layer3_3_2
 
 # ---- fully connected layer ----
-layer4_Input = tf.reshape(tf.concat([layer3_1_add,layer3_2_add,layer3_3_add],axis=3),[batch_size,-1])
+layer3_a = layer3_1_add + layer3_2_add
+layer3_b = layer3_2_add + layer3_3_add
+layer3_c = layer3_1_add + layer3_3_add
+
+layer4_Input = tf.reshape(tf.concat([layer3_a,layer3_b,layer3_c],axis=3),[batch_size,-1])
 layer4_1 = l4_1.feed_forward(layer4_Input)
 layer4_2 = l4_2.feed_forward(layer4_1)
 layer4_s = l4_s.feed_forward(layer4_Input)
@@ -301,7 +305,6 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # -- auto train --
 auto_train = tf.train.AdamOptimizer(learning_rate=learing_rate_train).minimize(cost)
-auto_train2 = tf.train.MomentumOptimizer(learning_rate=learing_rate_train,momentum=0.9).minimize(cost)
 
 
 # === Start the Session ===
@@ -315,18 +318,11 @@ with tf.Session() as sess:
     # Start the Epoch
     for iter in range(num_epoch):
         
-        if iter > 30 : 
-            shuffle_size=1
-
         # Train Set
         for current_batch_index in range(0,int(len(train_images)/divide_size),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_label = train_labels[current_batch_index:current_batch_index+batch_size,:]
-
-            if iter > 30:
-                sess_results =  sess.run([cost,accuracy,auto_train2,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter,learing_rate_train:0.01})
-            else:
-                sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter,learing_rate_train:init_lr})
+            sess_results =  sess.run([cost,accuracy,auto_train,correct_prediction,final_soft], feed_dict={x: current_batch, y: current_batch_label,iter_variable_dil:iter,learing_rate_train:init_lr})
             print("current iter:", iter,' learning rate: %.6f'%init_lr ,
                 ' Current batach : ',current_batch_index," current cost: %.38f" % sess_results[0],' current acc: %.5f '%sess_results[1], end='\r')
             train_total_cost = train_total_cost + sess_results[0]
