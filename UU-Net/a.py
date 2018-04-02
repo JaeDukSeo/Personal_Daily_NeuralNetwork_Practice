@@ -175,8 +175,9 @@ with tf.Session() as sess:
         for current_batch_index in range(0,len(train_images),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
-            sess_results = sess.run([cost,auto_train],feed_dict={x:current_batch,y:current_label})
+            sess_results = sess.run([cost,auto_train,layer10],feed_dict={x:current_batch,y:current_label})
             print(' Iter: ', iter, " Cost:  %.32f"% sess_results[0],end='\r')
+
         print('\n-----------------------')
         train_images,train_labels = shuffle(train_images,train_labels)
 
@@ -192,72 +193,75 @@ with tf.Session() as sess:
             plt.figure()
             plt.imshow(np.squeeze(test_example),cmap='gray')
             plt.axis('off')
-            plt.title('Original Image')
-            plt.savefig('train_change/'+str(iter)+"a_Original_Image.png")
+            plt.title('epoch_'+str(iter)+'Original Image')
+            plt.savefig('train_change/epoch_'+str(iter)+"a_Original_Image.png")
 
             plt.figure()
             plt.imshow(np.squeeze(test_example_gt),cmap='gray')
             plt.axis('off')
-            plt.title('Ground Truth Mask')
-            plt.savefig('train_change/'+str(iter)+"b_Original_Mask.png")
+            plt.title('epoch_'+str(iter)+'Ground Truth Mask')
+            plt.savefig('train_change/epoch_'+str(iter)+"b_Original_Mask.png")
 
             plt.figure()
             plt.imshow(np.squeeze(sess_results),cmap='gray')
             plt.axis('off')
-            plt.title('Generated Mask')
-            plt.savefig('train_change/'+str(iter)+"c_Generated_Mask.png")
+            plt.title('epoch_'+str(iter)+'Generated Mask')
+            plt.savefig('train_change/epoch_'+str(iter)+"c_Generated_Mask.png")
 
             plt.figure()
             plt.imshow(np.multiply(np.squeeze(test_example),np.squeeze(test_example_gt)),cmap='gray')
             plt.axis('off')
-            plt.title("Ground Truth Overlay")
-            plt.savefig('train_change/'+str(iter)+"d_Original_Image_Overlay.png")
+            plt.title('epoch_'+str(iter)+"Ground Truth Overlay")
+            plt.savefig('train_change/epoch_'+str(iter)+"d_Original_Image_Overlay.png")
 
             plt.figure()
             plt.axis('off')
             plt.imshow(np.multiply(np.squeeze(test_example),np.squeeze(sess_results)),cmap='gray')
-            plt.title("Generated Overlay")
-            plt.savefig('train_change/'+str(iter)+"e_Generated_Image_Overlay.png")
+            plt.title('epoch_'+str(iter)+"Generated Overlay")
+            plt.savefig('train_change/epoch_'+str(iter)+"e_Generated_Image_Overlay.png")
 
             plt.close('all')
 
+        # save image if it is last epoch
+        if iter == num_epoch - 1:
+            train_images,train_labels = shuffle(train_images,train_labels)
+            
+            for current_batch_index in range(0,len(train_images),batch_size):
+                current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+                current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
+                sess_results = sess.run([cost,auto_train,layer10],feed_dict={x:current_batch,y:current_label})
 
-    for data_index in range(0,len(train_images),batch_size):
-        current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-        current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
-        sess_results = sess.run(layer10,feed_dict={x:current_batch})
+                plt.figure()
+                plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
+                plt.axis('off')
+                plt.title(str(current_batch_index)+"a_Original Image")
+                plt.savefig('gif/'+str(current_batch_index)+"a_Original_Image.png")
 
-        plt.figure()
-        plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"a_Original Image")
-        plt.savefig('gif/'+str(data_index)+"a_Original_Image.png")
+                plt.figure()
+                plt.imshow(np.squeeze(current_label[0,:,:,:]),cmap='gray')
+                plt.axis('off')
+                plt.title(str(current_batch_index)+"b_Original Mask")
+                plt.savefig('gif/'+str(current_batch_index)+"b_Original_Mask.png")
+                
+                plt.figure()
+                plt.imshow(np.squeeze(sess_results[2][0,:,:,:]),cmap='gray')
+                plt.axis('off')
+                plt.title(str(current_batch_index)+"c_Generated Mask")
+                plt.savefig('gif/'+str(current_batch_index)+"c_Generated_Mask.png")
 
-        plt.figure()
-        plt.imshow(np.squeeze(current_label[0,:,:,:]),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"b_Original Mask")
-        plt.savefig('gif/'+str(data_index)+"b_Original_Mask.png")
-        
-        plt.figure()
-        plt.imshow(np.squeeze(sess_results[0,:,:,:]),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"c_Generated Mask")
-        plt.savefig('gif/'+str(data_index)+"c_Generated_Mask.png")
+                plt.figure()
+                plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(current_label[0,:,:,:])),cmap='gray')
+                plt.axis('off')
+                plt.title(str(current_batch_index)+"d_Original Image Overlay")
+                plt.savefig('gif/'+str(current_batch_index)+"d_Original_Image_Overlay.png")
+            
+                plt.figure()
+                plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(sess_results[2][0,:,:,:])),cmap='gray')
+                plt.axis('off')
+                plt.title(str(current_batch_index)+"e_Generated Image Overlay")
+                plt.savefig('gif/'+str(current_batch_index)+"e_Generated_Image_Overlay.png")
 
-        plt.figure()
-        plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(current_label[0,:,:,:])),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"d_Original Image Overlay")
-        plt.savefig('gif/'+str(data_index)+"d_Original_Image_Overlay.png")
-       
-        plt.figure()
-        plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(sess_results[0,:,:,:])),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"e_Generated Image Overlay")
-        plt.savefig('gif/'+str(data_index)+"e_Generated_Image_Overlay.png")
-
-        plt.close('all')
+                plt.close('all')
 
 
 # -- end code --
