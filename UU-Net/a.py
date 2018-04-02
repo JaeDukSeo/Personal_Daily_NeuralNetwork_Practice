@@ -76,6 +76,7 @@ batch_size = 2
 l1_1 = conlayer_left(3,1,3)
 l1_2 = conlayer_left(3,3,3)
 l1_3 = conlayer_left(3,3,3)
+    #  * Same as Warshall2 but using BitSets for the matrix rows
 
 l2_1 = conlayer_left(3,3,6)
 l2_2 = conlayer_left(3,6,6)
