@@ -68,7 +68,7 @@ train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train
 
 # --- hyper ---
 num_epoch = 100
-init_lr = 0.001
+init_lr = 0.0001
 batch_size = 2
 
 # --- make layer ---
@@ -162,11 +162,7 @@ layer9_3 = l9_3.feedforward(layer9_2)
 
 layer10 = l10_final.feedforward(layer9_3)
 
-# log_final = tf.sigmoid(layer10)
-log_final = layer10
-
 cost = tf.reduce_mean(tf.square(layer10-y))
-# cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer10,labels=y))
 auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
 
 # --- start session ---
@@ -187,36 +183,81 @@ with tf.Session() as sess:
         if iter % 2 == 0:
             test_example =   train_images[:2,:,:,:]
             test_example_gt = train_labels[:2,:,:,:]
-            sess_results = sess.run([layer10,log_final],feed_dict={x:test_example})
+            sess_results = sess.run([layer10],feed_dict={x:test_example})
 
-            log_final_for_after=sess_results[1][0,:,:,:]
             sess_results = sess_results[0][0,:,:,:]
             test_example = test_example[0,:,:,:]
             test_example_gt = test_example_gt[0,:,:,:]
 
+            plt.figure()
             plt.imshow(np.squeeze(test_example),cmap='gray')
+            plt.axis('off')
             plt.title('Original Image')
-            plt.pause(1)
-            plt.clf()
+            plt.savefig('train_change/'+str(iter)+"a_Original_Image.png")
 
+            plt.figure()
             plt.imshow(np.squeeze(test_example_gt),cmap='gray')
+            plt.axis('off')
             plt.title('Ground Truth Mask')
-            plt.pause(1)
-            plt.clf()
+            plt.savefig('train_change/'+str(iter)+"b_Original_Mask.png")
 
+            plt.figure()
             plt.imshow(np.squeeze(sess_results),cmap='gray')
+            plt.axis('off')
             plt.title('Generated Mask')
-            plt.pause(1)
-            plt.clf()
+            plt.savefig('train_change/'+str(iter)+"c_Generated_Mask.png")
 
+            plt.figure()
             plt.imshow(np.multiply(np.squeeze(test_example),np.squeeze(test_example_gt)),cmap='gray')
+            plt.axis('off')
             plt.title("Ground Truth Overlay")
-            plt.pause(1)
-            plt.clf()
+            plt.savefig('train_change/'+str(iter)+"d_Original_Image_Overlay.png")
 
+            plt.figure()
+            plt.axis('off')
             plt.imshow(np.multiply(np.squeeze(test_example),np.squeeze(sess_results)),cmap='gray')
             plt.title("Generated Overlay")
-            plt.pause(1)
-            plt.clf()
+            plt.savefig('train_change/'+str(iter)+"e_Generated_Image_Overlay.png")
+
+            plt.close('all')
+
+
+    for data_index in range(0,len(train_images),batch_size):
+        current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+        current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
+        sess_results = sess.run(layer10,feed_dict={x:current_batch})
+
+        plt.figure()
+        plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
+        plt.axis('off')
+        plt.title(str(data_index)+"a_Original Image")
+        plt.savefig('gif/'+str(data_index)+"a_Original_Image.png")
+
+        plt.figure()
+        plt.imshow(np.squeeze(current_label[0,:,:,:]),cmap='gray')
+        plt.axis('off')
+        plt.title(str(data_index)+"b_Original Mask")
+        plt.savefig('gif/'+str(data_index)+"b_Original_Mask.png")
+        
+        plt.figure()
+        plt.imshow(np.squeeze(sess_results[0,:,:,:]),cmap='gray')
+        plt.axis('off')
+        plt.title(str(data_index)+"c_Generated Mask")
+        plt.savefig('gif/'+str(data_index)+"c_Generated_Mask.png")
+
+        plt.figure()
+        plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(current_label[0,:,:,:])),cmap='gray')
+        plt.axis('off')
+        plt.title(str(data_index)+"d_Original Image Overlay")
+        plt.savefig('gif/'+str(data_index)+"d_Original_Image_Overlay.png")
+       
+        plt.figure()
+        plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(sess_results[0,:,:,:])),cmap='gray')
+        plt.axis('off')
+        plt.title(str(data_index)+"e_Generated Image Overlay")
+        plt.savefig('gif/'+str(data_index)+"e_Generated_Image_Overlay.png")
+
+        plt.close('all')
+
 
 # -- end code --
