@@ -23,7 +23,7 @@ class conlayer():
         self.layer  = tf.nn.conv2d(input,self.w,strides = [1,stride,stride,1],dilations=[1,dilate,dilate,1],padding='SAME')
         self.layerB = tf.nn.batch_normalization(self.layer,scale=True,offset=True,mean=0.0,variance_epsilon=1e-8,variance=1.0)
         self.layer_add =  self.layer + self.layer
-        self.layerA = tf_relu(self.layer_add) 
+        self.layerA = tf_relu(self.layer_add) + self.layer_add / 2 + self.layer / 2 
         return self.layerA
 
 # --- get data ---
@@ -55,7 +55,7 @@ train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train
 # --- hyper ---
 num_epoch = 100
 init_lr = 0.001
-batch_size = 1
+batch_size = 2
 
 # --- make class ---    
 l1 = conlayer(3,1,3)
@@ -98,8 +98,7 @@ layer11 = l11.feedforward(layer_drop)
 layer12 = l12.feedforward(layer11)
 layer13 = l13.feedforward(layer12)
 
-final_soft = tf.sigmoid(layer13)
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer13,labels=y))
+cost = tf.reduce_mean(tf.square(layer13-y))
 auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
 
 
@@ -121,7 +120,7 @@ with tf.Session() as sess:
         if iter % 2 == 0:
             test_example =   train_images[:2,:,:,:]
             test_example_gt = train_labels[:2,:,:,:]
-            sess_results = sess.run([final_soft],feed_dict={x:test_example})
+            sess_results = sess.run([layer13],feed_dict={x:test_example})
 
             sess_results = sess_results[0][0,:,:,:]
             test_example = test_example[0,:,:,:]
@@ -166,7 +165,7 @@ with tf.Session() as sess:
             for current_batch_index in range(0,len(train_images),batch_size):
                 current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
                 current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
-                sess_results = sess.run([final_soft],feed_dict={x:current_batch,y:current_label})
+                sess_results = sess.run([layer13],feed_dict={x:current_batch,y:current_label})
 
                 plt.figure()
                 plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
