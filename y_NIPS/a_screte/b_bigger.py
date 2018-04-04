@@ -78,15 +78,6 @@ class CNNLayer():
 
         return grad_pass,update_w
 
-# get data normalize
-# X,Y,names = unpickle('../../z_CIFAR_data/cifar10/cifar-10-batches-py/data_batch_1')
-# X = np.reshape(X,(3,32,32,10000)).transpose([3,1,2,0])
-# X = np.expand_dims(X[:,:,:,0],3)
-# X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
-# X = shuffle(X)
-# s_images = X[:200,:,:,:]
-# c_images = X[200:400,:,:,:]
-
 data_location = "./big_image/"
 data_array = []  # create an empty list
 for dirName, subdirList, fileList in sorted(os.walk(data_location)):
@@ -161,8 +152,8 @@ reve_layer3 = reve_net3.feedforward(reve_layer2)
 reve_layer4 = reve_net4.feedforward(reve_layer3)
 reve_layer5 = reve_net5.feedforward(reve_layer4)
 
-cost_1 = tf.reduce_mean(tf.square(hide_layer5 - Cover))
-cost_2 = tf.reduce_mean(tf.square(reve_layer5 - Secret))
+cost_1 = tf.reduce_mean(tf.square(hide_layer5 - Cover))*0.5
+cost_2 = tf.reduce_mean(tf.square(reve_layer5 - Secret)) *0.5
 
 # --- auto train ---
 auto_train = tf.train.AdamOptimizer(learning_rate=learing_rate).minimize(cost_1+cost_2)

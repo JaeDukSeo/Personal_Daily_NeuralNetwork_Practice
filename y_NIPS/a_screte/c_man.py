@@ -79,15 +79,6 @@ class CNNLayer():
         return grad_pass,update_w
 
 
-# get data normalize
-# X,Y,names = unpickle('../../z_CIFAR_data/cifar10/cifar-10-batches-py/data_batch_1')
-# X = np.reshape(X,(3,32,32,10000)).transpose([3,1,2,0])
-# X = np.expand_dims(X[:,:,:,0],3)
-# X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
-# X = shuffle(X)
-# s_images = X[:200,:,:,:]
-# c_images = X[200:400,:,:,:]
-
 data_location = "./big_image/"
 data_array = []  # create an empty list
 for dirName, subdirList, fileList in sorted(os.walk(data_location)):
@@ -120,6 +111,8 @@ networ_beta = 1.0
 beta_1,beta_2 = 0.9,0.999
 adam_e = 1e-8
 
+proportion_rate = 10
+decay_rate = 0.08
 
 # init class
 prep_net1 = CNNLayer(3,3,50,tf_Relu,d_tf_Relu)
@@ -143,6 +136,9 @@ reve_net5 = CNNLayer(5,50,3,tf_Relu,d_tf_Relu)
 # make graph
 Secret = tf.placeholder(shape=[None,80,80,3],dtype=tf.float32)
 Cover = tf.placeholder(shape=[None,80,80,3],dtype=tf.float32)
+
+iter_variable_dil = tf.placeholder(tf.float32, shape=())
+decay_propotoin_rate = proportion_rate / (1 + decay_rate * iter_variable_dil)
 
 prep_layer1 = prep_net1.feedforward(Secret)
 prep_layer2 = prep_net2.feedforward(prep_layer1)
@@ -171,22 +167,22 @@ cost_2 = tf.reduce_mean(tf.square(reve_layer5 - Secret)) *0.5
 
 reve_net_grad5,reve_net_grad5w = reve_net5.backprop(reve_layer5-Secret)
 reve_net_grad4,reve_net_grad4w = reve_net4.backprop(reve_net_grad5)
-reve_net_grad3,reve_net_grad3w = reve_net3.backprop(reve_net_grad4)
-reve_net_grad2,reve_net_grad2w = reve_net2.backprop(reve_net_grad3)
-reve_net_grad1,reve_net_grad1w = reve_net1.backprop(reve_net_grad2)
+reve_net_grad3,reve_net_grad3w = reve_net3.backprop(reve_net_grad4 + decay_propotoin_rate * (reve_net_grad5))
+reve_net_grad2,reve_net_grad2w = reve_net2.backprop(reve_net_grad3+ decay_propotoin_rate * (reve_net_grad5 + reve_net_grad4))
+reve_net_grad1,reve_net_grad1w = reve_net1.backprop(reve_net_grad2+ decay_propotoin_rate * (reve_net_grad5 + reve_net_grad4 + reve_net_grad3))
 
 hide_net_grad5,hide_net_grad5w = hide_net5.backprop( (hide_layer5-Cover) + reve_net_grad1 )
 hide_net_grad4,hide_net_grad4w = hide_net4.backprop(hide_net_grad5)
-hide_net_grad3,hide_net_grad3w = hide_net3.backprop(hide_net_grad4)
-hide_net_grad2,hide_net_grad2w = hide_net2.backprop(hide_net_grad3)
-hide_net_grad1,hide_net_grad1w = hide_net1.backprop(hide_net_grad2)
+hide_net_grad3,hide_net_grad3w = hide_net3.backprop(hide_net_grad4+ decay_propotoin_rate *(hide_net_grad5 ))
+hide_net_grad2,hide_net_grad2w = hide_net2.backprop(hide_net_grad3+ decay_propotoin_rate *(hide_net_grad5 + hide_net_grad4))
+hide_net_grad1,hide_net_grad1w = hide_net1.backprop(hide_net_grad2+ decay_propotoin_rate *(hide_net_grad5 + hide_net_grad4 + hide_net_grad3))
 
 prep_net_Input = hide_net_grad1[:,:,:,3:]
 prep_net_grad5,prep_net_grad5w = prep_net5.backprop(prep_net_Input)
 prep_net_grad4,prep_net_grad4w = prep_net4.backprop(prep_net_grad5)
-prep_net_grad3,prep_net_grad3w = prep_net3.backprop(prep_net_grad4)
-prep_net_grad2,prep_net_grad2w = prep_net2.backprop(prep_net_grad3)
-prep_net_grad1,prep_net_grad1w = prep_net1.backprop(prep_net_grad2)
+prep_net_grad3,prep_net_grad3w = prep_net3.backprop(prep_net_grad4+ decay_propotoin_rate *(prep_net_grad5))
+prep_net_grad2,prep_net_grad2w = prep_net2.backprop(prep_net_grad3+ decay_propotoin_rate *(prep_net_grad5 +prep_net_grad4 ))
+prep_net_grad1,prep_net_grad1w = prep_net1.backprop(prep_net_grad2+ decay_propotoin_rate *(prep_net_grad5 + prep_net_grad4 +prep_net_grad3 ))
 
 grad_update = reve_net_grad5w + reve_net_grad4w + reve_net_grad3w + reve_net_grad2w + reve_net_grad1w + \
                 hide_net_grad5w + hide_net_grad4w + hide_net_grad3w + hide_net_grad2w + hide_net_grad1w + \
@@ -202,7 +198,7 @@ with tf.Session() as sess :
         for current_batch_index in range(0,len(s_images),batch_size):
             current_batch_s = s_images[current_batch_index:current_batch_index+batch_size,:,:,:]
             current_batch_c = c_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-            sess_results = sess.run([cost_1,cost_2,grad_update],feed_dict={Secret:current_batch_s,Cover:current_batch_c})
+            sess_results = sess.run([cost_1,cost_2,grad_update],feed_dict={Secret:current_batch_s,Cover:current_batch_c,iter_variable_dil:iter})
             print("Iter: ",iter, ' cost 1: ',sess_results[0],' cost 2: ',sess_results[1],end='\r')
 
         if iter % 250 == 0 :
