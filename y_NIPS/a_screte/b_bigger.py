@@ -1,8 +1,10 @@
 import tensorflow as tf
-import numpy as np,sys
+import numpy as np,sys,os
 from numpy import float32
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
+from scipy.ndimage import imread
+from scipy.misc import imresize
 
 np.random.seed(678)
 tf.set_random_seed(678)
@@ -77,17 +79,39 @@ class CNNLayer():
         return grad_pass,update_w
 
 # get data normalize
-X,Y,names = unpickle('../../z_CIFAR_data/cifar10/cifar-10-batches-py/data_batch_1')
-X = np.reshape(X,(3,32,32,10000)).transpose([3,1,2,0])
-X = np.expand_dims(X[:,:,:,0],3)
-X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
+# X,Y,names = unpickle('../../z_CIFAR_data/cifar10/cifar-10-batches-py/data_batch_1')
+# X = np.reshape(X,(3,32,32,10000)).transpose([3,1,2,0])
+# X = np.expand_dims(X[:,:,:,0],3)
+# X = (X-X.min(axis=0))/(X.max(axis=0)-X.min(axis=0))
+# X = shuffle(X)
+# s_images = X[:200,:,:,:]
+# c_images = X[200:400,:,:,:]
+
+data_location = "./big_image/"
+data_array = []  # create an empty list
+for dirName, subdirList, fileList in sorted(os.walk(data_location)):
+    for filename in fileList:
+        if ".jpg" in filename.lower():  # check whether the file's DICOM
+            data_array.append(os.path.join(dirName,filename))
+
+X = np.zeros(shape=(100,80,80,3))
+
+for file_index in range(len(data_array)):
+    X[file_index,:,:]   = imresize(imread(data_array[file_index],mode='RGB'),(80,80))
+
+X[:,:,:,0] = (X[:,:,:,0]-X[:,:,:,0].min(axis=0))/(X[:,:,:,0].max(axis=0)-X[:,:,:,0].min(axis=0))
+X[:,:,:,1] = (X[:,:,:,1]-X[:,:,:,1].min(axis=0))/(X[:,:,:,1].max(axis=0)-X[:,:,:,1].min(axis=0))
+X[:,:,:,2] = (X[:,:,:,2]-X[:,:,:,2].min(axis=0))/(X[:,:,:,2].max(axis=0)-X[:,:,:,2].min(axis=0))
+
 X = shuffle(X)
-s_images = X[:200,:,:,:]
-c_images = X[200:400,:,:,:]
+s_images = X[:50,:,:,:]
+c_images = X[50:,:,:,:]
 
 # hyper
-num_epoch = 5000
-learing_rate = 0.0001
+num_epoch = 1000
+num_epoch = 10000
+
+learing_rate = 0.0008
 batch_size = 10
 
 networ_beta = 1.0
@@ -96,27 +120,27 @@ beta_1,beta_2 = 0.9,0.999
 adam_e = 1e-8
 
 # init class
-prep_net1 = CNNLayer(3,1,50,tf_Relu,d_tf_Relu)
+prep_net1 = CNNLayer(3,3,50,tf_Relu,d_tf_Relu)
 prep_net2 = CNNLayer(3,50,50,tf_Relu,d_tf_Relu)
 prep_net3 = CNNLayer(3,50,50,tf_Relu,d_tf_Relu)
 prep_net4 = CNNLayer(3,50,50,tf_Relu,d_tf_Relu)
-prep_net5 = CNNLayer(3,50,1,tf_Relu,d_tf_Relu)
+prep_net5 = CNNLayer(3,50,3,tf_Relu,d_tf_Relu)
 
-hide_net1 = CNNLayer(4,2,50,tf_Relu,d_tf_Relu)
+hide_net1 = CNNLayer(4,6,50,tf_Relu,d_tf_Relu)
 hide_net2 = CNNLayer(4,50,50,tf_Relu,d_tf_Relu)
 hide_net3 = CNNLayer(4,50,50,tf_Relu,d_tf_Relu)
 hide_net4 = CNNLayer(4,50,50,tf_Relu,d_tf_Relu)
-hide_net5 = CNNLayer(4,50,1,tf_Relu,d_tf_Relu)
+hide_net5 = CNNLayer(4,50,3,tf_Relu,d_tf_Relu)
 
-reve_net1 = CNNLayer(5,1,50,tf_Relu,d_tf_Relu)
+reve_net1 = CNNLayer(5,3,50,tf_Relu,d_tf_Relu)
 reve_net2 = CNNLayer(5,50,50,tf_Relu,d_tf_Relu)
 reve_net3 = CNNLayer(5,50,50,tf_Relu,d_tf_Relu)
 reve_net4 = CNNLayer(5,50,50,tf_Relu,d_tf_Relu)
-reve_net5 = CNNLayer(5,50,1,tf_Relu,d_tf_Relu)
+reve_net5 = CNNLayer(5,50,3,tf_Relu,d_tf_Relu)
 
 # make graph
-Secret = tf.placeholder(shape=[None,32,32,1],dtype=tf.float32)
-Cover = tf.placeholder(shape=[None,32,32,1],dtype=tf.float32)
+Secret = tf.placeholder(shape=[None,80,80,3],dtype=tf.float32)
+Cover = tf.placeholder(shape=[None,80,80,3],dtype=tf.float32)
 
 prep_layer1 = prep_net1.feedforward(Secret)
 prep_layer2 = prep_net2.feedforward(prep_layer1)
@@ -156,43 +180,81 @@ with tf.Session() as sess :
             sess_results = sess.run([cost_1,cost_2,auto_train],feed_dict={Secret:current_batch_s,Cover:current_batch_c})
             print("Iter: ",iter, ' cost 1: ',sess_results[0],' cost 2: ',sess_results[1],end='\r')
 
-        if iter % 10 == 0 :
-            random_data_index = np.random.randint(len(s_images)-30)
-            current_batch_s = s_images[random_data_index:random_data_index+batch_size,:,:,:]
-            current_batch_c = c_images[random_data_index:random_data_index+batch_size,:,:,:]
+        if iter % 250 == 0 :
+            random_data_index = np.random.randint(len(s_images))
+            current_batch_s = np.expand_dims(s_images[random_data_index,:,:,:],0)
+            current_batch_c = np.expand_dims(c_images[random_data_index,:,:,:],0)
             sess_results = sess.run([prep_layer5,hide_layer5,reve_layer5],feed_dict={Secret:current_batch_s,Cover:current_batch_c})
 
             plt.figure()
-            plt.imshow(np.squeeze(current_batch_s[0,:,:,:]),cmap='gray')
+            plt.imshow(np.squeeze(current_batch_s[0,:,:,:]))
             plt.axis('off')
             plt.title('epoch_'+str(iter)+' Secret')
             plt.savefig('images/epoch_'+str(iter)+"a_secret.png")
 
             plt.figure()
-            plt.imshow(np.squeeze(current_batch_c[0,:,:,:]),cmap='gray')
+            plt.imshow(np.squeeze(current_batch_c[0,:,:,:]))
             plt.axis('off')
             plt.title('epoch_'+str(iter)+' cover')
             plt.savefig('images/epoch_'+str(iter)+"b_cover.png")
 
             plt.figure()
-            plt.imshow(np.squeeze(sess_results[0][0,:,:,:]),cmap='gray')
+            plt.imshow(np.squeeze(sess_results[0][0,:,:,:]))
             plt.axis('off')
             plt.title('epoch_'+str(iter)+' prep image')
             plt.savefig('images/epoch_'+str(iter)+"c_prep_images.png")
 
             plt.figure()
-            plt.imshow(np.squeeze(sess_results[1][0,:,:,:]),cmap='gray')
+            plt.imshow(np.squeeze(sess_results[1][0,:,:,:]))
             plt.axis('off')
             plt.title('epoch_'+str(iter)+" Hidden Image ")
             plt.savefig('images/epoch_'+str(iter)+"d_hidden_image.png")
 
             plt.figure()
             plt.axis('off')
-            plt.imshow(np.squeeze(sess_results[2][0,:,:,:]),cmap='gray')
+            plt.imshow(np.squeeze(sess_results[2][0,:,:,:]))
             plt.title('epoch_'+str(iter)+" Reveal  Image")
             plt.savefig('images/epoch_'+str(iter)+"e_reveal_images.png")
 
             plt.close('all')
             print('\n--------------------\n')
 
+        if iter == num_epoch-1:
+            
+            for final in range(len(s_images)):
+                current_batch_s = np.expand_dims(s_images[final,:,:,:],0)
+                current_batch_c = np.expand_dims(c_images[final,:,:,:],0)
+                sess_results = sess.run([prep_layer5,hide_layer5,reve_layer5],feed_dict={Secret:current_batch_s,Cover:current_batch_c})
+
+                plt.figure()
+                plt.imshow(np.squeeze(current_batch_s[0,:,:,:]))
+                plt.axis('off')
+                plt.title('epoch_'+str(final)+' Secret')
+                plt.savefig('gif/epoch_'+str(final)+"a_secret.png")
+
+                plt.figure()
+                plt.imshow(np.squeeze(current_batch_c[0,:,:,:]))
+                plt.axis('off')
+                plt.title('epoch_'+str(final)+' cover')
+                plt.savefig('gif/epoch_'+str(final)+"b_cover.png")
+
+                plt.figure()
+                plt.imshow(np.squeeze(sess_results[0][0,:,:,:]))
+                plt.axis('off')
+                plt.title('epoch_'+str(final)+' prep image')
+                plt.savefig('gif/epoch_'+str(final)+"c_prep_images.png")
+
+                plt.figure()
+                plt.imshow(np.squeeze(sess_results[1][0,:,:,:]))
+                plt.axis('off')
+                plt.title('epoch_'+str(final)+" Hidden Image ")
+                plt.savefig('gif/epoch_'+str(final)+"d_hidden_image.png")
+
+                plt.figure()
+                plt.axis('off')
+                plt.imshow(np.squeeze(sess_results[2][0,:,:,:]))
+                plt.title('epoch_'+str(final)+" Reveal  Image")
+                plt.savefig('gif/epoch_'+str(final)+"e_reveal_images.png")
+
+                plt.close('all')
 # -- end code --

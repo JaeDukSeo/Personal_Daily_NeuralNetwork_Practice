@@ -24,7 +24,6 @@ def unpickle(file):
     import pickle
     with open(file, 'rb') as fo:
         dict = pickle.load(fo, encoding='bytes')
-
     X = np.asarray(dict[b'data'].T).astype("uint8")
     Yraw = np.asarray(dict[b'labels'])
     Y = np.zeros((10,10000))
