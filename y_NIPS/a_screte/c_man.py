@@ -101,9 +101,9 @@ c_images = X[50:,:,:,:]
 
 # hyper
 num_epoch = 1000
-num_epoch = 10000
+num_epoch = 30000
 
-learing_rate = 0.0008
+learing_rate = 0.0001
 batch_size = 10
 
 networ_beta = 1.0
@@ -111,8 +111,8 @@ networ_beta = 1.0
 beta_1,beta_2 = 0.9,0.999
 adam_e = 1e-8
 
-proportion_rate = 10
-decay_rate = 0.08
+proportion_rate = 0.6
+decay_rate = 0.9
 
 # init class
 prep_net1 = CNNLayer(3,3,50,tf_Relu,d_tf_Relu)
@@ -201,7 +201,7 @@ with tf.Session() as sess :
             sess_results = sess.run([cost_1,cost_2,grad_update],feed_dict={Secret:current_batch_s,Cover:current_batch_c,iter_variable_dil:iter})
             print("Iter: ",iter, ' cost 1: ',sess_results[0],' cost 2: ',sess_results[1],end='\r')
 
-        if iter % 250 == 0 :
+        if iter % 100 == 0 :
             random_data_index = np.random.randint(len(s_images))
             current_batch_s = np.expand_dims(s_images[random_data_index,:,:,:],0)
             current_batch_c = np.expand_dims(c_images[random_data_index,:,:,:],0)
