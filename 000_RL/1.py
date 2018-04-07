@@ -39,13 +39,19 @@ for i in range(num_episodes):
     j = 0
 
     for j in range(19):
+        
         #Choose an action by greedily (with noise) picking from Q table
         a = np.argmax(Q[s,:] + np.random.randn(1,env.action_space.n)*(1./(i+1)))
-        #Get new state and reward from environment
+
+        print(a)
+
+        #Get new state and reward from environment (observation,reward,done)
         s1,r,d,_ = env.step(a)
+
         #Update Q-Table with new knowledge
-        Q[s,a] = Q[s,a] + lr*(r + y*np.max(Q[s1,:]) - Q[s,a])
+        Q[s,a] = Q[s,a] + lr * (r + y * np.max(Q[s1,:]) - Q[s,a] )
         rAll += r
+        # print(s,'  ', d, ' ', s1)
         s = s1
         if d == True:
             break
