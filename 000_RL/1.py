@@ -1,21 +1,16 @@
-import gym
+import gym,sys
 import numpy as np
 
 env = gym.make('FrozenLake-v0')
 
-print(env)
-print(dir(env))
-print(type(env.render()))
 
-for x in dir(env):
-    try:
-        temp = getattr(env,x)
-        print(x,temp)
-    except:
-        pass
 
 #  there are 16 and 4
-print(env.observation_space.n,env.action_space.n)
+print(env.observation_space)
+print(env.action_space)
+
+sys.exit()
+
 #Initialize table with all zeros
 Q = np.zeros([env.observation_space.n,env.action_space.n])
 
