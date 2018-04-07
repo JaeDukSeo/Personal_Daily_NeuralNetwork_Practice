@@ -33,3 +33,6 @@ y_NIPS/a_screte/images/
 y_NIPS/a_screte/big_image/
 zzzz_DICOM_Pig/
 y_NIPS/a_screte/medical_image/
+1111_WHM/data/
+notMNIST/t10k-images-idx3-ubyte
+notMNIST/train-images-idx3-ubyte
