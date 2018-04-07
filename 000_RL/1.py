@@ -9,6 +9,9 @@ env = gym.make('FrozenLake-v0')
 print(env.observation_space)
 print(env.action_space)
 
+print(env.observation_space.n)
+print(env.action_space.n)
+
 sys.exit()
 
 #Initialize table with all zeros
