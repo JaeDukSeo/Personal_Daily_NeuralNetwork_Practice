@@ -92,12 +92,12 @@ for dirName, subdirList, fileList in sorted(os.walk(data_location)):
             train_data_gt.append(os.path.join(dirName,filename))
 
 
-train_images = np.zeros(shape=(100,128,128,1))
-train_labels = np.zeros(shape=(100,128,128,1))
+train_images = np.zeros(shape=(120,64,64,1))
+train_labels = np.zeros(shape=(120,64,64,1))
 
-for file_index in range(len(train_data)-28):
-    train_images[file_index,:,:]   = np.expand_dims(imresize(imread(train_data[file_index],mode='F',flatten=True),(128,128)),axis=2)
-    train_labels[file_index,:,:]   = np.expand_dims(imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(128,128)),axis=2)
+for file_index in range(len(train_data)-8):
+    train_images[file_index,:,:]   = np.expand_dims(imresize(imread(train_data[file_index],mode='F',flatten=True),(64,64)),axis=2)
+    train_labels[file_index,:,:]   = np.expand_dims(imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(64,64)),axis=2)
 
 train_images = (train_images - train_images.min()) / (train_images.max() - train_images.min())
 train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train_labels.min())
@@ -105,23 +105,22 @@ train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train
 
 
 
-
 # --- hyper ---
 num_epoch = 100
 init_lr = 0.01
-batch_size = 50
+batch_size = 10
 
 # --- make layer ---
-l1 = CNN_Layer(5,1,20)
-l2 = CNN_Layer(5,20,50)
+l1 = CNN_Layer(5,1,10)
+l2 = CNN_Layer(5,10,20)
 
-FNN_Input = 128 * 128 * 50
+FNN_Input = 64 * 64 * 10
 l3 = FNN_layer(FNN_Input,1000)
-l4 = FNN_layer(1000,128*128)
+l4 = FNN_layer(1000,64*64)
 
 # ---- make graph ----
-x = tf.placeholder(shape=[None,128,128,1],dtype=tf.float32)
-y = tf.placeholder(shape=[None,128*128],dtype=tf.float32)
+x = tf.placeholder(shape=[None,64,64,1],dtype=tf.float32)
+y = tf.placeholder(shape=[None,64*64],dtype=tf.float32)
 
 layer1 = l1.feedforward(x)
 layer2 = l2.feedforward(layer1)
@@ -131,7 +130,9 @@ layer3 = l3.feedforward(layer3_Input)
 layer4 = l4.feedforward(layer3)
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer4,labels=y))
-auto_train = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
+# auto_train = tf.train.GradientDescentOptimizer(learning_rate=init_lr).minimize(cost)
+auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
+
 
 
 
@@ -155,13 +156,13 @@ with tf.Session() as sess:
         train_images,train_labels = shuffle(train_images,train_labels)
 
         if iter % 2 == 0:
-            test_example =   train_images[:2,:,:,:]
-            test_example_gt = train_labels[:2,:,:,:]
-            sess_results = sess.run([layer10],feed_dict={x:test_example})
+            test_example =   train_images[:batch_size,:,:,:]
+            test_example_gt = np.reshape(train_labels[:batch_size,:,:,:],(batch_size,-1))
+            sess_results = sess.run([layer4],feed_dict={x:test_example})
 
-            sess_results = sess_results[0][0,:,:,:]
+            sess_results = np.reshape(sess_results[0][0],(64,64))
             test_example = test_example[0,:,:,:]
-            test_example_gt = test_example_gt[0,:,:,:]
+            test_example_gt =np.reshape( test_example_gt[0],(64,64))
 
             plt.figure()
             plt.imshow(np.squeeze(test_example),cmap='gray')
@@ -201,8 +202,8 @@ with tf.Session() as sess:
             
             for current_batch_index in range(0,len(train_images),batch_size):
                 current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-                current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
-                sess_results = sess.run([cost,auto_train,layer10],feed_dict={x:current_batch,y:current_label})
+                current_label = np.reshape(train_labels[current_batch_index:current_batch_index+batch_size,:,:,:],(batch_size,-1))
+                sess_results = sess.run([cost,auto_train,layer4],feed_dict={x:current_batch,y:current_label})
 
                 plt.figure()
                 plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
@@ -211,25 +212,25 @@ with tf.Session() as sess:
                 plt.savefig('gif/'+str(current_batch_index)+"a_Original_Image.png")
 
                 plt.figure()
-                plt.imshow(np.squeeze(current_label[0,:,:,:]),cmap='gray')
+                plt.imshow(np.reshape(np.squeeze(current_label[0,:,:,:],(64,64) ) ),cmap='gray')
                 plt.axis('off')
                 plt.title(str(current_batch_index)+"b_Original Mask")
                 plt.savefig('gif/'+str(current_batch_index)+"b_Original_Mask.png")
                 
                 plt.figure()
-                plt.imshow(np.squeeze(sess_results[2][0,:,:,:]),cmap='gray')
+                plt.imshow(np.squeeze(np.reshape(sess_results[2][0]),(64,64) ),cmap='gray')
                 plt.axis('off')
                 plt.title(str(current_batch_index)+"c_Generated Mask")
                 plt.savefig('gif/'+str(current_batch_index)+"c_Generated_Mask.png")
 
                 plt.figure()
-                plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(current_label[0,:,:,:])),cmap='gray')
+                plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(np.reshape(current_label[0](64,64) ) )),cmap='gray')
                 plt.axis('off')
                 plt.title(str(current_batch_index)+"d_Original Image Overlay")
                 plt.savefig('gif/'+str(current_batch_index)+"d_Original_Image_Overlay.png")
             
                 plt.figure()
-                plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(sess_results[2][0,:,:,:])),cmap='gray')
+                plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(np.reshape(sess_results[2][0](64,64) ))),cmap='gray')
                 plt.axis('off')
                 plt.title(str(current_batch_index)+"e_Generated Image Overlay")
                 plt.savefig('gif/'+str(current_batch_index)+"e_Generated_Image_Overlay.png")
