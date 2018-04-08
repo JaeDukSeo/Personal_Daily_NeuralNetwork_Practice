@@ -12,7 +12,7 @@ def tf_relu(x): return tf.nn.relu(x)
 def d_tf_relu(s): return tf.cast(tf.greater(s,0),dtype=tf.float32)
 
 def tf_tanh(x): return tf.nn.tanh(x)
-
+def d_tf_tanh(x): return 1-tf_tanh(x) ** 2
 
 def tf_softmax(x): return tf.nn.softmax(x)
 
@@ -57,13 +57,13 @@ class FNN_layer():
     def __init__(self,input_dim,hidden_dim):
         self.w = tf.Variable(tf.truncated_normal([input_dim,hidden_dim], stddev=0.005))
 
-    def feed_forward(self,input=None):
+    def feedforward(self,input=None):
         self.input = input
         self.layer = tf.matmul(input,self.w)
         self.layerA = tf_tanh(self.layer)
         return self.layerA
 
-    def backpropagation(self,gradient=None):
+    def backprop(self,gradient=None):
         grad_part_1 = gradient
         grad_part_2 = self.d_act(self.layer)
         grad_part_3 = self.input 
@@ -75,9 +75,6 @@ class FNN_layer():
         update_w = []
         update_w.append(tf.assign(self.w, self.w - learning_rate * grad))
         return grad_pass,update_w
-
-        
-
 
 # --- get data ---
 data_location = "./DRIVE/training/images/"
@@ -95,115 +92,51 @@ for dirName, subdirList, fileList in sorted(os.walk(data_location)):
             train_data_gt.append(os.path.join(dirName,filename))
 
 
-train_images = np.zeros(shape=(128,256,256,1))
-train_labels = np.zeros(shape=(128,256,256,1))
+train_images = np.zeros(shape=(100,128,128,1))
+train_labels = np.zeros(shape=(100,128,128,1))
 
-for file_index in range(len(train_data)):
-    train_images[file_index,:,:]   = np.expand_dims(imresize(imread(train_data[file_index],mode='F',flatten=True),(256,256)),axis=2)
-    train_labels[file_index,:,:]   = np.expand_dims(imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(256,256)),axis=2)
+for file_index in range(len(train_data)-28):
+    train_images[file_index,:,:]   = np.expand_dims(imresize(imread(train_data[file_index],mode='F',flatten=True),(128,128)),axis=2)
+    train_labels[file_index,:,:]   = np.expand_dims(imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(128,128)),axis=2)
 
 train_images = (train_images - train_images.min()) / (train_images.max() - train_images.min())
 train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train_labels.min())
 
+
+
+
+
 # --- hyper ---
 num_epoch = 100
-init_lr = 0.0001
-batch_size = 2
+init_lr = 0.01
+batch_size = 50
 
 # --- make layer ---
-# left
-l1_1 = conlayer_left(3,1,3)
-l1_2 = conlayer_left(3,3,3)
-l1_3 = conlayer_left(3,3,3)
-    #  * Same as Warshall2 but using BitSets for the matrix rows
+l1 = CNN_Layer(5,1,20)
+l2 = CNN_Layer(5,20,50)
 
-l2_1 = conlayer_left(3,3,6)
-l2_2 = conlayer_left(3,6,6)
-l2_3 = conlayer_left(3,6,6)
-
-l3_1 = conlayer_left(3,6,12)
-l3_2 = conlayer_left(3,12,12)
-l3_3 = conlayer_left(3,12,12)
-
-l4_1 = conlayer_left(3,12,24)
-l4_2 = conlayer_left(3,24,24)
-l4_3 = conlayer_left(3,24,24)
-
-l5_1 = conlayer_left(3,24,48)
-l5_2 = conlayer_left(3,48,48)
-l5_3 = conlayer_left(3,48,24)
-
-# right
-l6_1 = conlayer_right(3,24,48)
-l6_2 = conlayer_left(3,24,24)
-l6_3 = conlayer_left(3,24,12)
-
-l7_1 = conlayer_right(3,12,24)
-l7_2 = conlayer_left(3,12,12)
-l7_3 = conlayer_left(3,12,6)
-
-l8_1 = conlayer_right(3,6,12)
-l8_2 = conlayer_left(3,6,6)
-l8_3 = conlayer_left(3,6,3)
-
-l9_1 = conlayer_right(3,3,6)
-l9_2 = conlayer_left(3,3,3)
-l9_3 = conlayer_left(3,3,3)
-
-l10_final = conlayer_left(3,3,1)
+FNN_Input = 128 * 128 * 50
+l3 = FNN_layer(FNN_Input,1000)
+l4 = FNN_layer(1000,128*128)
 
 # ---- make graph ----
-x = tf.placeholder(shape=[None,256,256,1],dtype=tf.float32)
-y = tf.placeholder(shape=[None,256,256,1],dtype=tf.float32)
+x = tf.placeholder(shape=[None,128,128,1],dtype=tf.float32)
+y = tf.placeholder(shape=[None,128*128],dtype=tf.float32)
 
-layer1_1 = l1_1.feedforward(x)
-layer1_2 = l1_2.feedforward(layer1_1)
-layer1_3 = l1_3.feedforward(layer1_2)
+layer1 = l1.feedforward(x)
+layer2 = l2.feedforward(layer1)
 
-layer2_Input = tf.nn.max_pool(layer1_3,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
-layer2_1 = l2_1.feedforward(layer2_Input)
-layer2_2 = l2_2.feedforward(layer2_1)
-layer2_3 = l2_3.feedforward(layer2_2)
+layer3_Input = tf.reshape(layer2,[batch_size,-1])
+layer3 = l3.feedforward(layer3_Input)
+layer4 = l4.feedforward(layer3)
 
-layer3_Input = tf.nn.max_pool(layer2_3,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
-layer3_1 = l3_1.feedforward(layer3_Input)
-layer3_2 = l3_2.feedforward(layer3_1)
-layer3_3 = l3_3.feedforward(layer3_2)
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer4,labels=y))
+auto_train = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 
-layer4_Input = tf.nn.max_pool(layer3_3,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
-layer4_1 = l4_1.feedforward(layer4_Input)
-layer4_2 = l4_2.feedforward(layer4_1)
-layer4_3 = l4_3.feedforward(layer4_2)
 
-layer5_Input = tf.nn.max_pool(layer4_3,ksize=[1,2,2,1],strides=[1,2,2,1],padding='VALID')
-layer5_1 = l5_1.feedforward(layer5_Input)
-layer5_2 = l5_2.feedforward(layer5_1)
-layer5_3 = l5_3.feedforward(layer5_2)
 
-layer6_Input = tf.concat([layer5_3,layer5_Input],axis=3)
-layer6_1 = l6_1.feedforward(layer6_Input)
-layer6_2 = l6_2.feedforward(layer6_1)
-layer6_3 = l6_3.feedforward(layer6_2)
 
-layer7_Input = tf.concat([layer6_3,layer4_Input],axis=3)
-layer7_1 = l7_1.feedforward(layer7_Input)
-layer7_2 = l7_2.feedforward(layer7_1)
-layer7_3 = l7_3.feedforward(layer7_2)
 
-layer8_Input = tf.concat([layer7_3,layer3_Input],axis=3)
-layer8_1 = l8_1.feedforward(layer8_Input)
-layer8_2 = l8_2.feedforward(layer8_1)
-layer8_3 = l8_3.feedforward(layer8_2)
-
-layer9_Input = tf.concat([layer8_3,layer2_Input],axis=3)
-layer9_1 = l9_1.feedforward(layer9_Input)
-layer9_2 = l9_2.feedforward(layer9_1)
-layer9_3 = l9_3.feedforward(layer9_2)
-
-layer10 = l10_final.feedforward(layer9_3)
-
-cost = tf.reduce_mean(tf.square(layer10-y))
-auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
 
 # --- start session ---
 with tf.Session() as sess:
@@ -214,8 +147,8 @@ with tf.Session() as sess:
         # train
         for current_batch_index in range(0,len(train_images),batch_size):
             current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-            current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
-            sess_results = sess.run([cost,auto_train,layer10],feed_dict={x:current_batch,y:current_label})
+            current_label = np.reshape(train_labels[current_batch_index:current_batch_index+batch_size,:,:,:],(batch_size,-1))
+            sess_results = sess.run([cost,auto_train],feed_dict={x:current_batch,y:current_label})
             print(' Iter: ', iter, " Cost:  %.32f"% sess_results[0],end='\r')
 
         print('\n-----------------------')
