@@ -10,13 +10,17 @@ tf.set_random_seed(5678)
 
 def tf_relu(x): return tf.nn.relu(x)
 def d_tf_relu(s): return tf.cast(tf.greater(s,0),dtype=tf.float32)
+
+def tf_tanh(x): return tf.nn.tanh(x)
+
+
 def tf_softmax(x): return tf.nn.softmax(x)
 
 # --- make class ---
 class CNN_Layer():
     
     def __init__(self,ker,in_c,out_c):
-        self.w = tf.Variable(tf.random_normal([ker,ker,in_c,out_c],stddev=0.05))
+        self.w = tf.Variable(tf.random_normal([ker,ker,in_c,out_c],stddev=0.005))
 
     def feedforward(self,input,stride=1,dilate=1):
         self.input  = input
@@ -49,6 +53,28 @@ class CNN_Layer():
         update_w.append(tf.assign(self.w, self.w - learning_rate * grad))
         return grad_pass,update_w
 
+class FNN_layer():
+    def __init__(self,input_dim,hidden_dim):
+        self.w = tf.Variable(tf.truncated_normal([input_dim,hidden_dim], stddev=0.005))
+
+    def feed_forward(self,input=None):
+        self.input = input
+        self.layer = tf.matmul(input,self.w)
+        self.layerA = tf_tanh(self.layer)
+        return self.layerA
+
+    def backpropagation(self,gradient=None):
+        grad_part_1 = gradient
+        grad_part_2 = self.d_act(self.layer)
+        grad_part_3 = self.input 
+
+        grad_x_mid = tf.multiply(grad_part_1,grad_part_2)
+        grad = tf.matmul(tf.transpose(grad_part_3),grad_x_mid)
+        grad_pass = tf.matmul(tf.multiply(grad_part_1,grad_part_2),tf.transpose(self.w))
+
+        update_w = []
+        update_w.append(tf.assign(self.w, self.w - learning_rate * grad))
+        return grad_pass,update_w
 
         
 
