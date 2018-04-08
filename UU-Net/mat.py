@@ -92,10 +92,10 @@ for dirName, subdirList, fileList in sorted(os.walk(data_location)):
             train_data_gt.append(os.path.join(dirName,filename))
 
 
-train_images = np.zeros(shape=(120,64,64,1))
-train_labels = np.zeros(shape=(120,64,64,1))
+train_images = np.zeros(shape=(128,64,64,1))
+train_labels = np.zeros(shape=(128,64,64,1))
 
-for file_index in range(len(train_data)-8):
+for file_index in range(len(train_data)):
     train_images[file_index,:,:]   = np.expand_dims(imresize(imread(train_data[file_index],mode='F',flatten=True),(64,64)),axis=2)
     train_labels[file_index,:,:]   = np.expand_dims(imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(64,64)),axis=2)
 
@@ -105,16 +105,17 @@ train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train
 
 
 
+
 # --- hyper ---
 num_epoch = 100
 init_lr = 0.01
-batch_size = 10
+batch_size = 2
 
 # --- make layer ---
 l1 = CNN_Layer(5,1,10)
-l2 = CNN_Layer(5,10,20)
+l2 = CNN_Layer(5,10,25)
 
-FNN_Input = 64 * 64 * 10
+FNN_Input = 64 * 64 * 25 
 l3 = FNN_layer(FNN_Input,1000)
 l4 = FNN_layer(1000,64*64)
 
@@ -124,14 +125,13 @@ y = tf.placeholder(shape=[None,64*64],dtype=tf.float32)
 
 layer1 = l1.feedforward(x)
 layer2 = l2.feedforward(layer1)
-
 layer3_Input = tf.reshape(layer2,[batch_size,-1])
 layer3 = l3.feedforward(layer3_Input)
 layer4 = l4.feedforward(layer3)
 
+final_softmax = tf_softmax(layer4)
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=layer4,labels=y))
-# auto_train = tf.train.GradientDescentOptimizer(learning_rate=init_lr).minimize(cost)
-auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
+auto_train = tf.train.GradientDescentOptimizer(learning_rate=init_lr).minimize(cost)
 
 
 
@@ -158,7 +158,7 @@ with tf.Session() as sess:
         if iter % 2 == 0:
             test_example =   train_images[:batch_size,:,:,:]
             test_example_gt = np.reshape(train_labels[:batch_size,:,:,:],(batch_size,-1))
-            sess_results = sess.run([layer4],feed_dict={x:test_example})
+            sess_results = sess.run([final_softmax],feed_dict={x:test_example})
 
             sess_results = np.reshape(sess_results[0][0],(64,64))
             test_example = test_example[0,:,:,:]
@@ -203,7 +203,7 @@ with tf.Session() as sess:
             for current_batch_index in range(0,len(train_images),batch_size):
                 current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
                 current_label = np.reshape(train_labels[current_batch_index:current_batch_index+batch_size,:,:,:],(batch_size,-1))
-                sess_results = sess.run([cost,auto_train,layer4],feed_dict={x:current_batch,y:current_label})
+                sess_results = sess.run([cost,auto_train,final_softmax],feed_dict={x:current_batch,y:current_label})
 
                 plt.figure()
                 plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
