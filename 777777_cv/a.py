@@ -36,7 +36,7 @@ for x in range(len(one)):
     temp = convolve2d(one[x,:,:],kernerl,mode='same')
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 # 2. Edge Detection (Horizontal)
 kernerl = np.array([
@@ -49,7 +49,7 @@ for x in range(len(one)):
     temp = convolve2d(one[x,:,:],kernerl,mode='same')
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 # 3. Edge Detection (Vertical)
 kernerl = np.array([
@@ -62,7 +62,7 @@ for x in range(len(one)):
     temp = convolve2d(one[x,:,:],kernerl,mode='same')
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 # 4. Gradient Magnitude
 kernerl1 = np.array([
@@ -84,7 +84,7 @@ for x in range(len(one)):
 
     plt.axis('off')
     plt.imshow(temp3,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 # 5. Gradient Direction
@@ -107,7 +107,7 @@ for x in range(len(one)):
 
     plt.axis('off')
     plt.imshow(temp3,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 # 6. Sobel Gradient Magnitude
@@ -130,7 +130,7 @@ for x in range(len(one)):
 
     plt.axis('off')
     plt.imshow(temp3,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 # 7. Sobel Gradient Direction
@@ -153,7 +153,7 @@ for x in range(len(one)):
 
     plt.axis('off')
     plt.imshow(temp3,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 # 8. Guassian Blur
@@ -164,7 +164,7 @@ for x in range(len(one)):
         )
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 
@@ -189,7 +189,7 @@ for x in range(len(one)):
 
     plt.axis('off')
     plt.imshow(temp3 +one[x,:,:] ,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 
@@ -204,7 +204,7 @@ for x in range(len(one)):
     temp = convolve2d(one[x,:,:],kernerl,mode='same') + 128
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 
@@ -213,7 +213,7 @@ for x in range(len(one)):
     segments = slic(one[x,:,:], n_segments = 50, sigma = 10)
     plt.axis('off')
     plt.imshow(mark_boundaries(one[x,:,:], segments))
-    plt.savefig(str(x)+'.png',bbox_inches='tight')
+    plt.show()
 
 
 
