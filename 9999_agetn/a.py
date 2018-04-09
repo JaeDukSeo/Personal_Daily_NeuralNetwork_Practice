@@ -1,4 +1,3 @@
-import tensorflow as tf
 import numpy as np,sys,os
 from sklearn.utils import shuffle
 from scipy.ndimage import imread
@@ -34,13 +33,17 @@ for file_index in range(len(train_data)):
     train_images[file_index,:,:]   = imresize(imread(train_data[file_index],mode='F',flatten=True),(256,256))
     train_labels[file_index,:,:]   = imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(256,256))
 
-train_images = (train_images - train_images.min()) / (train_images.max() - train_images.min())
-train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train_labels.min())
+# train_images = (train_images - train_images.min()) / (train_images.max() - train_images.min())
+# train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train_labels.min())
+print(train_images.max())
+print(train_labels.max())
 
-print(train_images.sum())
-print(train_labels.sum())
+# hyepr
+num_epid = 3000
+q1 = np.zeros(64) + np.random.randint(200,size=(64)) 
 
-q1 = np.zeros(64)
+
+
 one = train_images[0,:,:]
 two = medfilt(one,7)
 
@@ -49,10 +52,10 @@ M = two.shape[0]//8
 N = two.shape[1]//8
 
 tiles = [two[x:x+M,y:y+N] for x in range(0,two.shape[0],M) for y in range(0,two.shape[1],N)]
-
 for i in range(len(tiles)):
-    action_threshold = q1[i] + np.random.randn()
-    results = tiles[i] < action_threshold
+    
+    action_threshold = q1[i] 
+    ret, results = cv2.threshold(tiles[i], action_threshold, 255, cv2.THRESH_BINARY)
     reward_one = cv2.bitwise_xor(tiles[i],results) / len(tiles)
 
 
