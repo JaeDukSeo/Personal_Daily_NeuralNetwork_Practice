@@ -40,24 +40,49 @@ print(train_labels.max())
 
 # hyepr
 num_epid = 3000
+learning_rate = 0.9
+discount = 0.9
 q1 = np.zeros(64) + np.random.randint(200,size=(64)) 
 
 
-
-one = train_images[0,:,:]
+one = train_labels[0,:,:]
 two = medfilt(one,7)
 
 # 8 * 8 matrix make each tile have 32 pixel
-M = two.shape[0]//8
-N = two.shape[1]//8
+M = two.shape[0]//4
+N = two.shape[1]//4
 
-tiles = [two[x:x+M,y:y+N] for x in range(0,two.shape[0],M) for y in range(0,two.shape[1],N)]
+for _ in range(num_epid):
+    tiles = [two[x:x+M,y:y+N] for x in range(0,two.shape[0],M) for y in range(0,two.shape[1],N)]
+    for i in range(len(tiles)-1):
+        action_threshold = q1[i] 
+        ret, results = cv2.threshold(tiles[i], action_threshold, 255, cv2.THRESH_BINARY)
+        reward_one = cv2.bitwise_xor(tiles[i],results) / len(tiles)
+        q1[i] = q1[i] + discount * (reward_one.sum() + learning_rate*q1[i+1] - q1[i])
+
+temp = ""
+temp2 = ""
 for i in range(len(tiles)):
-    
     action_threshold = q1[i] 
-    ret, results = cv2.threshold(tiles[i], action_threshold, 255, cv2.THRESH_BINARY)
-    reward_one = cv2.bitwise_xor(tiles[i],results) / len(tiles)
+
+    if i == 0:
+        ret, results = cv2.threshold(tiles[i], action_threshold, 255, cv2.THRESH_BINARY)
+        temp = results
+        temp2 = tiles[i]
+    else:
+        
+        temp = np.hstack((temp,results))
+        temp2 = np.hstack((temp2,tiles[i]))
+        
+
+plt.imshow(temp,cmap='gray')
+plt.show()
+
+plt.imshow(temp2,cmap='gray')
+plt.show()
 
 
+plt.imshow(two,cmap='gray')
+plt.show()
 
 # -- end code --
