@@ -54,11 +54,12 @@ N = two.shape[1]//4
 
 for _ in range(num_epid):
     tiles = [two[x:x+M,y:y+N] for x in range(0,two.shape[0],M) for y in range(0,two.shape[1],N)]
+    tiles[0] = np.ones_like(tiles[0]) + 200
     for i in range(len(tiles)-1):
         action_threshold = q1[i] 
         ret, results = cv2.threshold(tiles[i], action_threshold, 255, cv2.THRESH_BINARY)
         reward_one = cv2.bitwise_xor(tiles[i],results) / len(tiles)
-        q1[i] = q1[i] + discount * (reward_one.sum() + learning_rate*q1[i+1] - q1[i])
+        q1[i] = q1[i] + learning_rate * (reward_one.sum() + discount*q1[i+1] - q1[i])
 
 temp = ""
 temp2 = ""
@@ -66,6 +67,7 @@ for i in range(len(tiles)):
     action_threshold = q1[i] 
 
     if i == 0:
+        tiles[i] = np.ones_like(tiles[i]) * 50
         ret, results = cv2.threshold(tiles[i], action_threshold, 255, cv2.THRESH_BINARY)
         temp = results
         temp2 = tiles[i]
