@@ -12,9 +12,9 @@ temp  = imgs_utrecht[0,:,:,:]
 temp2 = mask_utrecht[0,:,:,:]
 for x in range(temp.shape[2]):
     plt.imshow(temp[:,:,x],cmap='gray')
-    plt.pause(0.04)
+    plt.show()
 
-    plt.imshow(temp2[:,:,x],cmap='gray')
-    plt.pause(0.04)
+    # plt.imshow(temp2[:,:,x],cmap='gray')
+    # plt.pause(0.04)
 
 # -- end code --
