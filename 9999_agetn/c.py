@@ -31,8 +31,8 @@ for epid in range(num_epid):
         current_state = data[:10,state:state+10]
         current_label = label[:10,state:state+10]
         
-        epilson = np.random.randint(10)
-        if epilson < 5:
+        epsilon = np.random.randint(10)
+        if epsilon < 5:
             action = q_table[int(state/10)]
         else: 
             action = q_table[int(state/10)] - np.random.randn()/(epid+1e-8)
@@ -83,7 +83,6 @@ for state in range(0,label.shape[1]-10,10):
 final = np.hstack((final,data[:10,90:]))
 final_truth = final.copy()
 
-print(q_table)
 print('Obtained Q Table By learning : ',q_table)
 print('Hand Crafted Q Table : ',q_table_true)
 
