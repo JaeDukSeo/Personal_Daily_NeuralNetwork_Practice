@@ -87,10 +87,11 @@ print(q_table)
 print('Obtained Q Table By learning : ',q_table)
 print('Hand Crafted Q Table : ',q_table_true)
 
-print(data.shape)
-print(label.shape)
-print(final_obained.shape)
-print(final_truth.shape)
+print('-----------------------------')
+print('Sumed value for original data: ',data.sum())
+print('Sumed value for Ground Truth data: ',label.sum())
+print('Sumed value for trained data: ',final_obained.sum())
+print('Sumed value for hand crafted data: ',final_truth.sum())
 
 
 plt.imshow(data,cmap='gray')
