@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 np.random.seed(678)
-np.set_printoptions(precision=0)
+np.set_printoptions(precision=3)
 
 # generate data / label
 data = np.ones((10,100))
@@ -83,7 +83,8 @@ for state in range(0,label.shape[1]-10,10):
 final = np.hstack((final,data[:10,90:]))
 final_truth = final.copy()
 
-print('Obtained Q Table By learning : ',q_table)
+print('Raw Obtained Q Table By learning : ',q_table)
+print('Rouneded Obtained Q Table By learning : ',np.round(q_table))
 print('Hand Crafted Q Table : ',q_table_true)
 
 print('-----------------------------')
