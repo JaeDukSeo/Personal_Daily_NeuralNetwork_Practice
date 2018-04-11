@@ -42,7 +42,7 @@ for dirName, subdirList, fileList in os.walk(PathDicom):
         lstFilesDCM.append(os.path.join(dirName,filename))
 
 
-# 18. 
+# 16. 
 # for file_index in range(len(lstFilesDCM)):
 #     temp = noisy(imread(lstFilesDCM[file_index]))
 #     result = cv2.medianBlur(temp,5)
@@ -53,7 +53,47 @@ for dirName, subdirList, fileList in os.walk(PathDicom):
 # print('-----------------------------')
 
 
+# 18. 
+for file_index in range(len(lstFilesDCM)):
+    temp = imread(lstFilesDCM[file_index])
+    kernel = np.array([
+        [0,0,0],
+        [0,1,0],
+        [0,0,0]
+    ]).astype(np.float32)
+    result = cv2.filter2D(temp,-1,kernel)
+    subtract = temp - result
+    final = temp + subtract
+    plt.imshow(temp)
+    plt.show()
+    plt.imshow(subtract)
+    plt.show()
+    plt.imshow(final)
+    plt.show()
 
+for file_index in range(len(lstFilesDCM)):
+    temp = imread(lstFilesDCM[file_index])
+    result = cv2.medianBlur(temp,3)
+    subtract = temp - result
+    final = temp + subtract
+    
+    plt.imshow(temp)
+    plt.show()
+    plt.imshow(subtract)
+    plt.show()
+    plt.imshow(final)
+    plt.show()
+
+for file_index in range(len(lstFilesDCM)):
+    temp = imread(lstFilesDCM[file_index])
+    result = cv2.medianBlur(temp,3)
+    final = temp + result
+    
+    plt.imshow(temp)
+    plt.show()
+    plt.imshow(final)
+    plt.show()
+print('-----------------------------')
 
 
 
