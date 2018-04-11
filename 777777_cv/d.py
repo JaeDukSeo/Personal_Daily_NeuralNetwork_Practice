@@ -43,14 +43,14 @@ for dirName, subdirList, fileList in os.walk(PathDicom):
 
 
 # 16. 
-# for file_index in range(len(lstFilesDCM)):
-#     temp = noisy(imread(lstFilesDCM[file_index]))
-#     result = cv2.medianBlur(temp,5)
-#     plt.imshow(temp)
-#     plt.show()
-#     plt.imshow(result)
-#     plt.show()
-# print('-----------------------------')
+for file_index in range(len(lstFilesDCM)):
+    temp = noisy(imread(lstFilesDCM[file_index]))
+    result = cv2.medianBlur(temp,5)
+    plt.imshow(temp)
+    plt.show()
+    plt.imshow(result)
+    plt.show()
+print('-----------------------------')
 
 
 # 18. 
