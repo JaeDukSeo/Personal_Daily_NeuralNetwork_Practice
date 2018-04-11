@@ -26,27 +26,6 @@ for file_index in range(len(lstFilesDCM)):
 print('===== Done READING DATA ========')
 
 
-
-
-
-transform_matrix = np.array([
-    [1,-1/2,300 ],
-    [0,0.9,100],
-    [0.001,0.001,1.5],
-]).astype(np.float32)
-
-
-for x in range(len(one)):
-    temp = cv2.warpPerspective(one[x,:,:],transform_matrix,(512,512))
-    plt.axis('off')
-    plt.imshow(temp,cmap='gray')
-    plt.savefig(str(x) + '.png',bbox_inches='tight')
-    # plt.show()
-
-
-sys.exit()
-
-
 # 1. Identity
 transform_matrix = np.array([
     [1,0,0],
@@ -119,24 +98,19 @@ for x in range(len(one)):
 
 
 # 6. Homogeneous
-
 transform_matrix = np.array([
-    [1/2,0,0],
-    [0,1/2,0],
+    [1,-1/2,300 ],
+    [0,0.9,100],
+    [0.001,0.001,1.5],
 ]).astype(np.float32)
 
-transform_matrix = np.array([
-    [1/2,1,1],
-    [1,1/2,1],
-    [0,0,1],
-]).astype(np.float32)
 
 for x in range(len(one)):
     temp = cv2.warpPerspective(one[x,:,:],transform_matrix,(512,512))
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
-    plt.show()
-
+    plt.savefig(str(x) + '.png',bbox_inches='tight')
+    # plt.show()
 
 
 
