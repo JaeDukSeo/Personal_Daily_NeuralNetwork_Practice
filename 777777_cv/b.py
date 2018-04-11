@@ -28,19 +28,16 @@ print('===== Done READING DATA ========')
 
 
 
-M = cv2.getRotationMatrix2D((512/2,512/2),90,1)
-print(M)
 
 transform_matrix = np.array([
-    [np.cos(np.pi/2),np.sin(np.pi/2), (1-np.cos(np.pi/2))*256-np.sin(np.pi/2)*256 ],
-    [-np.sin(np.pi/2),np.cos(np.pi/2),np.sin(np.pi/2)*256+(1-np.cos(np.pi/2))*256  ],
+    [1,-1/2,300 ],
+    [0,0.9,100],
+    [0.001,0.001,1.5],
 ]).astype(np.float32)
-print(transform_matrix)
-# transform_matrix = cv2.getRotationMatrix2D((512/2,512/2),90,1)
 
 
 for x in range(len(one)):
-    temp = cv2.warpAffine(one[x,:,:],transform_matrix,(512,512))
+    temp = cv2.warpPerspective(one[x,:,:],transform_matrix,(512,512))
     plt.axis('off')
     plt.imshow(temp,cmap='gray')
     plt.savefig(str(x) + '.png',bbox_inches='tight')
@@ -107,6 +104,18 @@ for x in range(len(one)):
     # plt.show()
 
 # 5. Rotation
+transform_matrix = np.array([
+    [np.cos(np.pi/2),np.sin(np.pi/2), (1-np.cos(np.pi/2))*256-np.sin(np.pi/2)*256 ],
+    [-np.sin(np.pi/2),np.cos(np.pi/2),np.sin(np.pi/2)*256+(1-np.cos(np.pi/2))*256  ],
+]).astype(np.float32)
+
+
+for x in range(len(one)):
+    temp = cv2.warpAffine(one[x,:,:],transform_matrix,(512,512))
+    plt.axis('off')
+    plt.imshow(temp,cmap='gray')
+    plt.savefig(str(x) + '.png',bbox_inches='tight')
+    # plt.show()
 
 
 # 6. Homogeneous
