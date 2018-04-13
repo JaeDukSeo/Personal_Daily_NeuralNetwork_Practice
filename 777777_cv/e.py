@@ -72,12 +72,10 @@ for x in range(len(one)):
 
 # 3. LoG (Smooth)
 for x in range(len(one)):
-    s = 1
-    w = 3
-    t = (((w - 1)/2)-0.5)/s
+    s = 1.5
     temp = scipy.ndimage.filters.gaussian_filter(
         one[x,:,:],
-        sigma = s,truncate = t
+        sigma = s
         )
     
     lap_kernel = np.array([
@@ -86,13 +84,25 @@ for x in range(len(one)):
         [0,1,0]
     ])
 
-    result = convolve2d(temp,lap_kernel)
+    result = cv2.filter2D(temp,-1,lap_kernel) 
     plt.axis('off')
     plt.imshow(result,cmap='gray')
     plt.savefig(str(x) + '.png',bbox_inches='tight')
     # plt.show()
 
+# 4. LoG (no Smooth)
+for x in range(len(one)):
+    lap_kernel = np.array([
+        [0,1,0],
+        [1,-4,1],
+        [0,1,0]
+    ])
 
+    result = cv2.filter2D(one[x,:,:],-1,lap_kernel) 
+    plt.axis('off')
+    plt.imshow(result,cmap='gray')
+    plt.savefig(str(x) + '.png',bbox_inches='tight')
+    # plt.show()
 
 
 
