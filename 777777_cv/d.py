@@ -101,3 +101,29 @@ print('-----------------------------')
 
 
 # ---- end code --
+
+
+# 1. Guassian Blur
+for x in range(len(one)):
+    s = 2
+    w = 5
+    t = (((w - 1)/2)-0.5)/s
+
+    temp = scipy.ndimage.filters.gaussian_filter(
+        one[x,:,:],
+        sigma = s,truncate = t
+        )
+
+    s = 2
+    w = 3
+    t = (((w - 1)/2)-0.5)/s
+    temp2 = scipy.ndimage.filters.gaussian_filter(
+        one[x,:,:],
+        sigma = s,truncate = t
+        )
+
+    result = temp - temp2
+    result = (result > result.mean())*result
+    plt.axis('off')
+    plt.imshow(result,cmap='gray')
+    plt.show()
