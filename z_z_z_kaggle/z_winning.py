@@ -93,7 +93,7 @@ print(len(train_labels))
 print(len(test_images))
 
 # --- hyper ---
-num_epoch = 150
+num_epoch = 100
 init_lr = 0.0001
 batch_size = 5
 
@@ -187,7 +187,6 @@ layer9_2 = l9_2.feedforward(layer9_1)
 layer9_3 = l9_3.feedforward(layer9_2)
 
 layer10 = l10_final.feedforward(layer9_3)
-
 cost = tf.reduce_mean(tf.square(layer10-y))
 auto_train = tf.train.AdamOptimizer(learning_rate=init_lr).minimize(cost)
 
@@ -251,10 +250,11 @@ with tf.Session() as sess:
 
             plt.close('all')
 
-    # final run train
-    for data_index in range(0,len(train_images),batch_size):
-        current_batch = train_images[current_batch_index:current_batch_index+batch_size,:,:,:]
-        current_label = train_labels[current_batch_index:current_batch_index+batch_size,:,:,:]
+    # final run train only 50 images
+    # for data_index in range(0,len(train_images),batch_size):
+    for data_index in range(len(train_images),len(train_images),batch_size):
+        current_batch = train_images[data_index:data_index+batch_size,:,:,:]
+        current_label = train_labels[data_index:data_index+batch_size,:,:,:]
         sess_results = sess.run(layer10,feed_dict={x:current_batch})
 
         plt.figure()
@@ -290,27 +290,37 @@ with tf.Session() as sess:
         plt.close('all')
 
     # final run test
-    for data_index in range(0,len(train_images),batch_size):
-        current_batch = test_images[current_batch_index:current_batch_index+batch_size,:,:,:]
+    for data_index in range(0,len(test_images),batch_size):
+        
+        current_batch_name = test_files[data_index:data_index+batch_size]
+        current_batch = test_images[data_index:data_index+batch_size,:,:,:]
         sess_results = sess.run(layer10,feed_dict={x:current_batch})
 
-        plt.figure()
-        plt.imshow(np.squeeze(current_batch[0,:,:,:]),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"a_Original Image")
-        plt.savefig('final_test/'+str(data_index)+"a_Original_Image.png")
+        for i in range(len(current_batch)):
+            name = current_batch_name[i]
 
-        plt.figure()
-        plt.imshow(np.squeeze(sess_results[0,:,:,:]),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"c_Generated Mask")
-        plt.savefig('final_test/'+str(data_index)+"c_Generated_Mask.png")
+            plt.figure()
+            plt.imshow(np.squeeze(current_batch[i,:,:,:]),cmap='gray')
+            plt.axis('off')
+            plt.title(str(data_index)+"a_Original Image")
+            plt.savefig('final_test/'+str(data_index)+"_"+str(i) + "a_Original_Image.png")
 
-        plt.figure()
-        plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(sess_results[0,:,:,:])),cmap='gray')
-        plt.axis('off')
-        plt.title(str(data_index)+"e_Generated Image Overlay")
-        plt.savefig('final_test/'+str(data_index)+"e_Generated_Image_Overlay.png")
+            plt.figure()
+            plt.imshow(np.squeeze(sess_results[i,:,:,:]),cmap='gray')
+            plt.axis('off')
+            plt.title(str(data_index)+"c_Generated Mask")
+            plt.savefig('final_test/'+str(data_index)+"_"+str(i)+"c_Generated_Mask.png")
 
-        plt.close('all')
+            plt.figure()
+            plt.imshow(np.squeeze(sess_results[i,:,:,:]),cmap='gray')
+            plt.axis('off')
+            plt.savefig('final_test_mask/'+name)
+
+            plt.figure()
+            plt.imshow(np.multiply(np.squeeze(current_batch[0,:,:,:]),np.squeeze(sess_results[0,:,:,:])),cmap='gray')
+            plt.axis('off')
+            plt.title(str(data_index)+"e_Generated Image Overlay")
+            plt.savefig('final_test/'+str(data_index)+"_"+str(i)+"e_Generated_Image_Overlay.png")
+
+            plt.close('all')
 # -- end code --
