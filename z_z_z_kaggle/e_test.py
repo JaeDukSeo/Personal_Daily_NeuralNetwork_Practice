@@ -7,7 +7,7 @@ from skimage.transform import resize
 import matplotlib.image as mpimg
 
 
-PathDicom = "./b_data/test/"
+PathDicom = "./b_data/test2/"
 lstFilesDCM = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(PathDicom):
     if 'images' in dirName:
@@ -59,7 +59,7 @@ for current_file in lstFilesDCM:
         ax.set_axis_off()
         fig.add_axes(ax)
         ax.imshow(current_all_images,cmap='gray')
-        plt.savefig("./c_preprocessed_data/test/"+str(save_test_file_name),dpi=height)
+        plt.savefig("./c_preprocessed_data/test2/"+str(save_test_file_name),dpi=height)
         plt.close()
 
         print('----------')
