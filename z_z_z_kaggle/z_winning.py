@@ -51,14 +51,14 @@ train_label = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(data_location):
     train_label = fileList
 
-data_location = "./c_preprocessed_data/test/"
+data_location = "./c_preprocessed_data/test2/"
 test_files = []  # create an empty list
 for dirName, subdirList, fileList in os.walk(data_location):
     test_files = fileList
 
 train_images = np.zeros((670,256,256,1))
 train_labels = np.zeros((670,256,256,1))
-test_images  = np.zeros((65,256,256,1))
+test_images  = np.zeros((3019,256,256,1))
 
 print(train_images.sum())
 print(train_labels.sum())
@@ -71,7 +71,7 @@ for files in range(len(train_label)):
     train_labels[files,:,:,:] = np.expand_dims(imread("./c_preprocessed_data/mask/"+train_label[files],'F'),axis=3)
 
 for files in range(len(test_files)):
-    test_images[files,:,:,:] = np.expand_dims(imread("./c_preprocessed_data/test/"+test_files[files],'F'),axis=3)
+    test_images[files,:,:,:] = np.expand_dims(imread("./c_preprocessed_data/test2/"+test_files[files],'F'),axis=3)
 
 print('---- raw -----')
 print(train_images.sum())
