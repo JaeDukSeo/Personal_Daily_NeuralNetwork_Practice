@@ -41,30 +41,50 @@ class conlayer_right():
         return self.layerA
 
 # --- get data ---
-data_location = "./DRIVE/training/images/"
-train_data = []  # create an empty list
-for dirName, subdirList, fileList in sorted(os.walk(data_location)):
-    for filename in fileList:
-        if ".tif" in filename.lower():  # check whether the file's DICOM
-            train_data.append(os.path.join(dirName,filename))
+data_location = "./c_preprocessed_data/train/"
+train_files = []  # create an empty list
+for dirName, subdirList, fileList in os.walk(data_location):
+    train_files = fileList
 
-data_location = "./DRIVE/training/1st_manual/"
-train_data_gt = []  # create an empty list
-for dirName, subdirList, fileList in sorted(os.walk(data_location)):
-    for filename in fileList:
-        if ".tif" in filename.lower():  # check whether the file's DICOM
-            train_data_gt.append(os.path.join(dirName,filename))
+data_location = "./c_preprocessed_data/mask/"
+train_label = []  # create an empty list
+for dirName, subdirList, fileList in os.walk(data_location):
+    train_label = fileList
 
+data_location = "./c_preprocessed_data/test/"
+test_files = []  # create an empty list
+for dirName, subdirList, fileList in os.walk(data_location):
+    test_files = fileList
 
-train_images = np.zeros(shape=(128,256,256,1))
-train_labels = np.zeros(shape=(128,256,256,1))
+train_images = np.zeros((670,256,256,1))
+train_labels = np.zeros((670,256,256,1))
+test_images  = np.zeros((65,256,256,1))
 
-for file_index in range(len(train_data)):
-    train_images[file_index,:,:]   = np.expand_dims(imresize(imread(train_data[file_index],mode='F',flatten=True),(256,256)),axis=2)
-    train_labels[file_index,:,:]   = np.expand_dims(imresize(imread(train_data_gt[file_index],mode='F',flatten=True),(256,256)),axis=2)
+print(train_images.sum())
+print(train_labels.sum())
+print(test_images.sum())
+
+for files in range(len(train_files)):
+    train_images[files,:,:,:] = np.expand_dims(imread("./c_preprocessed_data/train/"+train_files[files],'F'),axis=3)
+
+for files in range(len(train_label)):
+    train_labels[files,:,:,:] = np.expand_dims(imread("./c_preprocessed_data/mask/"+train_label[files],'F'),axis=3)
+
+for files in range(len(test_files)):
+    test_images[files,:,:,:] = np.expand_dims(imread("./c_preprocessed_data/test/"+test_files[files],'F'),axis=3)
+
+print(train_images.sum())
+print(train_labels.sum())
+print(test_images.sum())
 
 train_images = (train_images - train_images.min()) / (train_images.max() - train_images.min())
 train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train_labels.min())
+test_images = (test_images - test_images.min()) / (test_images.max() - test_images.min())
+
+
+
+
+sys.exit()
 
 # --- hyper ---
 num_epoch = 100
